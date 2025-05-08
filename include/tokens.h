@@ -12,7 +12,10 @@ enum class TokenType {
     Unknown
 };
 
-struct Token {
+class Token {
+public:
+    ~Token() = default;
     TokenType type;
     std::string value;
+    std::string toString() const;
 };

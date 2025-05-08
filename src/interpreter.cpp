@@ -27,7 +27,7 @@ void BasicInterpreter::runREPL(){
         // Call tokenizer and parser to process input
         Tokenizer tokenizer;
         std::vector<Token> tokens = tokenizer.tokenize(cleaned);
-        Parser parser(tokens, _io);
+        Parser parser(tokens, _io, _variables);
         parser.parse();
     }
 }
