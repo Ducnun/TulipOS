@@ -14,6 +14,7 @@ void BasicInterpreter::runREPL(){
         _io.print("");
         _io.print("> ");
         std::string line = _io.readLine();
+        
         // Clean line, if empty, skip
         std::string cleaned = preprocess(line);
         if (cleaned.empty()) continue;
@@ -32,33 +33,24 @@ void BasicInterpreter::runREPL(){
 
         // Run stored program when called
         if (cleaned == "RUN"){
-            for (const auto& [lineNumber, tokens] : _programLines){
-                Parser parser(tokens, _io, _variables);
-                parser.parse();
-            }
+            runProgram();
             continue;
         }
 
         // List stored program lines
         if (cleaned == "LIST"){
-            for (const auto& [lineNumber, line] : _programLines){
-                _io.print(std::to_string(lineNumber) + " ");
-                for (const auto& seg : line){
-                    _io.print(seg.value + " ");
-                }
-                _io.print("\n");
-            }
+            listProgram();
+            continue;
         }
 
+        // Clean program when command NEW is entered in the terminal
         if (cleaned == "NEW"){
-            _programLines.clear();
+            clearProgram();
+            continue;
         }
 
         // Call tokenizer and parser to process input
-        Tokenizer tokenizer;
-        std::vector<Token> tokens = tokenizer.tokenize(cleaned);
-        Parser parser(tokens, _io, _variables);
-        parser.parse();
+        evaluateImmediateCommand(cleaned);
     }
 }
 
@@ -75,11 +67,39 @@ void BasicInterpreter::storeProgramLine(const std::string& line){
     std::istringstream iss(line);
     int lineNumber;
     iss >> lineNumber;
-
+    
     std::string rest;
     std::getline(iss, rest);
-
+    
     Tokenizer tokenizer;
     std::vector<Token> tokens = tokenizer.tokenize(rest);
     _programLines[lineNumber] = tokens;
+}
+
+void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
+    Tokenizer tokenizer;
+    std::vector<Token> tokens = tokenizer.tokenize(line);
+    Parser parser(tokens, _io, _variables);
+    parser.parse();
+}
+
+void BasicInterpreter::runProgram(){
+    for (const auto& [lineNumber, tokens] : _programLines){
+        Parser parser(tokens, _io, _variables);
+        parser.parse();
+    }
+}
+
+void BasicInterpreter::listProgram(){
+    for (const auto& [lineNumber, line] : _programLines){
+                _io.print(std::to_string(lineNumber) + " ");
+                for (const auto& seg : line){
+                    _io.print(seg.value + " ");
+                }
+                _io.print("\n");
+    }
+}
+
+void BasicInterpreter::clearProgram(){
+    _programLines.clear();
 }
