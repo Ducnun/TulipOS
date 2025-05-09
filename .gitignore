@@ -1,6 +1,10 @@
 # Prerequisites
 *.d
 
+# Settings
+*.json
+*.dblite
+
 # Compiled Object files
 *.slo
 *.lo
