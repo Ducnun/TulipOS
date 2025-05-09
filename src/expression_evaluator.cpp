@@ -6,6 +6,16 @@ ExpressionEvaluator::ExpressionEvaluator(const std::unordered_map<std::string, s
 int ExpressionEvaluator::precedence(const std::string& op){
     if (op == "+" || op == "-") return 1;
     if (op == "*" || op == "/") return 2;
-    if (op == "+" || op == "-") return 0;
+    return 0;
 }
 
+bool ExpressionEvaluator::isOperator(const Token& token){
+    return token.type == TokenType::Symbol && (token.value == "+" || token.value == "-" || token.value == "/" || token.value == "*");
+}
+
+std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
+    std::vector<Token> output;
+    std::stack<Token> ops;
+
+
+}
