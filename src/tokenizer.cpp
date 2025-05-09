@@ -45,7 +45,7 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
             }
 
             static const std::unordered_set<std::string> keywords = {
-                "PRINT", "RUN", "LET", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "RETURN", "END"
+                "PRINT", "RUN", "LET", "NEW", "LIST", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "RETURN", "END"
             };
 
             if (keywords.count(ident)) {

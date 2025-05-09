@@ -24,6 +24,36 @@ void BasicInterpreter::runREPL(){
             break;
         }
 
+        // Store as program line if line starts with digits
+        if (isdigit(cleaned[0])) {
+            storeProgramLine(cleaned);
+            continue;
+        }
+
+        // Run stored program when called
+        if (cleaned == "RUN"){
+            for (const auto& [lineNumber, tokens] : _programLines){
+                Parser parser(tokens, _io, _variables);
+                parser.parse();
+            }
+            continue;
+        }
+
+        // List stored program lines
+        if (cleaned == "LIST"){
+            for (const auto& [lineNumber, line] : _programLines){
+                _io.print(std::to_string(lineNumber) + " ");
+                for (const auto& seg : line){
+                    _io.print(seg.value + " ");
+                }
+                _io.print("\n");
+            }
+        }
+
+        if (cleaned == "NEW"){
+            _programLines.clear();
+        }
+
         // Call tokenizer and parser to process input
         Tokenizer tokenizer;
         std::vector<Token> tokens = tokenizer.tokenize(cleaned);
@@ -39,4 +69,17 @@ std::string BasicInterpreter::preprocess(const std::string& line){
         result += std::toupper(c);
     }
     return result;
+}
+
+void BasicInterpreter::storeProgramLine(const std::string& line){
+    std::istringstream iss(line);
+    int lineNumber;
+    iss >> lineNumber;
+
+    std::string rest;
+    std::getline(iss, rest);
+
+    Tokenizer tokenizer;
+    std::vector<Token> tokens = tokenizer.tokenize(rest);
+    _programLines[lineNumber] = tokens;
 }

@@ -2,6 +2,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <sstream>
 #include "io_interface.h"
 #include "tokenizer.h"
 #include "parser.h"
@@ -14,7 +15,7 @@ public:
 
 private:
     IOInterface& _io;
-    std::map<int, std::string> programLines;
+    std::map<int, std::vector<Token>> _programLines;
     std::unordered_map<std::string, int> _variables;
 
     std::string preprocess(const std::string& line);
