@@ -84,19 +84,23 @@ void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
 }
 
 void BasicInterpreter::runProgram(){
-    for (const auto& [lineNumber, tokens] : _programLines){
+    for (const auto& pair : _programLines){
+        std::vector<Token> tokens = pair.second;
         Parser parser(tokens, _io, _variables);
         parser.parse();
     }
 }
 
 void BasicInterpreter::listProgram(){
-    for (const auto& [lineNumber, line] : _programLines){
-                _io.print(std::to_string(lineNumber) + " ");
-                for (const auto& seg : line){
-                    _io.print(seg.value + " ");
-                }
-                _io.print("\n");
+    for (const auto& pair : _programLines){
+            int lineNumber = pair.first;
+            const auto& line = pair.second;
+            _io.print(std::to_string(lineNumber) + " ");
+
+            for (const auto& seg : line){
+                _io.print(seg.value + " ");
+            }
+            _io.print("\n");
     }
 }
 

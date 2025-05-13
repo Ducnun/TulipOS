@@ -1,6 +1,6 @@
 #include "expression_evaluator.h"
 
-ExpressionEvaluator::ExpressionEvaluator(const std::unordered_map<std::string, std::string>& variables)
+ExpressionEvaluator::ExpressionEvaluator(const std::unordered_map<std::string, VariableValue>& variables)
     : _variables(variables) {}
 
 int ExpressionEvaluator::precedence(const std::string& op){
