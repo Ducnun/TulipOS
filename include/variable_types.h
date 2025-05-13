@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <sstream>
 
-enum class ValueType {
+enum ValueType {
     Integer,
     String,
     Boolean,
