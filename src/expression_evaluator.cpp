@@ -14,8 +14,23 @@ bool ExpressionEvaluator::isOperator(const Token& token){
 }
 
 std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
-    std::vector<Token> output;
+    std::stack<Token> out;
     std::stack<Token> ops;
 
-
+    for (Token token : tokens) {
+        if (token.type == TokenType::Number){
+            out.push(token);
+        }
+        else if (token.type == TokenType::Symbol){
+            if (token.value == "("){
+                ops.push(token);
+            }
+            else if (token.value == ")"){
+                while (ops.size() > 0 && ops.top().value != "("){
+                    out.push(ops.top());
+                    out.pop();
+                }
+            }
+        }
+    }
 }

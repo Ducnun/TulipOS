@@ -18,7 +18,7 @@ void Parser::parse(void){
             // Retrieve value of variable if tokentype is identifier
             if (i < tokenSize && _tokens[i].type == TokenType::Identifier){
                 if (_variables.count(_tokens[i].value)){
-                    _io.print(std::to_string(_variables[_tokens[i++].value]));
+                    _io.print(_variables[_tokens[i].value].toString());
                     _io.print("\n");
                 }
                 else {
@@ -34,13 +34,21 @@ void Parser::parse(void){
             if (i < tokenSize && _tokens[i].type == TokenType::Identifier) {
                 std::string varName = _tokens[i++].value;
 
-                if (i < tokenSize && _tokens[i].value == "="){
-                    i++;
-                    
-                    // Store value in variable map
-                    if (i < tokenSize && _tokens[i].type == TokenType::Number) {
-                        int value = std::stoi(_tokens[i].value);
-                        _variables[varName] = value;
+                // Skip "=" sign
+                if (i < tokenSize && _tokens[i].value == "=") i++;
+
+                Token valueToken = _tokens[i];
+
+                // Store value in variable map
+                if (i < tokenSize && valueToken.type == TokenType::Number) {
+                    _variables[varName] = VariableValue::fromFloat(std::stof(valueToken.value));
+                } else if (i < tokenSize && valueToken.type == TokenType::String) {
+                    _variables[varName] = VariableValue::fromString(valueToken.value);
+                } else if (valueToken.type == TokenType::Identifier) {
+                    if (_variables.count(valueToken.value)){
+                        _variables[varName] = _variables[valueToken.value];
+                    } else {
+                        _io.print("?UNDEFINED VARIABLE ERROR \n");
                     }
                 }
             }

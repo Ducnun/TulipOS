@@ -13,13 +13,16 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
             continue;
         }
 
-        // Number
-        if (std::isdigit(input[i])){
+        // Number, default to float so support one "."
+        if (std::isdigit(input[i]) || (input[i] == '.' && i + 1 < inputSize && std::isdigit(input[i + 1]))) {
             std::string number;
+            bool hasDot = false;
 
-            while (i < inputSize && std::isdigit(input[i])){
-                number+= input[i++];
-            }    
+            while (i < inputSize && (std::isdigit(input[i]) || (input[i] == '.' && !hasDot))) {
+                if (input[i] == '.') hasDot = true;
+                number += input[i++];
+            }
+
             tokens.push_back({TokenType::Number, number});
             continue;
         }
