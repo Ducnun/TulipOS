@@ -24,6 +24,7 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
         switch (token.type) {
             case TokenType::Number:
             case TokenType::Identifier:
+            case TokenType::String:
                 out.push_back(token);
                 break;
             case TokenType::Symbol:
@@ -108,6 +109,9 @@ VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnToke
             }
             stack.push_back(it->second);
         }
+        else if (token.type == TokenType::String){
+            stack.push_back(VariableValue::fromString(token.value));
+        }
         else if (isOperator(token)){
             VariableValue b = pop();
             VariableValue a = pop();
@@ -120,7 +124,12 @@ VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnToke
             float right = (b.type == ValueType::Float) ? b.floatValue : static_cast<float>(b.intValue);
 
             if (token.value == "+"){
-                result = isFloat ? VariableValue::fromFloat(left + right) : VariableValue::fromInt(left + right);
+                if (a.type == ValueType::String || b.type == ValueType::String){
+                    result = VariableValue::fromString(a.toString() + b.toString());
+                }
+                else{
+                    result = isFloat ? VariableValue::fromFloat(left + right) : VariableValue::fromInt(left + right);
+                }
             }
             else if (token.value == "-"){
                 result = isFloat ? VariableValue::fromFloat(left - right) : VariableValue::fromInt(left - right);

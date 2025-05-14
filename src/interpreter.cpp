@@ -55,6 +55,12 @@ void BasicInterpreter::runREPL(){
             continue;
         }
 
+        // Clear screen when CLS is entered in the terminal (not originally supported)
+        if (cleaned == "CLS"){
+            _io.clearScreen();
+            continue;
+        }
+
         // Call tokenizer and parser to process input
         evaluateImmediateCommand(cleaned);
     }
