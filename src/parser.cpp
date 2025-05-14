@@ -11,21 +11,16 @@ void Parser::parse(void){
         // PRINT KEYWORD
         if (token.type == TokenType::Keyword && token.value == "PRINT"){
             i++;
-            // Print value if next token is of type string
-            if (i < tokenSize && _tokens[i].type == TokenType::String){
-                _io.print(_tokens[i].value);
-                _io.print("\n");
+            
+            std::vector<Token> printTokens;
+            while (i < tokenSize && _tokens[i].type != TokenType::EndOfLine){
+                printTokens.push_back(_tokens[i]);
+                i++;
             }
-            // Retrieve value of variable if tokentype is identifier
-            if (i < tokenSize && _tokens[i].type == TokenType::Identifier){
-                if (_variables.count(_tokens[i].value)){
-                    _io.print(_variables[_tokens[i].value].toString());
-                    _io.print("\n");
-                }
-                else {
-                    _io.print("?UNDEFINED VARIABLE ERROR\n");
-                }
-            }
+
+            ExpressionEvaluator evaluator(_variables);
+            VariableValue result = evaluator.evaluate(printTokens);
+            _io.print(result.toString() + "\n");
         }
 
         // LET KEYWORD
