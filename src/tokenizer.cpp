@@ -35,7 +35,9 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
             while (i < inputSize && input[i] != '"'){
                 str += input[i++];
             }
-            i++;    // Skip closing parentheses
+            if (input[i++] != '"'){
+                throw std::runtime_error("No closing parenthesis");
+            }
             tokens.push_back({TokenType::String, str});
             continue;
         }
