@@ -69,7 +69,7 @@ class ExpressionEvaluator {
 
     - unordered_map<string, VariableValue> _variables
     - toRPN(const vector<Token>&): vector<Token>
-    - evaluateRPN(const vector<Token>&): string
+    - evaluateRPN(const vector<Token>&): VariableValue
     - precedence(const string&): int
     - isOperator(const Token&): bool
 }
