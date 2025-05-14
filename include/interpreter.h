@@ -25,4 +25,5 @@ private:
     void runProgram();
     void listProgram();
     void clearProgram();
+    void clearVariables();
 };

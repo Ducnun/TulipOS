@@ -49,6 +49,12 @@ void BasicInterpreter::runREPL(){
             continue;
         }
 
+        // Clear variables
+        if (cleaned == "CLEAR"){
+            clearVariables();
+            continue;
+        }
+
         // Call tokenizer and parser to process input
         evaluateImmediateCommand(cleaned);
     }
@@ -106,4 +112,8 @@ void BasicInterpreter::listProgram(){
 
 void BasicInterpreter::clearProgram(){
     _programLines.clear();
+}
+
+void BasicInterpreter::clearVariables(){
+    _variables.clear();
 }
