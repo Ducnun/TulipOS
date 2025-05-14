@@ -20,7 +20,10 @@ public:
         while (true) {
             if (_keyboard.available()) {
                 char c = _keyboard.read();
-                if (c == '\n') break;
+                if (c == '\n') {
+                    Serial.println("");   
+                    break;
+                }
                 line += c;
                 Serial.print(c);
             }
