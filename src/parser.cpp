@@ -1,4 +1,5 @@
 #include "parser.h"
+#include <iostream>
 
 void Parser::parse(void){
     size_t i = 0;
@@ -40,16 +41,15 @@ void Parser::parse(void){
                 Token valueToken = _tokens[i];
 
                 // Store value in variable map
-                if (i < tokenSize && valueToken.type == TokenType::Number) {
-                    _variables[varName] = VariableValue::fromFloat(std::stof(valueToken.value));
-                } else if (i < tokenSize && valueToken.type == TokenType::String) {
-                    _variables[varName] = VariableValue::fromString(valueToken.value);
-                } else if (valueToken.type == TokenType::Identifier) {
-                    if (_variables.count(valueToken.value)){
-                        _variables[varName] = _variables[valueToken.value];
-                    } else {
-                        _io.print("?UNDEFINED VARIABLE ERROR \n");
+                if (i < tokenSize) {
+                    std::vector<Token> expressionTokens;
+                    while (i < tokenSize && _tokens[i].type != TokenType::EndOfLine){
+                        expressionTokens.push_back(_tokens[i++]);
                     }
+
+                    ExpressionEvaluator evaluator(_variables);
+                    VariableValue result = evaluator.evaluate(expressionTokens);
+                    _variables[varName] = result;
                 }
             }
         }

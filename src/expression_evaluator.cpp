@@ -1,4 +1,5 @@
 #include "expression_evaluator.h"
+#include <iostream>
 
 ExpressionEvaluator::ExpressionEvaluator(const std::unordered_map<std::string, VariableValue>& variables)
     : _variables(variables) {}
@@ -68,14 +69,14 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
                 throw std::runtime_error("Unsupported token type in expression: " + token.toString());
         }
     }
-
+    
     while (!holding.empty()){
         const Token& top = holding.back();
         if (top.value == "(" || top.value == ")") throw std::runtime_error("Mismatched parentheses at end");
         out.push_back(top);
         holding.pop_back();
     }
-
+    
     return out;
 }
 
@@ -121,27 +122,34 @@ VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnToke
             if (token.value == "+"){
                 result = isFloat ? VariableValue::fromFloat(left + right) : VariableValue::fromInt(left + right);
             }
-            if (token.value == "-"){
+            else if (token.value == "-"){
                 result = isFloat ? VariableValue::fromFloat(left - right) : VariableValue::fromInt(left - right);
             }
-            if (token.value == "*"){
+            else if (token.value == "*"){
                 result = isFloat ? VariableValue::fromFloat(left * right) : VariableValue::fromInt(left * right);
             }
-            if (token.value == "/"){
+            else if (token.value == "/"){
                 if (right == 0.0f) throw std::runtime_error("Division by zero");
                 result = isFloat ? VariableValue::fromFloat(left / right) : VariableValue::fromInt(left / right);
             }
             else {
                 throw std::runtime_error("Unknown operator: " + token.value);
             }
+            stack.push_back(result);
         }
         else {
             throw std::runtime_error("Unexpected Token: " + token.toString());
         }
     }
+
     if (stack.size() != 1){
         throw std::runtime_error("Invalid RPN expression, leftover values on stack");
     }
 
     return stack.back();
+}
+
+VariableValue ExpressionEvaluator::evaluate(const std::vector<Token>& tokens){
+    std::vector<Token> rpnTokens = toRPN(tokens);
+    return evaluateRPN(rpnTokens);
 }

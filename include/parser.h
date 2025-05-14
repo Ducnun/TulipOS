@@ -6,6 +6,7 @@
 #include "tokens.h"
 #include "io_interface.h"
 #include "variable_types.h"
+#include "expression_evaluator.h"
 
 class Parser {
 public: 

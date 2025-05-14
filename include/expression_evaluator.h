@@ -9,7 +9,7 @@
 class ExpressionEvaluator {
 public: 
     ExpressionEvaluator(const std::unordered_map<std::string, VariableValue>& variables);
-    std::string evaluate(const std::vector<Token>& expressionTokens);
+    VariableValue evaluate(const std::vector<Token>& expressionTokens);
     
     private:
     const std::unordered_map<std::string, VariableValue> _variables;
