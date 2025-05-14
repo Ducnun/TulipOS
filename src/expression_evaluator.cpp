@@ -78,3 +78,70 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
 
     return out;
 }
+
+VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens){
+    std::vector<VariableValue> stack;
+
+    // Anonymous function to pop from stack
+    auto pop = [&]() -> VariableValue{
+        if (stack.empty()) throw std::runtime_error("Stack underflow");
+        VariableValue val = stack.back();
+        stack.pop_back();
+        return val;
+    };
+
+    for (const Token& token : rpnTokens){
+        if (token.type == TokenType::Number){
+            // Try float, fallback to int
+            if (token.value.find('.') != std::string::npos){
+                stack.push_back(VariableValue::fromFloat(std::stof(token.value)));
+            }
+            else {
+                stack.push_back(VariableValue::fromInt(std::stoi(token.value)));
+            }
+        }
+        else if (token.type == TokenType::Identifier){
+            auto it = _variables.find(token.value);
+            if (it == _variables.end()){
+                throw std::runtime_error("Undefined variable: " + token.value);
+            }
+            stack.push_back(it->second);
+        }
+        else if (isOperator(token)){
+            VariableValue b = pop();
+            VariableValue a = pop();
+
+            VariableValue result;
+
+            bool isFloat = (a.type == ValueType::Float || b.type == ValueType::Float);
+
+            float left = (a.type == ValueType::Float) ? a.floatValue : static_cast<float>(a.intValue);
+            float right = (b.type == ValueType::Float) ? b.floatValue : static_cast<float>(b.intValue);
+
+            if (token.value == "+"){
+                result = isFloat ? VariableValue::fromFloat(left + right) : VariableValue::fromInt(left + right);
+            }
+            if (token.value == "-"){
+                result = isFloat ? VariableValue::fromFloat(left - right) : VariableValue::fromInt(left - right);
+            }
+            if (token.value == "*"){
+                result = isFloat ? VariableValue::fromFloat(left * right) : VariableValue::fromInt(left * right);
+            }
+            if (token.value == "/"){
+                if (right == 0.0f) throw std::runtime_error("Division by zero");
+                result = isFloat ? VariableValue::fromFloat(left / right) : VariableValue::fromInt(left / right);
+            }
+            else {
+                throw std::runtime_error("Unknown operator: " + token.value);
+            }
+        }
+        else {
+            throw std::runtime_error("Unexpected Token: " + token.toString());
+        }
+    }
+    if (stack.size() != 1){
+        throw std::runtime_error("Invalid RPN expression, leftover values on stack");
+    }
+
+    return stack.back();
+}

@@ -15,7 +15,7 @@ public:
     const std::unordered_map<std::string, VariableValue> _variables;
     
     std::vector<Token> toRPN(const std::vector<Token>& tokens);
-    std::string evaluateRPN(const std::vector<Token>& tokens);
+    VariableValue evaluateRPN(const std::vector<Token>& tokens);
     int precedence(const std::string& op);
     bool isOperator(const Token& token);
 
