@@ -23,3 +23,7 @@ const std::unordered_set<std::string>& Token::keywordList(){
 bool Token::isKeyword(const std::string& word){
     return keywordList().count(word) > 0;
 }
+
+bool Token::isKeyword(const std::string& word, const std::string& target){
+    return keywordList().count(word) > 0 && word == target;
+}

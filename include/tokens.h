@@ -25,6 +25,6 @@ public:
     static const std::unordered_set<std::string>& keywordList();
 
     // Static checker
-    // TODO: Overload to check for specific tokens
     static bool isKeyword(const std::string& word);
+    static bool isKeyword(const std::string& word, const std::string& target);
 };

@@ -20,6 +20,7 @@ private:
     std::unordered_map<std::string, VariableValue> _variables;
 
     std::string preprocess(const std::string& line);
+    bool handleREPLDirective(const std::string& line);
     void storeProgramLine(const std::string& line);
     void evaluateImmediateCommand(const std::string& line);
     void runProgram();

@@ -19,11 +19,8 @@ void BasicInterpreter::runREPL(){
         std::string cleaned = preprocess(line);
         if (cleaned.empty()) continue;
 
-        // Exit inputs
-        if (cleaned == "EXIT" || cleaned == "QUIT"){
-            _io.print("OK");
-            break;
-        }
+        // If input is a REPL directive, skip rest
+        if (handleREPLDirective) continue;
 
         // Store as program line if line starts with digits
         if (isdigit(cleaned[0])) {
@@ -49,18 +46,6 @@ void BasicInterpreter::runREPL(){
             continue;
         }
 
-        // Clear variables
-        if (cleaned == "CLEAR"){
-            clearVariables();
-            continue;
-        }
-
-        // Clear screen when CLS is entered in the terminal (not originally supported)
-        if (cleaned == "CLS"){
-            _io.clearScreen();
-            continue;
-        }
-
         // Call tokenizer and parser to process input
         evaluateImmediateCommand(cleaned);
     }
@@ -73,6 +58,25 @@ std::string BasicInterpreter::preprocess(const std::string& line){
         result += std::toupper(c);
     }
     return result;
+}
+
+bool BasicInterpreter::handleREPLDirective(const std::string& line){
+    if (line == "EXIT" || line == "QUIT"){
+        _io.print("OK");
+        return true;
+    }
+
+    if (line == "CLS"){
+        _io.clearScreen();
+        return true;
+    }
+
+    if (line == "CLEAR"){
+        clearVariables();
+        return true;
+    }
+
+    return false;
 }
 
 void BasicInterpreter::storeProgramLine(const std::string& line){

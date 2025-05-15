@@ -8,12 +8,8 @@ void Parser::parse(void){
     while(i < tokenSize){
         Token& token = _tokens[i];
 
-        // TODO: CHange checking logic to use a simple isKeyword(token.value, "{KEYWORD}")
-        // TODO: Overloaded isKeyword check from Token class
-
-
         // PRINT KEYWORD
-        if (token.type == TokenType::Keyword && token.value == "PRINT"){
+        if (Token::isKeyword(token.value, "PRINT")){
             i++;
             
             std::vector<Token> printTokens;
@@ -28,11 +24,13 @@ void Parser::parse(void){
         }
 
         // LET KEYWORD
-        if (token.type == TokenType::Keyword && token.value == "LET"){
+        if (Token::isKeyword(token.value, "LET")){
             i++;
             // Check that next token is a valid identifier and it is properly assigned
             if (i < tokenSize && _tokens[i].type == TokenType::Identifier) {
                 std::string varName = _tokens[i++].value;
+
+                std::cout << "Token being parsed: " << _tokens[i].toString();
 
                 // Check that varname doesnt shadow keyword
                 if (Token::isKeyword(varName)){

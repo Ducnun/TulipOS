@@ -49,8 +49,9 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
                 ident += input[i++];
             }
 
-            // Always push ident as ident, parser checks for keywords
+            // Always push ident as ident
             tokens.push_back(Token{TokenType::Identifier, ident});
+            continue;
         }
 
         tokens.push_back({TokenType::Symbol, std::string(1, input[i++])});
