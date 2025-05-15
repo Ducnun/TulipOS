@@ -12,3 +12,14 @@ std::string Token::toString() const {
         default:                   return "Token Type: INVALID\n";
     }
 }
+
+const std::unordered_set<std::string>& Token::keywordList(){
+    static const std::unordered_set<std::string> keywords = {
+        "PRINT", "RUN", "LET", "NEW", "LIST", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "RETURN", "END"
+    };
+    return keywords;
+}
+
+bool Token::isKeyword(const std::string& word){
+    return keywordList().count(word) > 0;
+}

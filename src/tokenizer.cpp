@@ -49,17 +49,8 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
                 ident += input[i++];
             }
 
-            static const std::unordered_set<std::string> keywords = {
-                "PRINT", "RUN", "LET", "NEW", "LIST", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "RETURN", "END"
-            };
-
-            if (keywords.count(ident)) {
-                tokens.push_back({TokenType::Keyword, ident});
-            }
-            else {
-                tokens.push_back({TokenType::Identifier, ident});
-            }
-            continue;
+            // Always push ident as ident, parser checks for keywords
+            tokens.push_back(Token{TokenType::Identifier, ident});
         }
 
         tokens.push_back({TokenType::Symbol, std::string(1, input[i++])});
