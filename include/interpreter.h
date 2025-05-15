@@ -8,21 +8,27 @@
 #include "parser.h"
 #include "variable_types.h"
 
+struct ProgramLine {
+    std::string source;
+    ParsedStatement statement;
+};
+
 class BasicInterpreter{
-public: 
-        BasicInterpreter(IOInterface& io);
-        ~BasicInterpreter() = default;
-        void runREPL();
-
-private:
+    public: 
+    BasicInterpreter(IOInterface& io);
+    ~BasicInterpreter() = default;
+    void runREPL();
+    
+    private:
     IOInterface& _io;
-    std::map<int, std::vector<Token>> _programLines;
+    std::map<int, ProgramLine> _programLines;
     std::unordered_map<std::string, VariableValue> _variables;
-
+    
     std::string preprocess(const std::string& line);
     bool handleREPLDirective(const std::string& line);
     void storeProgramLine(const std::string& line);
     void evaluateImmediateCommand(const std::string& line);
+    void evaluateStatement(const ParsedStatement& stmt);
     void runProgram();
     void listProgram();
     void clearProgram();

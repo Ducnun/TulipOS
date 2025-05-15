@@ -20,7 +20,7 @@ void BasicInterpreter::runREPL(){
         if (cleaned.empty()) continue;
 
         // If input is a REPL directive, skip rest
-        if (handleREPLDirective) continue;
+        if (handleREPLDirective(cleaned)) continue;
 
         // Store as program line if line starts with digits
         if (isdigit(cleaned[0])) {
@@ -86,37 +86,54 @@ void BasicInterpreter::storeProgramLine(const std::string& line){
     
     std::string rest;
     std::getline(iss, rest);
+    std::string cleanedRest = preprocess(rest);
     
     Tokenizer tokenizer;
-    std::vector<Token> tokens = tokenizer.tokenize(rest);
-    _programLines[lineNumber] = tokens;
+    std::vector<Token> tokens = tokenizer.tokenize(cleanedRest);
+    Parser parser(tokens, _variables);
+    ParsedStatement stmt = parser.parse();
+
+    stmt.lineNumber = lineNumber;
+    _programLines[lineNumber] = ProgramLine{rest, stmt};
 }
 
 void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
     Tokenizer tokenizer;
     std::vector<Token> tokens = tokenizer.tokenize(line);
-    Parser parser(tokens, _io, _variables);
-    parser.parse();
+    Parser parser(tokens, _variables);
+    ParsedStatement stmt = parser.parse();
+    evaluateStatement(stmt);
 }
 
 void BasicInterpreter::runProgram(){
     for (const auto& pair : _programLines){
-        std::vector<Token> tokens = pair.second;
-        Parser parser(tokens, _io, _variables);
-        parser.parse();
+        const ParsedStatement& stmt = pair.second.statement;
+        evaluateStatement(stmt);
     }
 }
 
 void BasicInterpreter::listProgram(){
-    for (const auto& pair : _programLines){
-            int lineNumber = pair.first;
-            const auto& line = pair.second;
-            _io.print(std::to_string(lineNumber) + " ");
+    for (const auto& entry : _programLines){
+        _io.print(std::to_string(entry.first) + " " + entry.second.source + "\n");
+    }
+}
 
-            for (const auto& seg : line){
-                _io.print(seg.value + " ");
-            }
-            _io.print("\n");
+void BasicInterpreter::evaluateStatement(const ParsedStatement& stmt){
+    switch (stmt.type){
+        case StatementType::Print: {
+            ExpressionEvaluator evaluator(_variables);
+            VariableValue result = evaluator.evaluate(stmt.printTokens);
+            _io.print(result.toString() + "\n");
+            break;
+        }
+        case StatementType::Assignment: {
+            ExpressionEvaluator evaluator(_variables);
+            VariableValue result = evaluator.evaluate(stmt.expressionTokens);
+            _variables[stmt.identifier] = result;
+            break;
+        }
+        default:
+            break;
     }
 }
 
