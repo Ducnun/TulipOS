@@ -15,14 +15,14 @@ enum ValueType {
 struct VariableValue {
     // Variable Value has a 
     ValueType type = ValueType::None;
-    uint16_t intValue;
+    int16_t intValue;
     std::string stringValue;
     bool boolValue;
     float floatValue;
 
     VariableValue() : type(ValueType::None), intValue(0), boolValue(false), floatValue(0.2f) {}
 
-    static VariableValue fromInt(uint16_t v){
+    static VariableValue fromInt(int16_t v){
         VariableValue val;
         val.type = ValueType::Integer;
         val.intValue = v;

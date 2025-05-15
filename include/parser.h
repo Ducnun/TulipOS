@@ -10,8 +10,9 @@
 enum class StatementType{
     Assignment,
     Print,
-    Run,
+    IfThen,
     List,
+    Run,
     New,
     Clear,
     ProgramLine,
@@ -21,8 +22,12 @@ enum class StatementType{
 struct ParsedStatement{
     StatementType type = StatementType::NoOp;
     std::string identifier;
+
     std::vector<Token> expressionTokens;
     std::vector<Token> printTokens;
+    std::vector<Token> conditionTokens;
+    std::vector<Token> thenTokens;
+
     int lineNumber = -1;
 };
 

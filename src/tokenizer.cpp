@@ -54,6 +54,24 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
             continue;
         }
 
+        // Build compound symbols where applicable
+        char currentChar = input[i];
+        if (currentChar == '<' || currentChar == '>' || currentChar == '='){
+            std::string op(1, currentChar);
+            // Peek next for compound symbol
+            if (i + 1 < inputSize){
+                char nextChar = input[i + 1];
+                if ((currentChar == '<' && (nextChar == '>' || nextChar == '=')) ||
+                    currentChar == '>' && nextChar == '='){
+                        op += nextChar;
+                        i++;
+                    }
+            }
+            tokens.push_back(Token{TokenType::Symbol, op});
+            i++;
+            continue;
+        }
+
         tokens.push_back({TokenType::Symbol, std::string(1, input[i++])});
     }
 

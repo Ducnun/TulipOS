@@ -132,6 +132,20 @@ void BasicInterpreter::evaluateStatement(const ParsedStatement& stmt){
             _variables[stmt.identifier] = result;
             break;
         }
+        case StatementType::IfThen: {
+            ExpressionEvaluator evaluator(_variables);
+            VariableValue conditionResult = evaluator.evaluate(stmt.conditionTokens);
+            if (conditionResult.type != ValueType::Boolean){
+                throw std::runtime_error("IF condition must be of boolean type");
+            }
+            
+            if (conditionResult.boolValue){
+                Parser parser(stmt.thenTokens, _variables);
+                ParsedStatement thenStmt = parser.parse();
+                evaluateStatement(thenStmt);
+            }
+            break;
+        }
         default:
             break;
     }

@@ -6,14 +6,19 @@ ExpressionEvaluator::ExpressionEvaluator(const std::unordered_map<std::string, V
 
 int ExpressionEvaluator::precedence(const std::string& op){
     static std::unordered_map<std::string, int> precedence_map{
-        {"+", 1}, {"-", 2}, {"*", 3}, {"/", 4}
+        {"=", 0}, {"<>", 0}, {"<", 0}, {"<=", 0}, {">", 0}, {">=", 0},      // Boolean operators
+        {"AND", -1}, {"OR", -2},                                            // Logical operators
+        {"+", 1}, {"-", 2}, {"*", 3}, {"/", 4}                              // Numerical operators
     };
 
     return precedence_map.count(op) ? precedence_map[op] : 0;
 }
 
 bool ExpressionEvaluator::isOperator(const Token& token){
-    return token.type == TokenType::Symbol && (token.value == "+" || token.value == "-" || token.value == "/" || token.value == "*");
+    return token.type == TokenType::Symbol && 
+        (token.value == "+" || token.value == "-" || token.value == "/" || token.value == "*" || 
+         token.value == "=" || token.value == "<>" || token.value == "<" || token.value == "<=" ||
+         token.value == ">" || token.value == ">=" || token.value == "AND" || token.value == "OR");
 }
 
 std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
@@ -140,6 +145,30 @@ VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnToke
             else if (token.value == "/"){
                 if (right == 0.0f) throw std::runtime_error("Division by zero");
                 result = isFloat ? VariableValue::fromFloat(left / right) : VariableValue::fromInt(left / right);
+            }
+            else if (token.value == "="){
+                result = VariableValue::fromBool(a.toString() == b.toString());
+            }
+            else if (token.value == "<>"){
+                result = VariableValue::fromBool(a.toString() != b.toString());
+            }
+            else if (token.value == "<"){
+                result = VariableValue::fromBool(a.toString() < b.toString());
+            }
+            else if (token.value == "<="){
+                result = VariableValue::fromBool(a.toString() <= b.toString());
+            }
+            else if (token.value == ">"){
+                result = VariableValue::fromBool(a.toString() > b.toString());
+            }
+            else if (token.value == ">="){
+                result = VariableValue::fromBool(a.toString() >= b.toString());
+            }
+            else if (token.value == "AND"){
+                result = VariableValue::fromBool(a.boolValue && b.boolValue);
+            }
+            else if (token.value == "OR"){
+                result = VariableValue::fromBool(a.boolValue || b.boolValue);
             }
             else {
                 throw std::runtime_error("Unknown operator: " + token.value);

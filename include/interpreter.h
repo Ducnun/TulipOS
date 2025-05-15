@@ -14,16 +14,16 @@ struct ProgramLine {
 };
 
 class BasicInterpreter{
-    public: 
+public: 
     BasicInterpreter(IOInterface& io);
     ~BasicInterpreter() = default;
     void runREPL();
     
-    private:
+private:
     IOInterface& _io;
     std::map<int, ProgramLine> _programLines;
     std::unordered_map<std::string, VariableValue> _variables;
-    
+
     std::string preprocess(const std::string& line);
     bool handleREPLDirective(const std::string& line);
     void storeProgramLine(const std::string& line);
