@@ -146,6 +146,11 @@ void BasicInterpreter::evaluateStatement(const ParsedStatement& stmt){
             }
             break;
         }
+        case StatementType::Goto: {
+            for (int i = 0; i < stmt.expressionTokens.size(); i++){   
+                _io.print("Token: " + stmt.expressionTokens[i].toString() + "\n");
+            }
+        }
         default:
             break;
     }
