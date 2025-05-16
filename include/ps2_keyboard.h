@@ -39,5 +39,8 @@ private:
     char translateScancode(uint8_t code);
     bool handleKeyPressEvent(uint8_t code);
     void handleKeyReleaseEvent(uint8_t code);
+    uint8_t readRawScancode();
+    void sendByteToKeyboard(uint8_t data);
+    void setLEDs(bool caps, bool num, bool scroll);
 };
 

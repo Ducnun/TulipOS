@@ -94,11 +94,13 @@ char PS2Keyboard::translateScancode(uint8_t code){
         {0x3B, 'j'}, {0x42, 'k'}, {0x4B, 'l'}, {0x3A, 'm'}, {0x31, 'n'}, {0x44, 'o'}, {0x4D, 'p'}, {0x15, 'q'}, {0x2D, 'r'},
         {0x1B, 's'}, {0x2C, 't'}, {0x3C, 'u'}, {0x2A, 'v'}, {0x1D, 'w'}, {0x22, 'x'}, {0x35, 'y'}, {0x1A, 'z'},
         {0x29, ' '}, {0x5A, '\n'}, {0x66, '\b'}, 
-        {0x52, '\''}, {0x4E, '-'}, {0x55, '='}, {0x4C, ';'}, {0x4A, '/'}, {0x49, '.'}, {0x41, ','}      // Also handled in shift map
+        {0x52, '\''}, {0x4E, '-'}, {0x55, '='}, {0x4C, ';'}, {0x4A, '/'}, {0x49, '.'}, {0x41, ','},      // Also handled in shift map
+        {0x16, '1'}, {0x1E, '2'}, {0x26, '3'}, {0x25, '4'}, {0x2E, '5'}, {0x36, '6'}, {0x3D, '7'}, {0x3E, '8'}, {0x46, '9'}, {0x45, '0'}
     };
 
     static std::unordered_map<uint8_t, char> shiftMap = {
-        {0x52, '"'}, {0x4E, '_'}, {0x55, '+'}, {0x4C, ':'}, {0x4A, '?'}, {0x49, '>'}, {0x41, '<'}
+        {0x52, '"'}, {0x4E, '_'}, {0x55, '+'}, {0x4C, ':'}, {0x4A, '?'}, {0x49, '>'}, {0x41, '<'},
+        {0x16, '!'}, {0x1E, '@'}, {0x26, '#'}, {0x25, '$'}, {0x2E, '%'}, {0x36, '^'}, {0x3D, '&'}, {0x3E, '*'}, {0x46, '('}, {0x45, ')'}
     };
 
     if (shiftHeld){
@@ -121,10 +123,10 @@ char PS2Keyboard::translateScancode(uint8_t code){
 
 // Returns whether a key is printable or not
 bool PS2Keyboard::handleKeyPressEvent(uint8_t code){
-    if (code == 0x12 || code == 0x59) {shiftHeld = true; return false; }
-    if (code == 0x11 || code == 0x58) {ctrlHeld = true; return false; }
-    if (code == 0x19 || code == 0x11) {altHeld = true; return false; }
-    if (code == 0x58) {capsLockActive = !capsLockActive; return false; } 
+    if (code == 0x12) {shiftHeld = true; return false; }
+    if (code == 0x14) {ctrlHeld = true; return false; }
+    if (code == 0x11) {altHeld = true; return false; }
+    if (code == 0x58) {capsLockActive = !capsLockActive; setLEDs(capsLockActive, false, false); return false; } 
     return true;
 }
 
@@ -132,4 +134,66 @@ void PS2Keyboard::handleKeyReleaseEvent(uint8_t code){
     if (code == 0x12 || code == 0x59) shiftHeld = false;
     if (code == 0x11 || code == 0x58) ctrlHeld = false;
     if (code == 0x19 || code == 0x11) altHeld = false;
+}
+
+uint8_t PS2Keyboard::readRawScancode(){
+    if (_scancodeBuffer.empty()) return 0;
+    portENTER_CRITICAL(&_mux);
+    uint8_t code = _scancodeBuffer.front();
+    _scancodeBuffer.pop();
+    portEXIT_CRITICAL(&_mux);
+    return code;
+}
+
+void PS2Keyboard::sendByteToKeyboard(uint8_t data) {
+    // Request to send (inhibit)
+    pinMode(_clockPin, OUTPUT);
+    digitalWrite(_clockPin, LOW);
+    delayMicroseconds(100);
+
+    pinMode(_dataPin, OUTPUT);
+    digitalWrite(_dataPin, LOW);
+    delayMicroseconds(10);
+
+    // Release clock line so keyboard can drive it
+    pinMode(_clockPin, INPUT_PULLUP);
+
+    // Wait for keyboard to begin generating clock (host-to-device)
+    while (digitalRead(_clockPin) == HIGH);  // Wait for falling edge
+
+    // Send 8 data bits, LSB first
+    uint8_t parity = 1;
+    for (int i = 0; i < 8; i++) {
+        bool bit = (data >> i) & 1;
+        digitalWrite(_dataPin, bit);
+        while (digitalRead(_clockPin) == LOW);  // Wait clock high
+        while (digitalRead(_clockPin) == HIGH); // Wait clock low
+        parity ^= bit;
+    }
+
+    // Send parity bit
+    digitalWrite(_dataPin, parity);
+    while (digitalRead(_clockPin) == LOW);
+    while (digitalRead(_clockPin) == HIGH);
+
+    // Send stop bit (release line)
+    pinMode(_dataPin, INPUT_PULLUP);
+    while (digitalRead(_clockPin) == LOW);
+    while (digitalRead(_clockPin) == HIGH);
+
+    // Wait for ACK from keyboard (0xFA)
+    unsigned long start = millis();
+    while (millis() - start < 100) {
+        if (available()) {
+            uint8_t ack = readRawScancode();
+            if (ack == 0xFA) return;
+        }
+    }
+}
+
+void PS2Keyboard::setLEDs(bool caps, bool num, bool scroll) {
+    sendByteToKeyboard(0xED); // LED command
+    delay(1);                 // short wait for keyboard to prepare
+    uint8_t val = (scroll ? 1 : 0) | (num ? 2 : 0) | (caps ? 4 : 0);
+    sendByteToKeyboard(val);  // LED mask
 }
