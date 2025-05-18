@@ -9,4 +9,6 @@ public:
     virtual std::string readLine() = 0;
     virtual void clearScreen() = 0;
     virtual void setCursor(int x, int y) = 0;
+    virtual bool checkBreakRequested() {return false;}
+    virtual void pollKeyboard(){}
 };

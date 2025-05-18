@@ -58,14 +58,24 @@ bool PS2Keyboard::available(){
     return !_scancodeBuffer.empty();
 }
 
-char PS2Keyboard::read(){
+KeyEvent PS2Keyboard::readEvent(){
+    static bool breakCodeNext = false;
+    static int pauseCodeMatch = 0;
+
     while (!_scancodeBuffer.empty()) {
         portENTER_CRITICAL(&_mux);
         uint8_t code = _scancodeBuffer.front();
         _scancodeBuffer.pop();
         portEXIT_CRITICAL(&_mux);
 
-        static bool breakCodeNext = false;
+        if (trackPauseState(code)){
+            return {Pause, 0};
+        }
+
+        if (isPauseSequenceInProgress()){
+            continue;
+        }
+
         if (code == 0xF0) {
             breakCodeNext = true;
             continue;  // don't return anything
@@ -80,12 +90,12 @@ char PS2Keyboard::read(){
             char out = translateScancode(code);
     
             if (out != '\0') {
-                return out;
+                return {Char, out};
             }
         }
         // else loop to try again
     }
-    return '\0';
+    return {None, 0};
 }
 
 char PS2Keyboard::translateScancode(uint8_t code){
@@ -196,4 +206,29 @@ void PS2Keyboard::setLEDs(bool caps, bool num, bool scroll) {
     delay(1);                 // short wait for keyboard to prepare
     uint8_t val = (scroll ? 1 : 0) | (num ? 2 : 0) | (caps ? 4 : 0);
     sendByteToKeyboard(val);  // LED mask
+}
+ 
+bool PS2Keyboard::trackPauseState(uint8_t code) {
+    switch (pauseState) {
+        case 0: if (code == 0xE1) pauseState = 1; else pauseState = 0; break;
+        case 1: if (code == 0x14) pauseState = 2; else pauseState = 0; break;
+        case 2: if (code == 0x77) pauseState = 3; else pauseState = 0; break;
+        case 3: if (code == 0xE1) pauseState = 4; else pauseState = 0; break;
+        case 4: if (code == 0xF0) pauseState = 5; else pauseState = 0; break;
+        case 5: if (code == 0x14) pauseState = 6; else pauseState = 0; break;
+        case 6: if (code == 0xF0) pauseState = 7; else pauseState = 0; break;
+        case 7:
+            if (code == 0x77) {
+                pauseState = 0;
+                return true; // COMPLETE
+            }
+            pauseState = 0;
+            break;
+    }
+
+    return false;
+}
+
+bool PS2Keyboard::isPauseSequenceInProgress() {
+    return pauseState != 0;
 }

@@ -19,16 +19,16 @@ public:
         std::string line;
         while (true) {
             if (_keyboard.available()) {
-                char c = _keyboard.read();
+                KeyEvent key = _keyboard.readEvent();
 
-                if (c == '\0') continue;
+                if (key.action == KeyAction::None) continue;
 
-                if (c == '\n') {
+                if (key.action == KeyAction::Char && key.character == '\n') {
                     Serial.println("");   
                     break;
                 }
 
-                if (c == '\b') {
+                if (key.action == KeyAction::Char && key.character == '\b') {
                     if (!line.empty()) {
                         line.pop_back();
                         Serial.print("\b \b");  // Erase last char visually
@@ -36,8 +36,16 @@ public:
                     continue;
                 }
 
-                line += c;
-                Serial.print(c);
+                if (key.action == KeyAction::Pause){
+                    _breakRequested = true;
+                    Serial.println("BREAK\n");
+                    return "";
+                }
+
+                if (key.action == KeyAction::Char){
+                    line += key.character;
+                    Serial.print(key.character);
+                }
             }
         }
         return line;
@@ -49,6 +57,25 @@ public:
 
     void setCursor(int x, int y) override {}
 
+    bool checkBreakRequested() override {
+        if (_breakRequested){
+            _breakRequested = false;
+            return true;
+        }
+        return false;
+    }
+
+    void pollKeyboard(){
+        if (_keyboard.available()){
+            KeyEvent key = _keyboard.readEvent();
+            if (key.action == KeyAction::Pause){
+                _breakRequested = true;
+                Serial.println("BREAK\n");
+            }
+        }
+    }
+
 private: 
     PS2Keyboard& _keyboard;
+    bool _breakRequested = false;
 };

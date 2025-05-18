@@ -5,22 +5,22 @@
 #include <sstream>
 
 enum ValueType {
+    NoValType,
     Integer,
     String,
     Boolean,
-    Float,
-    None
+    Float
 };
 
 struct VariableValue {
     // Variable Value has a 
-    ValueType type = ValueType::None;
+    ValueType type = ValueType::NoValType;
     int16_t intValue;
     std::string stringValue;
     bool boolValue;
     float floatValue;
 
-    VariableValue() : type(ValueType::None), intValue(0), boolValue(false), floatValue(0.2f) {}
+    VariableValue() : type(ValueType::NoValType), intValue(0), boolValue(false), floatValue(0.2f) {}
 
     static VariableValue fromInt(int16_t v){
         VariableValue val;

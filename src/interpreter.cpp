@@ -5,7 +5,7 @@ BasicInterpreter::BasicInterpreter(IOInterface &io) : _io(io), _executor(Executo
 void BasicInterpreter::runREPL(){
     // Setup
     _io.clearScreen();
-    _io.print("**** COMMODORE 64 BASIC V2 ****\n");
+    _io.print("**** TULIP 64 BASIC V2 ****\n");
     _io.print(" 64K RAM SYSTEM 38911 BASIC BYTES FREE\n");
     _io.print("READY.\n");
 
@@ -14,7 +14,14 @@ void BasicInterpreter::runREPL(){
         _io.print("");
         _io.print("> ");
         std::string line = _io.readLine();
-        
+
+        // Handle Pause/Break key
+        if (line == ""){
+            _io.print("BREAK\n");
+            
+            continue;
+        }
+
         // Clean line, if empty, skip
         std::string cleaned = preprocess(line);
         if (cleaned.empty()) continue;
@@ -23,7 +30,7 @@ void BasicInterpreter::runREPL(){
         if (handleREPLDirective(cleaned)) continue;
 
         // Store as program line if line starts with digits
-        if (isdigit(cleaned[0])) {
+        if (isdigit(cleaned[0])){
             storeProgramLine(cleaned);
             continue;
         }
@@ -105,11 +112,14 @@ void BasicInterpreter::runProgram(){
     bool running = true;
 
     while (running){
+        _io.pollKeyboard();
+        if (_io.checkBreakRequested()) break;
         ExecutionResult result = _executor.execute(_program.getNextStatement());
         
         if (result.action == ExecutionAction::Jump) _program.jumpTo(result.jumpTarget);
         if (result.action == ExecutionAction::Halt) running = false;        
     }
+
 }
 
 void BasicInterpreter::listProgram(){
