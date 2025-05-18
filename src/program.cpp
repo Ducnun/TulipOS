@@ -49,3 +49,37 @@ void Program::rebuildLineNumbers(){
     }
 }
 
+void Program::resetProgramCounter(){
+    _programCounter = _lineNumbers.front();
+}
+
+ParsedStatement Program::getNextStatement() {
+    if (_lineNumbers.empty()) {
+        throw std::runtime_error("Can't get next statement: program is empty");
+    }
+
+    auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), _programCounter);
+    if (it == _lineNumbers.end()) {
+        throw std::runtime_error("Program counter is invalid");
+    }
+
+    ParsedStatement stmt = _statements[*it];
+
+    ++it;
+    if (it != _lineNumbers.end()) {
+        _programCounter = *it;
+    } else {
+        _programCounter = -1;
+    }
+
+    return stmt;
+}
+
+
+void Program::jumpTo(int targetLine) {
+    auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), targetLine);
+    if (it == _lineNumbers.end()) {
+        throw std::runtime_error("GOTO to undefined line: " + std::to_string(targetLine));
+    }
+    _programCounter = targetLine;
+}

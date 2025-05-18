@@ -60,10 +60,12 @@ ParsedStatement Parser::parse(void){
     if (Token::isKeyword(token.value, "GOTO")){
         stmt.type = StatementType::Goto;
         i++;
-        while (_tokens[i].type == TokenType::EndOfLine){
+        if (i >= _tokens.size()) throw std::runtime_error("GOTO missing target line");
+
+        while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
             stmt.expressionTokens.push_back(_tokens[i++]);
-            std::cout << "Tokens: " << _tokens[i++].toString() << "\n";
         }
+
         return stmt;
     }
 

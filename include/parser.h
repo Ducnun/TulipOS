@@ -17,7 +17,8 @@ enum class StatementType{
     New,
     Clear,
     ProgramLine,
-    NoOp
+    NoOp,
+    End
 };
 
 struct ParsedStatement{

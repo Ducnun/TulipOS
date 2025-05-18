@@ -10,11 +10,6 @@
 #include "executor.h"
 #include "program.h"
 
-struct ProgramLine {
-    std::string source;
-    ParsedStatement statement;
-};
-
 class BasicInterpreter{
 public: 
     BasicInterpreter(IOInterface& io);
@@ -23,6 +18,7 @@ public:
     
 private:
     IOInterface& _io;
+    Executor _executor;
     std::unordered_map<std::string, VariableValue> _variables;
     Program _program;
 

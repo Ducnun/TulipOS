@@ -1,6 +1,6 @@
 #include "interpreter.h"
 
-BasicInterpreter::BasicInterpreter(IOInterface &io) : _io(io) {}
+BasicInterpreter::BasicInterpreter(IOInterface &io) : _io(io), _executor(Executor(_io, _variables)) {}
 
 void BasicInterpreter::runREPL(){
     // Setup
@@ -101,7 +101,15 @@ void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
 }
 
 void BasicInterpreter::runProgram(){
-    // TODO: Call execute next statement and handle redirects
+    _program.resetProgramCounter();
+    bool running = true;
+
+    while (running){
+        ExecutionResult result = _executor.execute(_program.getNextStatement());
+        
+        if (result.action == ExecutionAction::Jump) _program.jumpTo(result.jumpTarget);
+        if (result.action == ExecutionAction::Halt) running = false;        
+    }
 }
 
 void BasicInterpreter::listProgram(){

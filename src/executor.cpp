@@ -1,6 +1,8 @@
 #include "executor.h"
 
-void Executor::execute(const ParsedStatement& stmt){
+ExecutionResult Executor::execute(const ParsedStatement& stmt){
+    ExecutionResult execResult;
+
     switch (stmt.type){
         case StatementType::Print: {
             ExpressionEvaluator evaluator(_variables);
@@ -28,7 +30,19 @@ void Executor::execute(const ParsedStatement& stmt){
             }
             break;
         }
+        case StatementType::Goto: {
+            ExpressionEvaluator evaluator(_variables);
+            VariableValue result = evaluator.evaluate(stmt.expressionTokens);
+            execResult.action = ExecutionAction::Jump;
+            execResult.jumpTarget = result.intValue;
+            break;
+        }
+        case StatementType::End: {
+            execResult.action = ExecutionAction::Halt;
+            break;
+        }
         default:
             break;
     }
+    return execResult;
 }
