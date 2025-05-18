@@ -15,13 +15,6 @@ void BasicInterpreter::runREPL(){
         _io.print("> ");
         std::string line = _io.readLine();
 
-        // Handle Pause/Break key
-        if (line == ""){
-            _io.print("BREAK\n");
-            
-            continue;
-        }
-
         // Clean line, if empty, skip
         std::string cleaned = preprocess(line);
         if (cleaned.empty()) continue;
