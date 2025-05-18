@@ -57,5 +57,15 @@ ParsedStatement Parser::parse(void){
         return stmt;
     }
 
+    if (Token::isKeyword(token.value, "GOTO")){
+        stmt.type = StatementType::Goto;
+        i++;
+        while (_tokens[i].type == TokenType::EndOfLine){
+            stmt.expressionTokens.push_back(_tokens[i++]);
+            std::cout << "Tokens: " << _tokens[i++].toString() << "\n";
+        }
+        return stmt;
+    }
+
     return stmt;
 }

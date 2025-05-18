@@ -20,10 +20,22 @@ public:
         while (true) {
             if (_keyboard.available()) {
                 char c = _keyboard.read();
+
+                if (c == '\0') continue;
+
                 if (c == '\n') {
                     Serial.println("");   
                     break;
                 }
+
+                if (c == '\b') {
+                    if (!line.empty()) {
+                        line.pop_back();
+                        Serial.print("\b \b");  // Erase last char visually
+                    }
+                    continue;
+                }
+
                 line += c;
                 Serial.print(c);
             }

@@ -11,6 +11,7 @@ enum class StatementType{
     Assignment,
     Print,
     IfThen,
+    Goto,
     List,
     Run,
     New,
