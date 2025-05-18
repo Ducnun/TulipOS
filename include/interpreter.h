@@ -7,6 +7,8 @@
 #include "tokenizer.h"
 #include "parser.h"
 #include "variable_types.h"
+#include "executor.h"
+#include "program.h"
 
 struct ProgramLine {
     std::string source;
@@ -21,14 +23,13 @@ public:
     
 private:
     IOInterface& _io;
-    std::map<int, ProgramLine> _programLines;
     std::unordered_map<std::string, VariableValue> _variables;
+    Program _program;
 
     std::string preprocess(const std::string& line);
     bool handleREPLDirective(const std::string& line);
     void storeProgramLine(const std::string& line);
     void evaluateImmediateCommand(const std::string& line);
-    void evaluateStatement(const ParsedStatement& stmt);
     void runProgram();
     void listProgram();
     void clearProgram();

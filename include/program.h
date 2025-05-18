@@ -11,6 +11,7 @@ public:
     Program(): _programCounter(0) {}
     void insertLine(int lineNumber, const std::string& source);
     void deleteLine(int lineNumber);
+    void clear();
     std::vector<std::string> getSource();
     
     void resetProgramCounter();

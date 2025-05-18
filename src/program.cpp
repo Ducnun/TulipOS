@@ -22,6 +22,13 @@ void Program::deleteLine(int lineNumber){
     rebuildLineNumbers();
 }
 
+void Program::clear(){
+    _statements.clear();
+    _sourceLines.clear();
+    _lineNumbers.clear();
+    _programCounter = 0;
+}
+
 std::vector<std::string> Program::getSource(){
     std::vector<std::string> result;
 
@@ -37,7 +44,8 @@ std::vector<std::string> Program::getSource(){
 
 void Program::rebuildLineNumbers(){
     _lineNumbers.clear();
-    for (const auto& [line, _] : _statements){
-        _lineNumbers.push_back(line);
+    for (const auto& stmt : _statements){
+        _lineNumbers.push_back(stmt.first);
     }
 }
+

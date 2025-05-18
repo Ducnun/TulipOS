@@ -88,13 +88,7 @@ void BasicInterpreter::storeProgramLine(const std::string& line){
     std::getline(iss, rest);
     std::string cleanedRest = preprocess(rest);
     
-    Tokenizer tokenizer;
-    std::vector<Token> tokens = tokenizer.tokenize(cleanedRest);
-    Parser parser(tokens);
-    ParsedStatement stmt = parser.parse();
-
-    stmt.lineNumber = lineNumber;
-    _programLines[lineNumber] = ProgramLine{rest, stmt};
+    _program.insertLine(lineNumber, cleanedRest);
 }
 
 void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
@@ -102,57 +96,23 @@ void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
     std::vector<Token> tokens = tokenizer.tokenize(line);
     Parser parser(tokens);
     ParsedStatement stmt = parser.parse();
-    evaluateStatement(stmt);
+    Executor executor(_io, _variables);
+    executor.execute(stmt);
 }
 
 void BasicInterpreter::runProgram(){
-    for (const auto& pair : _programLines){
-        const ParsedStatement& stmt = pair.second.statement;
-        evaluateStatement(stmt);
-    }
+    // TODO: Call execute next statement and handle redirects
 }
 
 void BasicInterpreter::listProgram(){
-    for (const auto& entry : _programLines){
-        _io.print(std::to_string(entry.first) + " " + entry.second.source + "\n");
-    }
-}
-
-void BasicInterpreter::evaluateStatement(const ParsedStatement& stmt){
-    switch (stmt.type){
-        case StatementType::Print: {
-            ExpressionEvaluator evaluator(_variables);
-            VariableValue result = evaluator.evaluate(stmt.printTokens);
-            _io.print(result.toString() + "\n");
-            break;
-        }
-        case StatementType::Assignment: {
-            ExpressionEvaluator evaluator(_variables);
-            VariableValue result = evaluator.evaluate(stmt.expressionTokens);
-            _variables[stmt.identifier] = result;
-            break;
-        }
-        case StatementType::IfThen: {
-            ExpressionEvaluator evaluator(_variables);
-            VariableValue conditionResult = evaluator.evaluate(stmt.conditionTokens);
-            if (conditionResult.type != ValueType::Boolean){
-                throw std::runtime_error("IF condition must be of boolean type");
-            }
-            
-            if (conditionResult.boolValue){
-                Parser parser(stmt.thenTokens);
-                ParsedStatement thenStmt = parser.parse();
-                evaluateStatement(thenStmt);
-            }
-            break;
-        }
-        default:
-            break;
+    std::vector<std::string> lines = _program.getSource();
+    for (const std::string& line : lines){
+        _io.print(line + "\n");
     }
 }
 
 void BasicInterpreter::clearProgram(){
-    _programLines.clear();
+    _program.clear();
 }
 
 void BasicInterpreter::clearVariables(){
