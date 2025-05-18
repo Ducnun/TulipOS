@@ -90,7 +90,7 @@ void BasicInterpreter::storeProgramLine(const std::string& line){
     
     Tokenizer tokenizer;
     std::vector<Token> tokens = tokenizer.tokenize(cleanedRest);
-    Parser parser(tokens, _variables);
+    Parser parser(tokens);
     ParsedStatement stmt = parser.parse();
 
     stmt.lineNumber = lineNumber;
@@ -100,7 +100,7 @@ void BasicInterpreter::storeProgramLine(const std::string& line){
 void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
     Tokenizer tokenizer;
     std::vector<Token> tokens = tokenizer.tokenize(line);
-    Parser parser(tokens, _variables);
+    Parser parser(tokens);
     ParsedStatement stmt = parser.parse();
     evaluateStatement(stmt);
 }
@@ -140,7 +140,7 @@ void BasicInterpreter::evaluateStatement(const ParsedStatement& stmt){
             }
             
             if (conditionResult.boolValue){
-                Parser parser(stmt.thenTokens, _variables);
+                Parser parser(stmt.thenTokens);
                 ParsedStatement thenStmt = parser.parse();
                 evaluateStatement(thenStmt);
             }

@@ -8,15 +8,15 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/Users/dunca/Documents/diy/ESPBASIC/include",
-                "C:/Users/dunca/Documents/diy/ESPBASIC/src",
+                "C:/Users/dunca/Desktop/ESPBASIC/include",
+                "C:/Users/dunca/Desktop/ESPBASIC/src",
                 ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/Users/dunca/Documents/diy/ESPBASIC/include",
-                    "C:/Users/dunca/Documents/diy/ESPBASIC/src",
+                    "C:/Users/dunca/Desktop/ESPBASIC/include",
+                    "C:/Users/dunca/Desktop/ESPBASIC/src",
                     ""
                 ]
             },
@@ -25,7 +25,7 @@
                 ""
             ],
             "cppStandard": "c++11",
-            "compilerPath": "C:/msys64/ucrt64/bin/gcc.exe",
+            "compilerPath": "C:/msys64/mingw64/bin/gcc.exe",
             "compilerArgs": [
                 ""
             ]

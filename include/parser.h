@@ -33,12 +33,11 @@ struct ParsedStatement{
 
 class Parser{
 public: 
-    Parser(std::vector<Token> tokens, std::unordered_map<std::string, VariableValue>& variables) : _tokens(tokens), _variables(variables){};
+    Parser(std::vector<Token> tokens) : _tokens(tokens){};
     ~Parser() = default;
 
     ParsedStatement parse(void);
 
 private:
     std::vector<Token> _tokens;
-    std::unordered_map<std::string, VariableValue>& _variables;
 };
