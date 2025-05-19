@@ -7,6 +7,10 @@
 enum KeyAction {
     None,
     Char,
+    ArrowLeft,
+    ArrowRight,
+    ArrowUp,
+    ArrowDown,
     Pause,
 };
 
@@ -15,15 +19,19 @@ struct KeyEvent {
     char character;
 };
 
+enum ScancodeState {
+    Normal,
+    ExpectExtended,
+    ExpectBreak,
+    ExpectExtendedBreak,
+};
+
 class PS2Keyboard {
 public:
     PS2Keyboard(uint8_t dataPin, uint8_t clockPin);
     void begin();
     bool available();
     KeyEvent readEvent();
-
-    // DEBUGGING FUNCTION
-    void dumpDebugPS2();
 
 private:
     static void IRAM_ATTR handleClockInterrupt(void* arg);
@@ -35,21 +43,30 @@ private:
     // Start reading inputs after interrupt
     volatile uint8_t _bitCount = 0;
     volatile uint8_t _currentByte = 0;
+    volatile uint8_t _parity = 0;
     volatile bool _receiving = false;
+    ScancodeState _scancodeState;
     uint8_t pauseState = 0;
 
     // Track state of modifiers
-    bool shiftHeld = false;
-    bool capsLockActive = false;
-    bool ctrlHeld = false;
-    bool altHeld = false;
+    bool _capsLockActive = false;
+    bool _numLockActive = true;
+    bool _shiftHeld = false;
+    bool _ctrlHeld = false;
+    bool _altHeld = false;
+    bool _extendedCodeNext = false;
+    bool _breakCodeNext = false;
 
-    std::queue<uint8_t> _scancodeBuffer;
+    static const size_t BufferSize = 32;
+    volatile uint8_t _scancodeBuffer[BufferSize];
+    volatile size_t _head = 0;
+    volatile size_t _tail = 0;
     portMUX_TYPE _mux = portMUX_INITIALIZER_UNLOCKED;
 
-    char translateScancode(uint8_t code);
+    KeyEvent translateScancode(uint8_t code);
+    KeyEvent translateExtendedScancode(uint8_t code);
     bool handleKeyPressEvent(uint8_t code);
-    void handleKeyReleaseEvent(uint8_t code);
+    void handleKeyReleaseEvent(uint8_t code, bool extended);
     uint8_t readRawScancode();
     void sendByteToKeyboard(uint8_t data);
     void setLEDs(bool caps, bool num, bool scroll);

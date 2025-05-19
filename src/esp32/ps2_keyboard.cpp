@@ -11,6 +11,7 @@ void PS2Keyboard::begin(){
     pinMode(_clockPin, INPUT_PULLUP);
     pinMode(_dataPin, INPUT_PULLUP);
     attachInterruptArg(digitalPinToInterrupt(_clockPin), handleClockInterrupt, this, FALLING);
+    setLEDs(false, true, false);
     pinMode(22, OUTPUT);
 }
 
@@ -20,23 +21,21 @@ void IRAM_ATTR PS2Keyboard::handleClockInterrupt(void* arg){
 }
 
 void PS2Keyboard::onClockFallingEdge(){
-    static uint8_t bitBuffer = 0;
-    static uint8_t parity = 0;
-
     uint8_t bit = digitalRead(_dataPin);
 
     if (_bitCount == 0){
         // Reset when start bit is sent
         if (bit == 0){
             _receiving = true;
-            bitBuffer = 0;
-            parity = 0;
+            _currentByte = 0;
+            _parity = 0;
             _bitCount++;
         }
     } 
     else if (_bitCount >= 1 && _bitCount <= 8){
-        bitBuffer |= (bit << (_bitCount - 1));
-        parity ^= bit;
+        // Data bits: LSB first
+        _currentByte |= (bit << (_bitCount - 1));
+        _parity ^= bit;
         _bitCount++;
     }
     else if (_bitCount == 9){
@@ -44,10 +43,15 @@ void PS2Keyboard::onClockFallingEdge(){
         _bitCount++;
     }
     else if (_bitCount == 10){
+        // Stop bit: Should be a 1
         if (_receiving){
-            portENTER_CRITICAL_ISR(&_mux);
-            _scancodeBuffer.push(bitBuffer);
-            portEXIT_CRITICAL_ISR(&_mux);
+            size_t nextHead = (_head + 1) % BufferSize;
+            if (nextHead != _tail){
+                portENTER_CRITICAL_ISR(&_mux);
+                _scancodeBuffer[_head] = _currentByte;
+                _head = nextHead;
+                portEXIT_CRITICAL_ISR(&_mux);
+            }
         }
         _bitCount = 0;
         _receiving = false;
@@ -55,50 +59,56 @@ void PS2Keyboard::onClockFallingEdge(){
 }
 
 bool PS2Keyboard::available(){
-    return !_scancodeBuffer.empty();
+    return _head != _tail;
 }
 
 KeyEvent PS2Keyboard::readEvent(){
-    static bool breakCodeNext = false;
     static int pauseCodeMatch = 0;
 
-    while (!_scancodeBuffer.empty()) {
+    while (_head != _tail) {
         portENTER_CRITICAL(&_mux);
-        uint8_t code = _scancodeBuffer.front();
-        _scancodeBuffer.pop();
+        uint8_t code = _scancodeBuffer[_tail];
+        _tail = (_tail + 1) % BufferSize;
         portEXIT_CRITICAL(&_mux);
 
-        if (trackPauseState(code)){
-            return {Pause, 0};
-        }
+        if (trackPauseState(code)) return {Pause, 0};
+        if (isPauseSequenceInProgress())continue;
 
-        if (isPauseSequenceInProgress()){
-            continue;
+        switch (_scancodeState){
+            case ScancodeState::Normal:
+                if (code == 0xE0){
+                    _scancodeState = ScancodeState::ExpectExtended;
+                    continue;
+                }
+                else if (code == 0xF0){
+                    _scancodeState = ScancodeState::ExpectBreak;
+                    continue;
+                }
+                if (handleKeyPressEvent(code)) return translateScancode(code);
+                break;
+            case ScancodeState::ExpectExtended:
+                if (code == 0xF0){
+                    _scancodeState = ScancodeState::ExpectExtendedBreak;
+                } 
+                else {
+                    if (handleKeyPressEvent(code)) return translateExtendedScancode(code);
+                    _scancodeState = ScancodeState::Normal;
+                }
+                continue;
+            case ScancodeState::ExpectBreak:
+                handleKeyReleaseEvent(code, false);
+                _scancodeState = ScancodeState::Normal;
+                continue;
+            case ScancodeState::ExpectExtendedBreak:
+                handleKeyReleaseEvent(code, true);
+                _scancodeState = ScancodeState::Normal;
+                continue;
         }
-
-        if (code == 0xF0) {
-            breakCodeNext = true;
-            continue;  // don't return anything
-        }
-        if (breakCodeNext) {
-            handleKeyReleaseEvent(code);
-            breakCodeNext = false;
-            continue;  // also don't return anything
-        }
-
-        if (handleKeyPressEvent(code)){
-            char out = translateScancode(code);
-    
-            if (out != '\0') {
-                return {Char, out};
-            }
-        }
-        // else loop to try again
     }
     return {None, 0};
 }
 
-char PS2Keyboard::translateScancode(uint8_t code){
+KeyEvent PS2Keyboard::translateScancode(uint8_t code){
     static std::unordered_map<uint8_t, char> baseMap = {
         {0x1C, 'a'}, {0x32, 'b'}, {0x21, 'c'}, {0x23, 'd'}, {0x24, 'e'}, {0x2B, 'f'}, {0x34, 'g'}, {0x33, 'h'}, {0x43, 'i'},
         {0x3B, 'j'}, {0x42, 'k'}, {0x4B, 'l'}, {0x3A, 'm'}, {0x31, 'n'}, {0x44, 'o'}, {0x4D, 'p'}, {0x15, 'q'}, {0x2D, 'r'},
@@ -113,44 +123,67 @@ char PS2Keyboard::translateScancode(uint8_t code){
         {0x16, '!'}, {0x1E, '@'}, {0x26, '#'}, {0x25, '$'}, {0x2E, '%'}, {0x36, '^'}, {0x3D, '&'}, {0x3E, '*'}, {0x46, '('}, {0x45, ')'}
     };
 
-    if (shiftHeld){
+    if (_shiftHeld){
         auto it = shiftMap.find(code);
-        if (it != shiftMap.end()) return it->second;
+        if (it != shiftMap.end()) {
+            return {KeyAction::Char, it->second};
+        }
     }
 
     auto it = baseMap.find(code);
-    if (it == baseMap.end()) return '?';
+    if (it == baseMap.end()){
+        return {KeyAction::None, 0};
+    };
 
     char c = it->second;
     if (c >= 'a' && c <= 'z'){
-        if (capsLockActive ^ shiftHeld){
+        if (_capsLockActive ^ _shiftHeld){
             c = c - 'a' + 'A';
         }
     }
 
-    return c;
+    return {KeyAction::Char, c};
+}
+
+KeyEvent PS2Keyboard::translateExtendedScancode(uint8_t code){
+    static std::unordered_map<uint8_t, KeyAction> extendedMap = {
+        {0x6B, KeyAction::ArrowLeft}, {0x74, KeyAction::ArrowRight}, {0x75, KeyAction::ArrowUp}, {0x72, KeyAction::ArrowDown}
+    };
+
+    auto it = extendedMap.find(code);
+    if (it != extendedMap.end()){
+        return {extendedMap[code], 0};
+    }
+    else{
+        return {KeyAction::None, 0};
+    }
 }
 
 // Returns whether a key is printable or not
 bool PS2Keyboard::handleKeyPressEvent(uint8_t code){
-    if (code == 0x12) {shiftHeld = true; return false; }
-    if (code == 0x14) {ctrlHeld = true; return false; }
-    if (code == 0x11) {altHeld = true; return false; }
-    if (code == 0x58) {capsLockActive = !capsLockActive; setLEDs(capsLockActive, false, false); return false; } 
+    if (code == 0x12) {_shiftHeld = true; return false; }
+    if (code == 0x14) {_ctrlHeld = true; return false; }
+    if (code == 0x11) {_altHeld = true; return false; }
+    if (code == 0x58) {_capsLockActive = !_capsLockActive; setLEDs(_capsLockActive, _numLockActive, false); return false; } 
     return true;
 }
 
-void PS2Keyboard::handleKeyReleaseEvent(uint8_t code){
-    if (code == 0x12 || code == 0x59) shiftHeld = false;
-    if (code == 0x11 || code == 0x58) ctrlHeld = false;
-    if (code == 0x19 || code == 0x11) altHeld = false;
+void PS2Keyboard::handleKeyReleaseEvent(uint8_t code, bool extended){
+    if (extended){
+        // Handle extended releases if needed
+    }
+    else{
+        if (code == 0x12 || code == 0x59) _shiftHeld = false;
+        if (code == 0x11 || code == 0x58) _ctrlHeld = false;
+        if (code == 0x19 || code == 0x11) _altHeld = false;
+    }
 }
 
 uint8_t PS2Keyboard::readRawScancode(){
-    if (_scancodeBuffer.empty()) return 0;
+    if (_head == _tail) return 0;
     portENTER_CRITICAL(&_mux);
-    uint8_t code = _scancodeBuffer.front();
-    _scancodeBuffer.pop();
+    uint8_t code = _scancodeBuffer[_tail];
+    _tail = (_tail + 1) % BufferSize;
     portEXIT_CRITICAL(&_mux);
     return code;
 }
