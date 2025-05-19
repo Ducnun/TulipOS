@@ -109,9 +109,10 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
         else if (token.type == TokenType::Identifier){
             auto it = _variables.find(token.value);
             if (it == _variables.end()){
-                throw std::runtime_error("Undefined variable: " + token.value);
+                return EvalResult::success(VariableValue::fromInt(0));
+            }else{
+                stack.push_back(it->second);
             }
-            stack.push_back(it->second);
         }
         else if (token.type == TokenType::String){
             stack.push_back(VariableValue::fromString(token.value));
