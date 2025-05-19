@@ -23,6 +23,7 @@ public:
     void resetProgramCounter();
     ParsedStatement getNextStatement();
     void jumpTo(int target);
+    int getProgramCounter() {return _programCounter;}
 
     // Storage
     void saveToSD(const std::string& filename);

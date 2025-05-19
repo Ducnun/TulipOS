@@ -38,7 +38,6 @@ public:
 
                 if (key.action == KeyAction::Pause){
                     _breakRequested = true;
-                    Serial.println("BREAK\n");
                     return "";
                 }
 
@@ -70,7 +69,6 @@ public:
             KeyEvent key = _keyboard.readEvent();
             if (key.action == KeyAction::Pause){
                 _breakRequested = true;
-                Serial.println("BREAK\n");
             }
         }
     }

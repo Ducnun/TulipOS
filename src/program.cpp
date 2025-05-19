@@ -12,7 +12,7 @@ void Program::insertLine(int lineNumber, const std::string& source){
     ParsedStatement stmt = parser.parse();
     stmt.lineNumber = lineNumber;
     _statements[lineNumber] = stmt;
-    _sourceLines[lineNumber] = source;
+    _sourceLines[lineNumber] = std::to_string(lineNumber) + source;
     rebuildLineNumbers();
 }
 
@@ -53,30 +53,28 @@ void Program::resetProgramCounter(){
     _programCounter = _lineNumbers.front();
 }
 
-ParsedStatement Program::getNextStatement() {
+ParsedStatement Program::getNextStatement(){
+    ParsedStatement stmt;
+
     if (_lineNumbers.empty()) {
-        throw std::runtime_error("Can't get next statement: program is empty");
+        stmt.type = StatementType::End;
     }
 
     auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), _programCounter);
     if (it == _lineNumbers.end()) {
-        throw std::runtime_error("Program counter is invalid");
+        stmt.type = StatementType::End;
     }
-
-    ParsedStatement stmt = _statements[*it];
-
-    ++it;
-    if (it != _lineNumbers.end()) {
-        _programCounter = *it;
-    } else {
-        _programCounter = -1;
+    else{
+        stmt = _statements[*it];
+        it++;
+        _programCounter = (it != _lineNumbers.end()) ? *it : -1;
     }
 
     return stmt;
 }
 
 
-void Program::jumpTo(int targetLine) {
+void Program::jumpTo(int targetLine){
     auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), targetLine);
     if (it == _lineNumbers.end()) {
         throw std::runtime_error("GOTO to undefined line: " + std::to_string(targetLine));

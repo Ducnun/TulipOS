@@ -106,7 +106,15 @@ void BasicInterpreter::runProgram(){
 
     while (running){
         _io.pollKeyboard();
-        if (_io.checkBreakRequested()) break;
+        int currentLine = _program.getProgramCounter();
+
+        if (_io.checkBreakRequested()){
+            _io.print("BREAK IN " + std::to_string(currentLine) + "\n");
+            _io.print("READY.\n");
+            running = false;
+            continue;
+        }
+
         ExecutionResult result = _executor.execute(_program.getNextStatement());
         
         if (result.action == ExecutionAction::Jump) _program.jumpTo(result.jumpTarget);
