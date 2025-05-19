@@ -16,7 +16,7 @@ ParsedStatement Parser::parse(void){
         // Build print tokens
         while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
             stmt.printTokens.push_back(_tokens[i++]);
-        }
+        }   
         return stmt;
     }
 

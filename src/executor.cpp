@@ -5,9 +5,14 @@ ExecutionResult Executor::execute(const ParsedStatement& stmt){
 
     switch (stmt.type){
         case StatementType::Print: {
-            ExpressionEvaluator evaluator(_variables);
-            VariableValue result = evaluator.evaluate(stmt.printTokens);
-            _io.print(result.toString() + "\n");
+            if (stmt.printTokens.empty()){
+                _io.print("\n");
+            }
+            else{
+                ExpressionEvaluator evaluator(_variables);
+                VariableValue result = evaluator.evaluate(stmt.printTokens);
+                _io.print(result.toString() + "\n");
+            }
             break;
         }
         case StatementType::Assignment: {
