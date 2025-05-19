@@ -1,5 +1,4 @@
 #include "expression_evaluator.h"
-#include <iostream>
 
 ExpressionEvaluator::ExpressionEvaluator(const std::unordered_map<std::string, VariableValue>& variables)
     : _variables(variables) {}
@@ -86,7 +85,7 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
     return out;
 }
 
-VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens){
+EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens){
     std::vector<VariableValue> stack;
 
     // Anonymous function to pop from stack
@@ -143,7 +142,7 @@ VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnToke
                 result = isFloat ? VariableValue::fromFloat(left * right) : VariableValue::fromInt(left * right);
             }
             else if (token.value == "/"){
-                if (right == 0.0f) throw std::runtime_error("Division by zero");
+                if (right == 0.0f) return EvalResult::failure("ERROR 28 DIVISION BY ZERO");
                 result = isFloat ? VariableValue::fromFloat(left / right) : VariableValue::fromInt(left / right);
             }
             else if (token.value == "="){
@@ -184,10 +183,10 @@ VariableValue ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnToke
         throw std::runtime_error("Invalid RPN expression, leftover values on stack");
     }
 
-    return stack.back();
+    return EvalResult::success(stack.back());
 }
 
-VariableValue ExpressionEvaluator::evaluate(const std::vector<Token>& tokens){
+EvalResult ExpressionEvaluator::evaluate(const std::vector<Token>& tokens){
     std::vector<Token> rpnTokens = toRPN(tokens);
     return evaluateRPN(rpnTokens);
 }

@@ -96,8 +96,7 @@ void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
     std::vector<Token> tokens = tokenizer.tokenize(line);
     Parser parser(tokens);
     ParsedStatement stmt = parser.parse();
-    Executor executor(_io, _variables);
-    executor.execute(stmt);
+    _executor.execute(stmt);
 }
 
 void BasicInterpreter::runProgram(){

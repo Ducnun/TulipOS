@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <functional>
 #include "expression_evaluator.h"
 #include "io_interface.h"
 #include "parser.h"
@@ -17,6 +18,7 @@ enum ExecutionAction{
 struct ExecutionResult{
     ExecutionAction action = ExecutionAction::Continue;
     int jumpTarget = -1;
+    bool error = false;
     std::string output = "";
 };
 
@@ -24,9 +26,18 @@ class Executor{
 public:
     Executor(IOInterface& io, std::unordered_map<std::string, VariableValue>& variables): _io(io), _variables(variables){}
 
-    ExecutionResult execute(const ParsedStatement&);
+    ExecutionResult execute(const ParsedStatement& stmt);
+
+    // Sub Handlers
+    ExecutionResult handlePrint(const ParsedStatement& stmt);
+    ExecutionResult handleAssignment(const ParsedStatement& stmt);
+    ExecutionResult handleIfThen(const ParsedStatement& stmt);
+    ExecutionResult handleGoto(const ParsedStatement& stmt);
+    ExecutionResult handleEnd(const ParsedStatement& stmt);
 
 private:
+    EvalResult safeEvaluate(const std::vector<Token>& tokens, ExecutionResult& result);
+
     IOInterface& _io;
     std::unordered_map<std::string, VariableValue>& _variables;
 };
