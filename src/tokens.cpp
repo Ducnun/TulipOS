@@ -20,10 +20,21 @@ const std::unordered_set<std::string>& Token::keywordList(){
     return keywords;
 }
 
+const std::unordered_set<std::string>& Token::symbolList(){
+    static const std::unordered_set<std::string> symbols = {
+        "+", "-", "*", "/", "=", "<", ">", "<=", ">=", "<>", "(", ")",
+    };
+    return symbols;
+}
+
 bool Token::isKeyword(const std::string& word){
     return keywordList().count(word) > 0;
 }
 
 bool Token::isKeyword(const std::string& word, const std::string& target){
     return keywordList().count(word) > 0 && word == target;
+}
+
+bool Token::isSymbol(const std::string& symbol){
+    return symbolList().count(symbol) > 0;
 }

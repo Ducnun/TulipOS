@@ -1,5 +1,4 @@
 #include "tokenizer.h"
-#include <iostream>
 
 std::vector<Token> Tokenizer::tokenize(const std::string& input){
     std::vector<Token> tokens;
@@ -67,12 +66,23 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
                         i++;
                     }
             }
-            tokens.push_back(Token{TokenType::Symbol, op});
-            i++;
+            if (Token::isSymbol(op)){
+                tokens.push_back(Token{TokenType::Symbol, op});
+                i++;
+                continue;
+            }
+        }
+        
+        // Handle single char symbols
+        if (Token::isSymbol(std::string(1, input[i]))){
+            tokens.push_back({TokenType::Symbol, std::string(1, input[i++])});
             continue;
         }
 
-        tokens.push_back({TokenType::Symbol, std::string(1, input[i++])});
+        // Unrecognized token
+        std::string unknown(1, input[i]);
+        tokens.push_back({TokenType::Unknown, unknown});
+        i++;
     }
 
     tokens.push_back({TokenType::EndOfLine, ""});

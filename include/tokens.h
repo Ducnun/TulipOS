@@ -21,10 +21,12 @@ public:
 
     std::string toString() const;
 
-    // Static keyword list
+    // Static token lists
     static const std::unordered_set<std::string>& keywordList();
+    static const std::unordered_set<std::string>& symbolList();
 
-    // Static checker
+    // Static checkers
     static bool isKeyword(const std::string& word);
     static bool isKeyword(const std::string& word, const std::string& target);
+    static bool isSymbol(const std::string& word);
 };
