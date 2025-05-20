@@ -15,7 +15,8 @@ std::string Token::toString() const {
 
 const std::unordered_set<std::string>& Token::keywordList(){
     static const std::unordered_set<std::string> keywords = {
-        "PRINT", "RUN", "LET", "NEW", "LIST", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "RETURN", "END"
+        "PRINT", "RUN", "LET", "NEW", "LIST", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "RETURN", 
+        "END",
     };
     return keywords;
 }
@@ -23,9 +24,11 @@ const std::unordered_set<std::string>& Token::keywordList(){
 const std::unordered_set<std::string>& Token::symbolList(){
     static const std::unordered_set<std::string> symbols = {
         "+", "-", "*", "/", "=", "<", ">", "<=", ">=", "<>", "(", ")",
+        "AND", "OR"
     };
     return symbols;
 }
+
 
 bool Token::isKeyword(const std::string& word){
     return keywordList().count(word) > 0;

@@ -1,9 +1,14 @@
 #include "tokenizer.h"
+#include <iostream>
 
 std::vector<Token> Tokenizer::tokenize(const std::string& input){
     std::vector<Token> tokens;
     size_t i = 0;
     size_t inputSize = input.size();
+
+    auto isAlnumUnderscore = [](char c){
+        return std::isalnum(c) || c == '_' || c == '$' || c == '%';
+    };
 
     while (i < inputSize){
         // Whitespace
@@ -29,7 +34,7 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
         // String
         if (input[i] == '"'){
             std::string str;
-            i++;    // Skip opening parentheses
+            i++;    // Skip opening quotes
             
             while (i < inputSize && input[i] != '"'){
                 str += input[i++];
@@ -40,7 +45,21 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
             tokens.push_back({TokenType::String, str});
             continue;
         }
-        
+
+        // Check if input is symbol, from large to small char counts
+        int symbolCharCounter = 3;
+        bool symbolFound = false;
+        while (symbolCharCounter > 0 && !symbolFound){
+            if (i + symbolCharCounter <= inputSize && Token::isSymbol(input.substr(i, symbolCharCounter))){
+                tokens.push_back({TokenType::Symbol, input.substr(i, symbolCharCounter)});
+                i += symbolCharCounter;
+                symbolFound = true;
+            }
+            symbolCharCounter--;
+        }
+        // If symbol was found, stop checking other inputs
+        if (symbolFound) continue;
+
         // Check identifiers, keywords, special characters
         if (std::isalpha(input[i])){
             std::string ident;
@@ -57,33 +76,7 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
                 }
                 tokens.push_back({TokenType::Identifier, ident});
             }
-            
-            continue;
-        }
 
-        // Build compound symbols where applicable
-        char currentChar = input[i];
-        if (currentChar == '<' || currentChar == '>' || currentChar == '='){
-            std::string op(1, currentChar);
-            // Peek next for compound symbol
-            if (i + 1 < inputSize){
-                char nextChar = input[i + 1];
-                if ((currentChar == '<' && (nextChar == '>' || nextChar == '=')) ||
-                    currentChar == '>' && nextChar == '='){
-                        op += nextChar;
-                        i++;
-                    }
-            }
-            if (Token::isSymbol(op)){
-                tokens.push_back(Token{TokenType::Symbol, op});
-                i++;
-                continue;
-            }
-        }
-        
-        // Handle single char symbols
-        if (Token::isSymbol(std::string(1, input[i]))){
-            tokens.push_back({TokenType::Symbol, std::string(1, input[i++])});
             continue;
         }
 
@@ -95,21 +88,22 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
 
     tokens.push_back({TokenType::EndOfLine, ""});
 
-    // // DEBUGGING OUTPUT
-    // for (const auto& token : tokens) {
-    //     std::cout << "[Token] Type: ";
+    // DEBUGGING OUTPUT
+    for (const auto& token : tokens) {
+        std::cout << "[Token] Type: ";
     
-    //     switch (token.type) {
-    //         case TokenType::Keyword: std::cout << "Keyword"; break;
-    //         case TokenType::Identifier: std::cout << "Identifier"; break;
-    //         case TokenType::Number: std::cout << "Number"; break;
-    //         case TokenType::String: std::cout << "String"; break;
-    //         case TokenType::Symbol: std::cout << "Symbol"; break;
-    //         case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
-    //     }
+        switch (token.type) {
+            case TokenType::Keyword: std::cout << "Keyword"; break;
+            case TokenType::Identifier: std::cout << "Identifier"; break;
+            case TokenType::Number: std::cout << "Number"; break;
+            case TokenType::String: std::cout << "String"; break;
+            case TokenType::Symbol: std::cout << "Symbol"; break;
+            case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
+            case TokenType::Unknown: std::cout << "Unknown"; break;
+        }
     
-    //     std::cout << ", Value: \"" << token.value << "\"\n";
-    // }
+        std::cout << ", Value: \"" << token.value << "\"\n";
+    }
 
     return tokens;
 }

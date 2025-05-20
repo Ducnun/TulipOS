@@ -6,7 +6,7 @@ ExpressionEvaluator::ExpressionEvaluator(const std::unordered_map<std::string, V
 int ExpressionEvaluator::precedence(const std::string& op){
     static std::unordered_map<std::string, int> precedence_map{
         {"=", 0}, {"<>", 0}, {"<", 0}, {"<=", 0}, {">", 0}, {">=", 0},      // Boolean operators
-        {"AND", -1}, {"OR", -2},                                            // Logical operators
+        {"AND", 6}, {"OR", 5},                                            // Logical operators
         {"+", 1}, {"-", 2}, {"*", 3}, {"/", 4}                              // Numerical operators
     };
 
