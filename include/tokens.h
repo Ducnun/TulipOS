@@ -2,8 +2,9 @@
 
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
 
-enum class TokenType {
+enum class TokenType{
     Number,
     String,
     Identifier,
@@ -13,7 +14,17 @@ enum class TokenType {
     Unknown
 };
 
-class Token {
+enum class KeywordType{
+    Unknown,
+    Print,
+    Let,
+    If,
+    Then,
+    Goto,
+    Input,
+};
+
+class Token{
 public:
     ~Token() = default;
     TokenType type;
@@ -29,4 +40,5 @@ public:
     static bool isKeyword(const std::string& word);
     static bool isKeyword(const std::string& word, const std::string& target);
     static bool isSymbol(const std::string& word);
+    static KeywordType getKeywordType(const std::string& word);
 };

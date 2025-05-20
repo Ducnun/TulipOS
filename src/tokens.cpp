@@ -24,7 +24,8 @@ const std::unordered_set<std::string>& Token::keywordList(){
 const std::unordered_set<std::string>& Token::symbolList(){
     static const std::unordered_set<std::string> symbols = {
         "+", "-", "*", "/", "=", "<", ">", "<=", ">=", "<>", "(", ")",
-        "AND", "OR"
+        "AND", "OR",
+        ";", ","
     };
     return symbols;
 }
@@ -40,4 +41,15 @@ bool Token::isKeyword(const std::string& word, const std::string& target){
 
 bool Token::isSymbol(const std::string& symbol){
     return symbolList().count(symbol) > 0;
+}
+
+KeywordType Token::getKeywordType(const std::string& word){
+    static const std::unordered_map<std::string, KeywordType> keywordMap = {
+        {"PRINT", KeywordType::Print},
+        {"LET", KeywordType::Let},
+        {"IF", KeywordType::If},
+        {"THEN", KeywordType::Then},
+        {"GOTO", KeywordType::Goto},
+        {"INPUT", KeywordType::Input},
+    };
 }

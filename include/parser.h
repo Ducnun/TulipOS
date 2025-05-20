@@ -12,6 +12,7 @@ enum class StatementType{
     Print,
     IfThen,
     Goto,
+    Input,
     List,
     Run,
     New,
@@ -29,6 +30,7 @@ struct ParsedStatement{
     std::vector<Token> printTokens;
     std::vector<Token> conditionTokens;
     std::vector<Token> thenTokens;
+    std::vector<Token> identifierTokens;
 
     int lineNumber = -1;
 };
@@ -42,4 +44,9 @@ public:
 
 private:
     std::vector<Token> _tokens;
+    ParsedStatement parsePrint();
+    ParsedStatement parseLet();
+    ParsedStatement parseIfThen();
+    ParsedStatement parseGoto();
+    ParsedStatement parseInput();
 };
