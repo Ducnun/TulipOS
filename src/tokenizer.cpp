@@ -40,7 +40,7 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
                 str += input[i++];
             }
             if (input[i++] != '"'){
-                tokens.push_back({TokenType::Unknown, str});
+                tokens.push_back({TokenType::UnknownTokenType, str});
             }
             tokens.push_back({TokenType::String, str});
             continue;
@@ -82,28 +82,28 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
 
         // Unrecognized token
         std::string unknown(1, input[i]);
-        tokens.push_back({TokenType::Unknown, unknown});
+        tokens.push_back({TokenType::UnknownTokenType, unknown});
         i++;
     }
 
     tokens.push_back({TokenType::EndOfLine, ""});
 
-    // // DEBUGGING OUTPUT
-    // for (const auto& token : tokens) {
-    //     std::cout << "[Token] Type: ";
+    // DEBUGGING OUTPUT
+    for (const auto& token : tokens) {
+        std::cout << "[Token] Type: ";
     
-    //     switch (token.type) {
-    //         case TokenType::Keyword: std::cout << "Keyword"; break;
-    //         case TokenType::Identifier: std::cout << "Identifier"; break;
-    //         case TokenType::Number: std::cout << "Number"; break;
-    //         case TokenType::String: std::cout << "String"; break;
-    //         case TokenType::Symbol: std::cout << "Symbol"; break;
-    //         case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
-    //         case TokenType::Unknown: std::cout << "Unknown"; break;
-    //     }
+        switch (token.type) {
+            case TokenType::Keyword: std::cout << "Keyword"; break;
+            case TokenType::Identifier: std::cout << "Identifier"; break;
+            case TokenType::Number: std::cout << "Number"; break;
+            case TokenType::String: std::cout << "String"; break;
+            case TokenType::Symbol: std::cout << "Symbol"; break;
+            case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
+            case TokenType::UnknownTokenType: std::cout << "Unknown"; break;
+        }
     
-    //     std::cout << ", Value: \"" << token.value << "\"\n";
-    // }
+        std::cout << ", Value: \"" << token.value << "\"\n";
+    }
 
     return tokens;
 }

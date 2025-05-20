@@ -5,17 +5,17 @@
 #include <unordered_map>
 
 enum class TokenType{
+    UnknownTokenType,
     Number,
     String,
     Identifier,
     Keyword,
     Symbol,
     EndOfLine,
-    Unknown
 };
 
 enum class KeywordType{
-    Unknown,
+    UnknownKeywordType,
     Print,
     Let,
     If,

@@ -8,7 +8,7 @@ std::string Token::toString() const {
         case TokenType::Keyword:   return "Token Type: KEYWORD, Token Value: " + value + "\n";
         case TokenType::Symbol:    return "Token Type: SYMBOL, Token Value: " + value + "\n";
         case TokenType::EndOfLine: return "Token Type: ENDOFLINE\n";
-        case TokenType::Unknown:   return "Token Type: UNKNOWN\n";
+        case TokenType::UnknownTokenType:   return "Token Type: UNKNOWN\n";
         default:                   return "Token Type: INVALID\n";
     }
 }
@@ -52,4 +52,6 @@ KeywordType Token::getKeywordType(const std::string& word){
         {"GOTO", KeywordType::Goto},
         {"INPUT", KeywordType::Input},
     };
+    auto it = keywordMap.find(word);
+    return (it != keywordMap.end()) ? it->second : KeywordType::UnknownKeywordType;
 }

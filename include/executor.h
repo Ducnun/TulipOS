@@ -34,6 +34,7 @@ public:
     ExecutionResult handleIfThen(const ParsedStatement& stmt);
     ExecutionResult handleGoto(const ParsedStatement& stmt);
     ExecutionResult handleEnd(const ParsedStatement& stmt);
+    ExecutionResult handleInput(const ParsedStatement& stmt);
 
 private:
     EvalResult safeEvaluate(const std::vector<Token>& tokens, ExecutionResult& result);

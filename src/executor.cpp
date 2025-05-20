@@ -7,8 +7,9 @@ ExecutionResult Executor::execute(const ParsedStatement& stmt){
         {StatementType::IfThen, [this](const ParsedStatement& stmt) {return handleIfThen(stmt);}},
         {StatementType::Goto, [this](const ParsedStatement& stmt) {return handleGoto(stmt);}},
         {StatementType::End, [this](const ParsedStatement& stmt) {return handleEnd(stmt);}},
+        {StatementType::Input, [this](const ParsedStatement& stmt) {return handleInput(stmt);}},
     };
-
+        
     // Look for the right handler
     auto it = handlers.find(stmt.type);
     if (it != handlers.end()){
@@ -92,5 +93,55 @@ ExecutionResult Executor::handleGoto(const ParsedStatement& stmt){
 ExecutionResult Executor::handleEnd(const ParsedStatement& stmt){
     ExecutionResult execResult;
     execResult.action = ExecutionAction::Halt;
+    return execResult;
+}
+
+ExecutionResult Executor::handleInput(const ParsedStatement& stmt){
+    ExecutionResult execResult;
+
+    // Display prompt
+    if (!stmt.printTokens.empty()){
+        EvalResult promptEval = safeEvaluate(stmt.printTokens, execResult);
+        if (execResult.error) return execResult;
+
+        _io.print(promptEval.value.toString());
+        _io.print(" ");
+    }
+    else _io.print("? ");
+
+    // Read input line
+    std::string input = _io.readLine();
+    std::istringstream iss(input);
+
+    // Parse input for each variable
+    for (size_t i = 0; i < stmt.identifierTokens.size(); i++){
+        const Token& varToken = stmt.identifierTokens[i];
+        std::string varName = varToken.value;
+
+        // For string variables
+        if (varName.back() == '$'){
+            std::string value;
+            if (i == 0){
+                // First variable gets all input
+                std::getline(iss, value);
+                value.erase(0, value.find_first_not_of(" \t"));
+                value.erase(value.find_last_not_of(" \t" + 1));
+            }
+            else{            // All subsequent variables need commas
+                char comma;
+                if (!(iss >> comma && comma == ',')){
+                    execResult.error = true;
+                    execResult.output = "?REDO FROM START";
+                    return execResult;
+                }
+                iss >> std::ws;
+                std::getline(iss, value);
+                value.erase(0, value.find_first_not_of(" \t"));
+                value.erase(value.find_last_not_of(" \t") + 1);
+            }
+            _variables[varName] = VariableValue::fromString(value);
+        }
+
+    execResult.action = ExecutionAction::Wait;
     return execResult;
 }
