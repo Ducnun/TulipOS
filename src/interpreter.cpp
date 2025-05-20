@@ -10,6 +10,9 @@ void BasicInterpreter::runREPL(){
     _io.print("READY.\n");
 
     while (true){
+        // Start by checking break
+        if (_io.checkBreakRequested()) _io.print("BREAK\n");
+
         // Get new line
         _io.print("");
         _io.print("> ");
@@ -21,6 +24,8 @@ void BasicInterpreter::runREPL(){
 
         // If input is a REPL directive, skip rest
         if (handleREPLDirective(cleaned)) continue;
+
+        // TODO: Abstract program handling away to handleProgramDirectives to clean up runREPL
 
         // Store as program line if line starts with digits
         if (isdigit(cleaned[0])){

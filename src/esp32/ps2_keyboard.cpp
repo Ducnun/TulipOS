@@ -137,9 +137,10 @@ KeyEvent PS2Keyboard::translateScancode(uint8_t code){
 
     char c = it->second;
     if (c >= 'a' && c <= 'z'){
-        if (_capsLockActive ^ _shiftHeld){
-            c = c - 'a' + 'A';
-        }
+        // if (_capsLockActive ^ _shiftHeld){
+        //     c = c - 'a' + 'A';
+        // }
+        c = c - 'a' + 'A';
     }
 
     return {KeyAction::Char, c};
