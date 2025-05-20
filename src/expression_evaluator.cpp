@@ -35,7 +35,7 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
                 if (isOperator(token)) {
                     while (!holding.empty()) {
                         const Token& top = holding.back();
-                        if (isOperator(top) && precedence(token.value) <= precedence(top.value)){
+                        if (isOperator(top) && precedence(token.value) >= precedence(top.value)){
                             out.push_back(top);
                             holding.pop_back();
                         } 
