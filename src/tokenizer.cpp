@@ -35,7 +35,7 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
                 str += input[i++];
             }
             if (input[i++] != '"'){
-                throw std::runtime_error("No closing parenthesis");
+                tokens.push_back({TokenType::Unknown, str});
             }
             tokens.push_back({TokenType::String, str});
             continue;
@@ -47,9 +47,17 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
             while (i < inputSize && std::isalnum(input[i])){
                 ident += input[i++];
             }
-
-            // Always push ident as ident
-            tokens.push_back(Token{TokenType::Identifier, ident});
+            
+            if (Token::isKeyword(ident)){
+                tokens.push_back({TokenType::Keyword, ident});
+            }
+            else{
+                if (ident.length() > 2){
+                    ident = ident.substr(0,2);
+                }
+                tokens.push_back({TokenType::Identifier, ident});
+            }
+            
             continue;
         }
 
