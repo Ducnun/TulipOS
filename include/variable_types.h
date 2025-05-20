@@ -50,9 +50,19 @@ struct VariableValue {
         return val;
     }
 
+    bool toBool() const {
+        switch (type){
+            case ValueType::Integer: return intValue != 0; break;
+            case ValueType::Float: return floatValue != 0.0f; break;
+            case ValueType::String: return !stringValue.empty(); break;
+            case ValueType::Boolean: return boolValue; break;
+        }
+        return false;
+    }
+
     inline std::string toString() const {
         char buffer[32];
-        switch(type){
+        switch (type){
             case ValueType::Integer:
                 return std::to_string(intValue);
             case ValueType::Boolean:

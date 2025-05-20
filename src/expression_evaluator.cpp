@@ -165,10 +165,10 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
                 result = VariableValue::fromBool(a.toString() >= b.toString());
             }
             else if (token.value == "AND"){
-                result = VariableValue::fromBool(a.boolValue && b.boolValue);
+                result = VariableValue::fromBool(a.toBool() && b.toBool());
             }
             else if (token.value == "OR"){
-                result = VariableValue::fromBool(a.boolValue || b.boolValue);
+                result = VariableValue::fromBool(a.toBool() || b.toBool());
             }
             else {
                 throw std::runtime_error("Unknown operator: " + token.value);
