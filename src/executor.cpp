@@ -141,6 +141,7 @@ ExecutionResult Executor::handleInput(const ParsedStatement& stmt){
             }
             _variables[varName] = VariableValue::fromString(value);
         }
+    }
 
     execResult.action = ExecutionAction::Wait;
     return execResult;
