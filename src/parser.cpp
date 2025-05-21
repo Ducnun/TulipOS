@@ -37,7 +37,6 @@ ParsedStatement Parser::parseLet() {
         if (Token::isKeyword(stmt.identifier)) {
             throw std::runtime_error("Ident can't shadow keyword");
         }
-        
         if (i < _tokens.size() && _tokens[i].value == "=") i++;
         
         while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){

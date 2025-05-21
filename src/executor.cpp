@@ -43,7 +43,7 @@ ExecutionResult Executor::handlePrint(const ParsedStatement& stmt){
 
     EvalResult eval = safeEvaluate(stmt.printTokens, result);
     if (!result.error){
-        _io.print(eval.value.toString() + "\n");
+        _io.print(eval.value->toString() + "\n");
     }
 
     return result;
@@ -52,9 +52,27 @@ ExecutionResult Executor::handlePrint(const ParsedStatement& stmt){
 ExecutionResult Executor::handleAssignment(const ParsedStatement& stmt){
     ExecutionResult result;
     EvalResult eval = safeEvaluate(stmt.expressionTokens, result);
-    if (!result.error){
-        _variables[stmt.identifier] = eval.value;
+    if (result.error) return result;
+
+    const std::string& varName = stmt.identifier;
+    char suffix = varName.empty() ? '\0' : varName.back();
+
+    VariableType expectedType;
+    if (suffix == '$') expectedType = VariableType::String;
+    else if (suffix == '%') expectedType = VariableType::Integer;
+    else expectedType = VariableType::Float;
+
+    VariableType actualType = eval.value->getType();
+    if (actualType != expectedType) {
+        if (!(expectedType == VariableType::Float && actualType == VariableType::Integer)) {
+            result.error = true;
+            result.output = "?TYPE MISMATCH IN LET";
+            result.action = ExecutionAction::Error;
+            return result;
+        }
     }
+
+    _variables[varName] = (eval.value)->clone();
     return result;
 }
 
@@ -63,48 +81,43 @@ ExecutionResult Executor::handleIfThen(const ParsedStatement& stmt){
     EvalResult condition = safeEvaluate(stmt.conditionTokens, result);
     if (result.error) return result;
 
-    if (condition.value.type != ValueType::Boolean) {
-        result.error = true;
-        result.action = ExecutionAction::Error;
-        result.output = "?ERROR: IF CONDITION MUST BE OF BOOLEAN TYPE";
-        return result;
-    }
+    if (!condition.value->toBool()) return result;
 
-    if (condition.value.boolValue) {
-        Parser parser(stmt.thenTokens);
-        ParsedStatement thenStmt = parser.parse();
-        ExecutionResult nestedResult = execute(thenStmt);
-        if (nestedResult.error) return nestedResult;
-    }
-
-    return result;
+    Parser parser(stmt.thenTokens);
+    ParsedStatement thenStmt = parser.parse();
+    return execute(thenStmt);
 }
 
 ExecutionResult Executor::handleGoto(const ParsedStatement& stmt){
     ExecutionResult result;
     EvalResult eval = safeEvaluate(stmt.expressionTokens, result);
     if (!result.error) {
+        if (eval.value->getType() != VariableType::Integer){
+            result.error = true;
+            result.output = "?TYPE MISMATCH IN GOTO";
+            return result;
+        }
         result.action = ExecutionAction::Jump;
-        result.jumpTarget = eval.value.intValue;
+        result.jumpTarget = std::stoi(eval.value->toString());
     }
     return result;
 }
 
 ExecutionResult Executor::handleEnd(const ParsedStatement& stmt){
-    ExecutionResult execResult;
-    execResult.action = ExecutionAction::Halt;
-    return execResult;
+    ExecutionResult result;
+    result.action = ExecutionAction::Halt;
+    return result;
 }
 
 ExecutionResult Executor::handleInput(const ParsedStatement& stmt){
-    ExecutionResult execResult;
+    ExecutionResult result;
 
     // Display prompt
     if (!stmt.printTokens.empty()){
-        EvalResult promptEval = safeEvaluate(stmt.printTokens, execResult);
-        if (execResult.error) return execResult;
+        EvalResult promptEval = safeEvaluate(stmt.printTokens, result);
+        if (result.error) return result;
 
-        _io.print(promptEval.value.toString());
+        _io.print(promptEval.value->toString());
         _io.print(" ");
     }
     else _io.print("? ");
@@ -114,35 +127,44 @@ ExecutionResult Executor::handleInput(const ParsedStatement& stmt){
     std::istringstream iss(input);
 
     // Parse input for each variable
-    for (size_t i = 0; i < stmt.identifierTokens.size(); i++){
-        const Token& varToken = stmt.identifierTokens[i];
-        std::string varName = varToken.value;
+    for (size_t i = 0; i < stmt.identifierTokens.size(); ++i) {
+        const std::string& varName = stmt.identifierTokens[i].value;
+        char suffix = varName.empty() ? '\0' : varName.back();
 
-        // For string variables
-        if (varName.back() == '$'){
-            std::string value;
-            if (i == 0){
-                // First variable gets all input
-                std::getline(iss, value);
-                value.erase(0, value.find_first_not_of(" \t"));
-                value.erase(value.find_last_not_of(" \t" + 1));
+        if (i > 0) {
+            char comma;
+            if (!(iss >> comma) || comma != ',') {
+                result.error = true;
+                result.output = "?REDO FROM START";
+                return result;
             }
-            else{            // All subsequent variables need commas
-                char comma;
-                if (!(iss >> comma && comma == ',')){
-                    execResult.error = true;
-                    execResult.output = "?REDO FROM START";
-                    return execResult;
-                }
-                iss >> std::ws;
-                std::getline(iss, value);
-                value.erase(0, value.find_first_not_of(" \t"));
-                value.erase(value.find_last_not_of(" \t") + 1);
+        }
+
+        iss >> std::ws;
+
+        try {
+            if (suffix == '$') {
+                std::string strValue;
+                std::getline(iss, strValue);
+                strValue.erase(0, strValue.find_first_not_of(" \t"));
+                strValue.erase(strValue.find_last_not_of(" \t") + 1);
+                _variables[varName] = std::unique_ptr<Variable>(new StringVariable(strValue));
+            } else if (suffix == '%') {
+                int intValue;
+                if (!(iss >> intValue)) throw std::runtime_error("invalid integer");
+                _variables[varName] = std::unique_ptr<Variable>(new IntVariable(intValue));
+            } else {
+                double floatValue;
+                if (!(iss >> floatValue)) throw std::runtime_error("invalid float");
+                _variables[varName] = std::unique_ptr<Variable>(new FloatVariable(floatValue));
             }
-            _variables[varName] = VariableValue::fromString(value);
+        } catch (...) {
+            result.error = true;
+            result.output = "?REDO FROM START";
+            return result;
         }
     }
 
-    execResult.action = ExecutionAction::Wait;
-    return execResult;
+    result.action = ExecutionAction::Wait;
+    return result;
 }

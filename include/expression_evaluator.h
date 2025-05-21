@@ -4,31 +4,35 @@
 #include <deque>
 #include <unordered_map>
 #include <variables.h>
+#include <memory>
 #include "tokens.h"
 
-struct EvalResult{
-    VariableValue value;
+
+struct EvalResult {
+    std::unique_ptr<const Variable> value;
     bool error = false;
     std::string errorMsg;
 
-    EvalResult(const VariableValue& val, bool err, const std::string& msg)
-        : value(val), error(err), errorMsg(msg) {}
+    EvalResult(std::unique_ptr<const Variable> val, bool err, const std::string& msg)
+        : value(std::move(val)), error(err), errorMsg(msg) {}
 
-    static EvalResult success(const VariableValue& val){
-        return EvalResult(val, false, "");    
+    static EvalResult success(std::unique_ptr<const Variable> val){
+        return EvalResult(std::move(val), false, "");
     }
+
     static EvalResult failure(const std::string& msg){
-        return EvalResult(VariableValue(), true, msg);
+        return EvalResult(nullptr, true, msg);
     }
 };
 
 class ExpressionEvaluator{
 public: 
-    ExpressionEvaluator(const std::unordered_map<std::string, VariableValue>& variables);
+    ExpressionEvaluator(const std::unordered_map<std::string, std::unique_ptr<Variable>>& variables)
+        : _variables(variables) {}
     EvalResult evaluate(const std::vector<Token>& expressionTokens);
     
 private:
-    const std::unordered_map<std::string, VariableValue> _variables;
+    const std::unordered_map<std::string, std::unique_ptr<Variable>>& _variables;
     
     std::vector<Token> toRPN(const std::vector<Token>& tokens);
     EvalResult evaluateRPN(const std::vector<Token>& tokens);

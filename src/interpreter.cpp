@@ -65,7 +65,16 @@ std::string BasicInterpreter::preprocess(const std::string& line){
     return result;
 }
 
-bool BasicInterpreter::handleREPLDirective(const std::string& line){
+bool BasicInterpreter::handleREPLDirective(const std::string& line){    
+    if (line == "DUMP"){
+        for (const auto& varPair : _variables) {
+            const std::string& varName = varPair.first;
+            const std::unique_ptr<Variable>& varValue = varPair.second;
+
+            _io.print(varName + " = " + varValue->toString() + "\n");
+        }
+    }
+
     if (line == "EXIT" || line == "QUIT"){
         _io.print("OK");
         return true;

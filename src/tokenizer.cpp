@@ -26,8 +26,13 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
                 if (input[i] == '.') hasDot = true;
                 number += input[i++];
             }
+            if (hasDot){
+                tokens.push_back({TokenType::Float, number});
+            }
+            else{
+                tokens.push_back({TokenType::Integer, number});
+            }
 
-            tokens.push_back({TokenType::Number, number});
             continue;
         }
 
@@ -61,22 +66,43 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
         if (symbolFound) continue;
 
         // Check identifiers, keywords, special characters
-        if (std::isalpha(input[i])){
-            std::string ident;
-            while (i < inputSize && std::isalnum(input[i])){
-                ident += input[i++];
+        if (std::isalpha(input[i])) {
+            size_t start = i;
+
+            // Read full word of letters only (for keywords)
+            while (i < inputSize && std::isalpha(input[i])) {
+                i++;
             }
-            
-            if (Token::isKeyword(ident)){
-                tokens.push_back({TokenType::Keyword, ident});
-            }
-            else{
-                if (ident.length() > 2){
-                    ident = ident.substr(0,2);
-                }
-                tokens.push_back({TokenType::Identifier, ident});
+            std::string word = input.substr(start, i - start);
+
+            if (Token::isKeyword(word)) {
+                // It's a keyword
+                tokens.push_back({TokenType::Keyword, word});
+                continue;
             }
 
+            // Not a keyword, treat as an identifier:
+            // Now limit identifier length to 2 characters + optional suffix
+
+            // Reset to start again
+            i = start;
+
+            std::string ident;
+
+            // Capture first alpha char
+            ident += input[i++];
+
+            // Optionally capture second alnum char
+            if (i < inputSize && std::isalnum(input[i])) {
+                ident += input[i++];
+            }
+
+            // Optionally capture suffix $ or %
+            if (i < inputSize && (input[i] == '$' || input[i] == '%')) {
+                ident += input[i++];
+            }
+
+            tokens.push_back({TokenType::Identifier, ident});
             continue;
         }
 
@@ -88,22 +114,23 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
 
     tokens.push_back({TokenType::EndOfLine, ""});
 
-    // DEBUGGING OUTPUT
-    for (const auto& token : tokens) {
-        std::cout << "[Token] Type: ";
+    // // DEBUGGING OUTPUT
+    // for (const auto& token : tokens) {
+    //     std::cout << "[Token] Type: ";
     
-        switch (token.type) {
-            case TokenType::Keyword: std::cout << "Keyword"; break;
-            case TokenType::Identifier: std::cout << "Identifier"; break;
-            case TokenType::Number: std::cout << "Number"; break;
-            case TokenType::String: std::cout << "String"; break;
-            case TokenType::Symbol: std::cout << "Symbol"; break;
-            case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
-            case TokenType::UnknownTokenType: std::cout << "Unknown"; break;
-        }
+    //     switch (token.type) {
+    //         case TokenType::Keyword: std::cout << "Keyword"; break;
+    //         case TokenType::Identifier: std::cout << "Identifier"; break;
+    //         case TokenType::Float: std::cout << "Float"; break;
+    //         case TokenType::Integer: std::cout << "Integer"; break;
+    //         case TokenType::String: std::cout << "String"; break;
+    //         case TokenType::Symbol: std::cout << "Symbol"; break;
+    //         case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
+    //         case TokenType::UnknownTokenType: std::cout << "Unknown"; break;
+    //     }
     
-        std::cout << ", Value: \"" << token.value << "\"\n";
-    }
+    //     std::cout << ", Value: \"" << token.value << "\"\n";
+    // }
 
     return tokens;
 }

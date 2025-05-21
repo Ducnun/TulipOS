@@ -2,6 +2,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <memory>
 #include <sstream>
 #include "io_interface.h"
 #include "tokenizer.h"
@@ -19,7 +20,7 @@ public:
 private:
     IOInterface& _io;
     Executor _executor;
-    std::unordered_map<std::string, VariableValue> _variables;
+    std::unordered_map<std::string, std::unique_ptr<Variable>> _variables;
     Program _program;
 
     std::string preprocess(const std::string& line);

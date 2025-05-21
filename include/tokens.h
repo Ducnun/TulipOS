@@ -6,7 +6,8 @@
 
 enum class TokenType{
     UnknownTokenType,
-    Number,
+    Float,
+    Integer,
     String,
     Identifier,
     Keyword,

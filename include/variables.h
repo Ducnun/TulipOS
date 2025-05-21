@@ -3,78 +3,51 @@
 #include <string>
 #include <stdint.h>
 #include <sstream>
+#include <memory>
 
-enum ValueType {
+enum VariableType {
     NoValType,
     Integer,
     String,
-    Boolean,
     Float
 };
 
-struct VariableValue {
-    // Variable Value has a 
-    ValueType type = ValueType::NoValType;
-    int16_t intValue;
-    std::string stringValue;
-    bool boolValue;
-    float floatValue;
-
-    VariableValue() : type(ValueType::NoValType), intValue(0), boolValue(false), floatValue(0.2f) {}
-
-    static VariableValue fromInt(int16_t v){
-        VariableValue val;
-        val.type = ValueType::Integer;
-        val.intValue = v;
-        return val;
-    }
-
-    static VariableValue fromString(std::string v){
-        VariableValue val;
-        val.type = ValueType::String;
-        val.stringValue = v;
-        return val;
-    }
-
-    static VariableValue fromBool(bool v){
-        VariableValue val;
-        val.type = ValueType::Boolean;
-        val.boolValue = v;
-        return val;
-    }
-
-    static VariableValue fromFloat(float v){
-        VariableValue val;
-        val.type = ValueType::Float;
-        val.floatValue = v;
-        return val;
-    }
-
-    bool toBool() const {
-        switch (type){
-            case ValueType::Integer: return intValue != 0; break;
-            case ValueType::Float: return floatValue != 0.0f; break;
-            case ValueType::String: return !stringValue.empty(); break;
-            case ValueType::Boolean: return boolValue; break;
-        }
-        return false;
-    }
-
-    inline std::string toString() const {
-        char buffer[32];
-        switch (type){
-            case ValueType::Integer:
-                return std::to_string(intValue);
-            case ValueType::Boolean:
-                return boolValue ? "TRUE" : "FALSE";
-            case ValueType::Float:
-                snprintf(buffer, sizeof(buffer), "%.6g", floatValue);
-                return buffer;
-            case ValueType::String:
-                return stringValue;
-            default:
-                return "?UNDEFINED";
-        }
-    }
-
+class Variable {
+public:
+    virtual ~Variable() {}
+    virtual std::string toString() const = 0;
+    virtual VariableType getType() const = 0;
+    virtual int16_t toBool() const = 0;
+    virtual std::unique_ptr<Variable> clone() const = 0;
 };
+
+class IntVariable : public Variable {
+public:
+    int16_t value;
+    IntVariable(int16_t v): value (v){}
+    std::string toString() const override { return std::to_string(value); }
+    VariableType getType() const override { return VariableType::Integer; }
+    int16_t toBool() const override { return value != 0 ? -1 : 0; }
+    std::unique_ptr<Variable> clone() const override { return std::unique_ptr<IntVariable>(new IntVariable(value)); }
+};
+
+class StringVariable : public Variable {
+public:
+    std::string value;
+    StringVariable(std::string v): value (v){}
+    std::string toString() const override { return value; }
+    VariableType getType() const override { return VariableType::String; }
+    int16_t toBool() const override { return !value.empty() ? -1 : 0; }
+    std::unique_ptr<Variable> clone() const override { return std::unique_ptr<StringVariable>(new StringVariable(value)); }
+};
+
+class FloatVariable : public Variable {
+public:
+    float value;
+    FloatVariable(float v): value (v){}
+    std::string toString() const override { return std::to_string(value); }
+    VariableType getType() const override { return VariableType::Float; }
+    int16_t toBool() const override { return value != 0 ? -1 : 0; }
+    std::unique_ptr<Variable> clone() const override { return std::unique_ptr<FloatVariable>(new FloatVariable(value)); }
+};
+

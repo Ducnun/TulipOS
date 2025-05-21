@@ -2,6 +2,8 @@
 
 #include <map>
 #include <functional>
+#include <sstream>
+#include <cctype>
 #include "expression_evaluator.h"
 #include "io_interface.h"
 #include "parser.h"
@@ -24,7 +26,7 @@ struct ExecutionResult{
 
 class Executor{
 public:
-    Executor(IOInterface& io, std::unordered_map<std::string, VariableValue>& variables): _io(io), _variables(variables){}
+    Executor(IOInterface& io, std::unordered_map<std::string, std::unique_ptr<Variable>>& variables): _io(io), _variables(variables){}
 
     ExecutionResult execute(const ParsedStatement& stmt);
 
@@ -40,5 +42,5 @@ private:
     EvalResult safeEvaluate(const std::vector<Token>& tokens, ExecutionResult& result);
 
     IOInterface& _io;
-    std::unordered_map<std::string, VariableValue>& _variables;
+    std::unordered_map<std::string, std::unique_ptr<Variable>>& _variables;
 };
