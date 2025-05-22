@@ -73,6 +73,7 @@ bool BasicInterpreter::handleREPLDirective(const std::string& line){
 
             _io.print(varName + " = " + varValue->toString() + "\n");
         }
+        return true;
     }
 
     if (line == "EXIT" || line == "QUIT"){

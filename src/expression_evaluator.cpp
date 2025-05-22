@@ -65,7 +65,7 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
                     }
                 }
                 else {
-                    throw std::runtime_error("Unknown symbol: " + token.value);
+                    throw std::runtime_error("symbol: " + token.value);
                 }
                 break;
             default:
@@ -185,10 +185,10 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
                 break;
             }
         }
-    
-        if (stack.size() != 1){
-            return EvalResult::failure("Unexpected token type in expression: " + token.toString());
-        }
+    }
+
+    if (stack.size() != 1){
+        return EvalResult::failure("Unexpected token type in expression: " + rpnTokens.front().toString());
     }
 
     return EvalResult::success(std::move(stack.back()));
