@@ -139,6 +139,7 @@ void BasicInterpreter::runProgram(){
 
 void BasicInterpreter::listProgram(){
     std::vector<std::string> lines = _program.getSource();
+    if (lines.empty()) return;
     for (const std::string& line : lines){
         _io.print(line + "\n");
     }
