@@ -13,6 +13,7 @@ enum class StatementType{
     IfThen,
     Goto,
     Input,
+    For,
     List,
     Run,
     New,
@@ -26,10 +27,20 @@ struct ParsedStatement{
     StatementType type = StatementType::NoOp;
     std::string identifier;
 
-    std::vector<Token> expressionTokens;
+    // Print
     std::vector<Token> printTokens;
+
+    // If-Then
     std::vector<Token> conditionTokens;
     std::vector<Token> thenTokens;
+
+    // For loops
+    std::vector<Token> forInitTokens;
+    std::vector<Token> forToTokens;
+    std::vector<Token> forStepTokens;
+
+    // Multipurpose
+    std::vector<Token> expressionTokens;    // Assignment, Goto
     std::vector<Token> identifierTokens;
 
     int lineNumber = -1;
@@ -49,4 +60,5 @@ private:
     ParsedStatement parseIfThen();
     ParsedStatement parseGoto();
     ParsedStatement parseInput();
+    ParsedStatement parseFor();
 };

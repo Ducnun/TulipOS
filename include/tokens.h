@@ -23,6 +23,10 @@ enum class KeywordType{
     Then,
     Goto,
     Input,
+    For,
+    To,
+    Next,
+    Step
 };
 
 class Token{

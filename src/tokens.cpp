@@ -16,7 +16,7 @@ std::string Token::toString() const {
 
 const std::unordered_set<std::string>& Token::keywordList(){
     static const std::unordered_set<std::string> keywords = {
-        "PRINT", "RUN", "LET", "NEW", "LIST", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "RETURN", 
+        "PRINT", "RUN", "LET", "NEW", "LIST", "INPUT", "GOTO", "IF", "THEN", "FOR", "TO", "NEXT", "STEP", "RETURN", 
         "END",
     };
     return keywords;
@@ -52,6 +52,10 @@ KeywordType Token::getKeywordType(const std::string& word){
         {"THEN", KeywordType::Then},
         {"GOTO", KeywordType::Goto},
         {"INPUT", KeywordType::Input},
+        {"FOR", KeywordType::For},
+        {"TO", KeywordType::To},
+        {"NEXT", KeywordType::Next},
+        {"STEP", KeywordType::Step}
     };
     auto it = keywordMap.find(word);
     return (it != keywordMap.end()) ? it->second : KeywordType::UnknownKeywordType;
