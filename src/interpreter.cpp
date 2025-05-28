@@ -103,7 +103,11 @@ void BasicInterpreter::storeProgramLine(const std::string& line){
     std::getline(iss, rest);
     std::string cleanedRest = preprocess(rest);
     
-    _program.insertLine(lineNumber, cleanedRest);
+    if (cleanedRest.empty()){
+        _program.deleteLine(lineNumber);
+    }else{
+        _program.insertLine(lineNumber, cleanedRest);
+    }
 }
 
 void BasicInterpreter::evaluateImmediateCommand(const std::string& line){

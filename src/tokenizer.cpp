@@ -114,23 +114,23 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
 
     tokens.push_back({TokenType::EndOfLine, ""});
 
-    // DEBUGGING OUTPUT
-    for (const auto& token : tokens) {
-        std::cout << "[Token] Type: ";
+    // // DEBUGGING OUTPUT
+    // for (const auto& token : tokens) {
+    //     std::cout << "[Token] Type: ";
     
-        switch (token.type) {
-            case TokenType::Keyword: std::cout << "Keyword"; break;
-            case TokenType::Identifier: std::cout << "Identifier"; break;
-            case TokenType::Float: std::cout << "Float"; break;
-            case TokenType::Integer: std::cout << "Integer"; break;
-            case TokenType::String: std::cout << "String"; break;
-            case TokenType::Symbol: std::cout << "Symbol"; break;
-            case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
-            case TokenType::UnknownTokenType: std::cout << "Unknown"; break;
-        }
+    //     switch (token.type) {
+    //         case TokenType::Keyword: std::cout << "Keyword"; break;
+    //         case TokenType::Identifier: std::cout << "Identifier"; break;
+    //         case TokenType::Float: std::cout << "Float"; break;
+    //         case TokenType::Integer: std::cout << "Integer"; break;
+    //         case TokenType::String: std::cout << "String"; break;
+    //         case TokenType::Symbol: std::cout << "Symbol"; break;
+    //         case TokenType::EndOfLine: std::cout << "EndOfLine"; break;
+    //         case TokenType::UnknownTokenType: std::cout << "Unknown"; break;
+    //     }
     
-        std::cout << ", Value: \"" << token.value << "\"\n";
-    }
+    //     std::cout << ", Value: \"" << token.value << "\"\n";
+    // }
 
     return tokens;
 }
