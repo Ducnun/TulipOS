@@ -12,6 +12,7 @@ ParsedStatement Parser::parse(){
         case KeywordType::Goto: return parseGoto();
         case KeywordType::Input: return parseInput();
         case KeywordType::For: return parseFor();
+        case KeywordType::Next: return parseNext();
         default:
             throw std::runtime_error("Unknown statement type");
     }
@@ -32,7 +33,7 @@ ParsedStatement Parser::parseLet() {
     ParsedStatement stmt;
     stmt.type = StatementType::Assignment;
     size_t i = 1; // Skip LET
-    
+
     if (i < _tokens.size() && _tokens[i].type == TokenType::Identifier){
         stmt.identifier = _tokens[i++].value;
         if (Token::isKeyword(stmt.identifier)) {
@@ -143,5 +144,20 @@ ParsedStatement Parser::parseFor(){
             stmt.forStepTokens.push_back(_tokens[i++]);
         }
     }
+    return stmt;
+}
+
+ParsedStatement Parser::parseNext(){
+    ParsedStatement stmt;
+    stmt.type = StatementType::Next;
+    size_t i = 1;
+
+    if (i >= _tokens.size() || _tokens[i].type != TokenType::Identifier) throw std::runtime_error("Expected Loop variable after NEXT");
+    stmt.identifier = _tokens[i++].value;
+
+    if (i != _tokens.size() && _tokens[i].type != TokenType::EndOfLine) {
+        throw std::runtime_error("Unexpected token after NEXT statement");
+    }
+
     return stmt;
 }

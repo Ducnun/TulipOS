@@ -4,6 +4,7 @@
 #include <functional>
 #include <sstream>
 #include <cctype>
+#include <stack>
 #include "expression_evaluator.h"
 #include "io_interface.h"
 #include "parser.h"
@@ -20,6 +21,14 @@ enum ExecutionAction{
     Halt,
     Wait,
     Error
+};
+
+struct LoopState{
+    std::string varName;
+    int16_t current;
+    int16_t end;
+    int16_t step;
+    int lineNumberToReturnTo;
 };
 
 /**
@@ -53,6 +62,8 @@ public:
 private:
     IOInterface& _io; ///< Reference to interpreters IO interface
     std::unordered_map<std::string, std::unique_ptr<Variable>>& _variables; ///< Reference to shared runtime variables
+    std::stack<LoopState> _loopStack;
+    std::unordered_set<int> _initializedForLines;
 
     /**
      * @brief Helper function that checks whether an error is thrown by any of the statement handlers
@@ -105,4 +116,8 @@ private:
      * @return ExecutionResult Result with action Continue
      */
     ExecutionResult handleInput(const ParsedStatement& stmt);
+
+    ExecutionResult handleFor(const ParsedStatement& stmt);
+
+    ExecutionResult handleNext(const ParsedStatement& stmt);
 };

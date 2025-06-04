@@ -8,6 +8,8 @@ ExecutionResult Executor::execute(const ParsedStatement& stmt){
         {StatementType::Goto, [this](const ParsedStatement& stmt) {return handleGoto(stmt);}},
         {StatementType::End, [this](const ParsedStatement& stmt) {return handleEnd(stmt);}},
         {StatementType::Input, [this](const ParsedStatement& stmt) {return handleInput(stmt);}},
+        {StatementType::For, [this](const ParsedStatement& stmt) {return handleFor(stmt);}},
+        {StatementType::Next, [this](const ParsedStatement& stmt) {return handleNext(stmt);}},
     };
         
     // Look for the right handler
@@ -19,13 +21,21 @@ ExecutionResult Executor::execute(const ParsedStatement& stmt){
         }
         return result;
     }
-
+    
     return {};
 }
 
 EvalResult Executor::safeEvaluate(const std::vector<Token>& tokens, ExecutionResult& result){
     ExpressionEvaluator evaluator(_variables);
-    EvalResult eval = evaluator.evaluate(tokens);
+
+    std::vector<Token> cleaned;
+    for (const auto& token : tokens){
+        if (token.type != TokenType::EndOfLine){
+            cleaned.push_back(token);
+        }
+    }
+
+    EvalResult eval = evaluator.evaluate(cleaned);
     if (eval.error){
         result.error = true;
         result.action = ExecutionAction::Error;
@@ -40,7 +50,7 @@ ExecutionResult Executor::handlePrint(const ParsedStatement& stmt){
         _io.print("\n");
         return result;
     }
-
+    
     EvalResult eval = safeEvaluate(stmt.printTokens, result);
     if (!result.error){
         _io.print(eval.value->toString() + "\n");
@@ -166,5 +176,71 @@ ExecutionResult Executor::handleInput(const ParsedStatement& stmt){
     }
 
     result.action = ExecutionAction::Wait;
+    return result;
+}
+
+ExecutionResult Executor::handleFor(const ParsedStatement& stmt){
+    ExecutionResult result;
+
+    if (_initializedForLines.count(stmt.lineNumber) > 0) return result;
+    
+    EvalResult init = safeEvaluate(stmt.forInitTokens, result);
+    EvalResult end = safeEvaluate(stmt.forToTokens, result);
+    EvalResult step = stmt.forStepTokens.empty()
+        ? EvalResult{std::unique_ptr<Variable>(new IntVariable(1)), false, ""}
+        : safeEvaluate(stmt.forStepTokens, result);
+
+    if (result.error) return result;;
+
+    _variables[stmt.identifier] = init.value->clone();
+
+    LoopState loop;
+    loop.varName = stmt.identifier;
+    loop.lineNumberToReturnTo = stmt.lineNumber;
+    loop.current = Variable::toInt(init.value.get());
+    loop.end = Variable::toInt(end.value.get());
+    loop.step = Variable::toInt(step.value.get());
+
+    _initializedForLines.insert(stmt.lineNumber);
+    
+    _loopStack.push(loop);
+    return result;
+}
+
+ExecutionResult Executor::handleNext(const ParsedStatement& stmt){
+    ExecutionResult result;
+
+    if (_loopStack.empty()){
+        result.error = true;
+        result.output = "?NEXT WITHOUT FOR";
+        result.action = ExecutionAction::Halt;
+        return result;
+    }
+
+    LoopState& loop = _loopStack.top();
+
+    if (!stmt.identifier.empty() && loop.varName != stmt.identifier){
+        result.error = true;
+        result.output = "?MISMATCHED VARIABLE IN NEXT";
+        result.action = ExecutionAction::Halt;
+        return result;
+    }
+
+    auto& varPtr = _variables[loop.varName];
+    int16_t currentVal = Variable::toInt(varPtr.get());
+    currentVal += loop.step;
+    varPtr = std::unique_ptr<Variable>(new IntVariable(currentVal));
+
+    bool loopContinues = (loop.step > 0) ? (currentVal <= loop.end) : (currentVal >= loop.end);
+
+    if (loopContinues){
+        result.action = ExecutionAction::Jump;
+        result.jumpTarget = loop.lineNumberToReturnTo;
+    }
+    else{
+        _initializedForLines.erase(loop.lineNumberToReturnTo);
+        _loopStack.pop();
+    }
+
     return result;
 }

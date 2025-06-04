@@ -7,6 +7,7 @@ void BasicInterpreter::runREPL(){
     _io.clearScreen();
     _io.print("**** TULIP 64 BASIC V2 ****\n");
     _io.print(" 64K RAM SYSTEM 38911 BASIC BYTES FREE\n");
+    _io.print(" -- WELOME HOME WARRIOR -- \n");
     _io.print("READY.\n");
 
     while (true){

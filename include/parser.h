@@ -18,6 +18,7 @@ enum class StatementType{
     Goto,
     Input,
     For,
+    Next,
     List,
     Run,
     New,
@@ -32,23 +33,23 @@ enum class StatementType{
  */
 struct ParsedStatement{
     StatementType type = StatementType::NoOp;
-    std::string identifier;
-
+    
     // Print
     std::vector<Token> printTokens;
-
+    
     // If-Then
     std::vector<Token> conditionTokens;
     std::vector<Token> thenTokens;
-
+    
     // For loops
     std::vector<Token> forInitTokens;
     std::vector<Token> forToTokens;
     std::vector<Token> forStepTokens;
-
+    
     // Multipurpose
     std::vector<Token> expressionTokens;    // Assignment, Goto
     std::vector<Token> identifierTokens;
+    std::string identifier;
 
     int lineNumber = -1;
 };
@@ -115,4 +116,10 @@ private:
      * expressions, in which case they have to be evaluated first
      */
     ParsedStatement parseFor();
+
+    /**
+     * @brief Private helper function that handles NEXT statements
+     * @return ParsedStatement Holds the statementtype next as well as the identifier associated with the loop
+     */
+    ParsedStatement parseNext();
 };

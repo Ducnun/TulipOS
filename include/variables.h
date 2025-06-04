@@ -45,6 +45,8 @@ public:
      * @return std::unique_ptr<Variable> pointer to the new cloned variable
      */
     virtual std::unique_ptr<Variable> clone() const = 0;
+
+    static int16_t toInt(const Variable* var);
 };
 
 class IntVariable : public Variable {
@@ -101,4 +103,3 @@ public:
     /** \copydoc Variable::clone */
     std::unique_ptr<Variable> clone() const override { return std::unique_ptr<FloatVariable>(new FloatVariable(value)); }
 };
-
