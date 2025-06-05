@@ -50,7 +50,7 @@ void Program::rebuildLineNumbers(){
 }
 
 void Program::resetProgramCounter(){
-    _programCounter = _lineNumbers.front();
+    _programCounter = _sourceLines.empty() ? 0 : _lineNumbers.front();
 }
 
 ParsedStatement Program::getNextStatement(){

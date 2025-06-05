@@ -2,9 +2,9 @@
 
 int ExpressionEvaluator::precedence(const std::string& op){
     static std::unordered_map<std::string, int> precedence_map{
-        {"=", 0}, {"<>", 0}, {"<", 0}, {"<=", 0}, {">", 0}, {">=", 0},      // Boolean operators
+        {"=", 0}, {"<>", 0}, {"<", 0}, {"<=", 0}, {">", 0}, {">=", 0},    // Boolean operators
         {"AND", 1}, {"OR", 2},                                            // Logical operators
-    {"+", 3}, {"-", 3}, {"*", 4}, {"/", 4}                              // Numerical operators
+        {"+", 3}, {"-", 3}, {"*", 4}, {"/", 4}, {"MOD", 4}, {"^", 5}      // Numerical operators
     };
 
     return precedence_map.count(op) ? precedence_map[op] : 0;
@@ -14,7 +14,8 @@ bool ExpressionEvaluator::isOperator(const Token& token){
     return token.type == TokenType::Symbol && 
         (token.value == "+" || token.value == "-" || token.value == "/" || token.value == "*" || 
          token.value == "=" || token.value == "<>" || token.value == "<" || token.value == "<=" ||
-         token.value == ">" || token.value == ">=" || token.value == "AND" || token.value == "OR");
+         token.value == ">" || token.value == ">=" || token.value == "AND" || token.value == "OR" ||
+         token.value == "^" || token.value == "MOD");
 }
 
 std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
@@ -33,7 +34,7 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
                 if (isOperator(token)) {
                     while (!holding.empty()) {
                         const Token& top = holding.back();
-                        if (isOperator(top) && precedence(token.value) >= precedence(top.value)){
+                        if (isOperator(top) && precedence(token.value) <= precedence(top.value)){
                             out.push_back(top);
                             holding.pop_back();
                         } 
@@ -152,6 +153,22 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
                     }
                     else{
                         result = std::unique_ptr<Variable>(new IntVariable(std::stoi(left->toString()) / std::stoi(right->toString())));
+                    }
+                }
+                else if (token.value == "MOD"){
+                    if (left->getType() == VariableType::Float || right->getType() == VariableType::Float){
+                        throw std::runtime_error("?MOD ONLY SUPPORTED ON INTS");
+                    }
+                    else{
+                        result = std::unique_ptr<Variable>(new IntVariable(std::stoi(left->toString()) % std::stoi(right->toString())));
+                    }
+                }
+                else if (token.value == "^"){
+                    if (left->getType() == VariableType::Float || right ->getType() == VariableType::Float){
+                        result = std::unique_ptr<Variable>(new FloatVariable(std::pow(std::stof(left->toString()), std::stof(right->toString()))));
+                    }
+                    else{
+                        result = std::unique_ptr<Variable>(new IntVariable(std::pow(std::stoi(left->toString()), std::stoi(right->toString()))));
                     }
                 }
                 else if (token.value == "="){

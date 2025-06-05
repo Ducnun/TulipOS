@@ -53,15 +53,27 @@ void BasicInterpreter::runREPL(){
         }
 
         // Call tokenizer and parser to process input
-        evaluateImmediateCommand(cleaned);
+        try {evaluateImmediateCommand(cleaned); }
+        catch (std::runtime_error e){
+            _io.print("\n ?");
+            _io.print(e.what());
+        }
     }
 }
 
 std::string BasicInterpreter::preprocess(const std::string& line){
     std::string result;
-    for (char c : line){
-        if (c == '\n' || c == '\r') continue;
-        result += std::toupper(c);
+    int charIndex = 0;
+
+    while (line[charIndex] == ' ') charIndex++;
+    
+    while (charIndex < line.length()){
+        if (line[charIndex] == '\n' || line[charIndex] == '\r') {
+            charIndex++; 
+            continue;
+        }
+        result += std::toupper(line[charIndex]);
+        charIndex++;
     }
     return result;
 }
@@ -127,7 +139,14 @@ void BasicInterpreter::runProgram(){
         _io.pollKeyboard();
         int currentLine = _program.getProgramCounter();
 
-        if (_io.checkBreakRequested()){
+        if (currentLine == 0){
+            _io.print("?UNDEF'D STATEMENT ERROR\n");
+            _io.print("READY.\n");
+            running = false;
+            continue;
+        }
+
+        if (_io.checkBreakRequested()){     // checkBreakRequested consumes the break flag
             _io.print("BREAK IN " + std::to_string(currentLine) + "\n");
             _io.print("READY.\n");
             running = false;

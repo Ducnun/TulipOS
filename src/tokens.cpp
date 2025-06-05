@@ -24,9 +24,9 @@ const std::unordered_set<std::string>& Token::keywordList(){
 
 const std::unordered_set<std::string>& Token::symbolList(){
     static const std::unordered_set<std::string> symbols = {
-        "+", "-", "*", "/", "=", "<", ">", "<=", ">=", "<>", "(", ")",
-        "AND", "OR",
-        ";", ","
+        "+", "-", "*", "/", "=", "<", ">", "<=", ">=", "<>", "(", ")", "^",
+        "AND", "OR", "MOD",
+        ";", ",", "(", ")"
     };
     return symbols;
 }
