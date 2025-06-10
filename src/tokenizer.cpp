@@ -18,9 +18,15 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
         }
 
         // Number, default to float so support one "."
-        if (std::isdigit(input[i]) || (input[i] == '.' && i + 1 < inputSize && std::isdigit(input[i + 1]))) {
+        if ((input[i] == '-') && i + 1 < inputSize && (std::isdigit(input[i+1])) 
+                || std::isdigit(input[i]) 
+                || (input[i] == '.' && i + 1 < inputSize && std::isdigit(input[i + 1]))) {
             std::string number;
             bool hasDot = false;
+
+            if (input[i] == '-'){
+                number += input[i++];
+            }
 
             while (i < inputSize && (std::isdigit(input[i]) || (input[i] == '.' && !hasDot))) {
                 if (input[i] == '.') hasDot = true;
@@ -73,7 +79,7 @@ std::vector<Token> Tokenizer::tokenize(const std::string& input){
             while (i < inputSize && std::isalpha(input[i])) {
                 i++;
             }
-            std::string word = input.substr(start, i - start);
+            std::string word = std::move(input.substr(start, i - start));
 
             if (Token::isKeyword(word)) {
                 // It's a keyword

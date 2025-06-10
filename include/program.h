@@ -72,6 +72,9 @@ public:
     void saveToSD(const std::string& filename);
     void loadFromSD(const std::string& filename);
 
+    // Benchmark
+    void loadBenchmark();
+
 private:
     std::map<int, ParsedStatement> _statements; ///< Holds the parsed statements
     std::map<int, std::string> _sourceLines; ///< Holds the raw input lines

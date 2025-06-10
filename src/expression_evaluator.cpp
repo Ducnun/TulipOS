@@ -3,7 +3,7 @@
 int ExpressionEvaluator::precedence(const std::string& op){
     static std::unordered_map<std::string, int> precedence_map{
         {"=", 0}, {"<>", 0}, {"<", 0}, {"<=", 0}, {">", 0}, {">=", 0},    // Boolean operators
-        {"AND", 1}, {"OR", 2},                                            // Logical operators
+        {"AND", 2}, {"OR", 1},                                            // Logical operators
         {"+", 3}, {"-", 3}, {"*", 4}, {"/", 4}, {"MOD", 4}, {"^", 5}      // Numerical operators
     };
 
@@ -212,6 +212,11 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
 }
 
 EvalResult ExpressionEvaluator::evaluate(const std::vector<Token>& tokens){
-    std::vector<Token> rpnTokens = toRPN(tokens);
-    return evaluateRPN(rpnTokens);
+    try {
+        std::vector<Token> rpnTokens = toRPN(tokens);
+        return evaluateRPN(rpnTokens);
+    }
+    catch (const std::exception& ex){
+        return EvalResult::failure(std::string("EXCEPTION: ") + ex.what());
+    }
 }

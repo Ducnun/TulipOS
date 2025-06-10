@@ -192,7 +192,7 @@ ExecutionResult Executor::handleFor(const ParsedStatement& stmt){
 
     if (result.error) return result;;
 
-    _variables[stmt.identifier] = init.value->clone();
+    _variables[stmt.identifier] = std::unique_ptr<Variable>(new IntVariable(Variable::toInt(init.value.get())));
 
     LoopState loop;
     loop.varName = stmt.identifier;
@@ -222,6 +222,20 @@ ExecutionResult Executor::handleNext(const ParsedStatement& stmt){
     if (!stmt.identifier.empty() && loop.varName != stmt.identifier){
         result.error = true;
         result.output = "?MISMATCHED VARIABLE IN NEXT";
+        result.action = ExecutionAction::Halt;
+        return result;
+    }
+
+    if (_variables.find(loop.varName) == _variables.end() || !_variables[loop.varName]){
+        result.error = true;
+        result.output = "?LOOP VARIABLE NOT FOUND";
+        result.action = ExecutionAction::Halt;
+        return result;
+    }
+
+    if (_variables[loop.varName]->getType() != VariableType::Integer){
+        result.error = true;
+        result.output = "?LOP VARIABLE TYPE ERROR";
         result.action = ExecutionAction::Halt;
         return result;
     }

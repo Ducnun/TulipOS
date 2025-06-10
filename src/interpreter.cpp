@@ -89,6 +89,11 @@ bool BasicInterpreter::handleREPLDirective(const std::string& line){
         return true;
     }
 
+    if (line == "BENCH"){
+        _program.loadBenchmark();
+        return true;
+    }
+
     if (line == "EXIT" || line == "QUIT"){
         _io.print("OK");
         return true;

@@ -12,7 +12,7 @@ void Program::insertLine(int lineNumber, const std::string& source){
     ParsedStatement stmt = parser.parse();
     stmt.lineNumber = lineNumber;
     _statements[lineNumber] = stmt;
-    _sourceLines[lineNumber] = std::to_string(lineNumber) + source;
+    _sourceLines[lineNumber] = std::to_string(lineNumber) + " " + source;
     rebuildLineNumbers();
 }
 
@@ -73,11 +73,24 @@ ParsedStatement Program::getNextStatement(){
     return stmt;
 }
 
-
 void Program::jumpTo(int targetLine){
     auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), targetLine);
     if (it == _lineNumbers.end()) {
         throw std::runtime_error("GOTO to undefined line: " + std::to_string(targetLine));
     }
     _programCounter = targetLine;
+}
+
+void Program::loadBenchmark(void){
+    clear();
+    insertLine(10,  "PRINT \"PI APPROXIMATION\"");
+    insertLine(20,  "LET PI = 0");
+    insertLine(30,  "LET SG = 1");
+    insertLine(40,  "FOR I = 0 TO 4999");
+    insertLine(50,  "LET D = 2 * I + 1");
+    insertLine(60,  "LET PI = PI + SG * (1.0 / D)");
+    insertLine(70,  "LET SG = SG * -1");
+    insertLine(80,  "NEXT I");
+    insertLine(90,  "LET PI = PI * 4");
+    insertLine(100, "PRINT PI");
 }
