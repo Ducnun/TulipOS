@@ -85,12 +85,12 @@ std::vector<Token> ExpressionEvaluator::toRPN(const std::vector<Token>& tokens){
 }
 
 EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens){
-    std::vector<std::unique_ptr<Variable>> stack;
+    std::vector<Variable> stack;
     
     // Anonymous function to pop from stack
-    auto pop = [&]() -> std::unique_ptr<Variable>{
+    auto pop = [&]() -> Variable{
         if (stack.empty()) throw std::runtime_error("Stack underflow");
-        std::unique_ptr<Variable> val = std::move(stack.back());
+        Variable val = stack.back();
         stack.pop_back();
         return val;
     };
@@ -98,62 +98,39 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
     for (const Token& token : rpnTokens){
         switch (token.type){
             case TokenType::Integer:
-                stack.push_back(std::unique_ptr<IntVariable>(new IntVariable(std::stoi(token.value))));
+                stack.push_back(Variable::fromInt(std::stoi(token.value)));
                 break;
             case TokenType::Float:
-                stack.push_back(std::unique_ptr<FloatVariable>(new FloatVariable(std::stof(token.value))));
+                stack.push_back(Variable(std::stof(token.value)));
                 break;
             case TokenType::String:
-                stack.push_back(std::unique_ptr<StringVariable>(new StringVariable(token.value)));
+                stack.push_back(Variable(token.value));
                 break;
             case TokenType::Identifier:{
                 auto it = _variables.find(token.value);
                 if (it == _variables.end()){
                     return EvalResult::failure("UNKNOWN VARIABLE: " + token.value);
                 }
-                stack.push_back(it->second->clone());
+                stack.push_back(it->second);
                 break;
             }
             case TokenType::Symbol:{
-                auto right = pop();
-                auto left = pop();
-                std::unique_ptr<Variable> result;
+                Variable right = pop();
+                Variable left = pop();
+                Variable result;
 
                 if (token.value == "+"){
-                    if (left->getType() == VariableType::String || right->getType() == VariableType::String){
-                        result = std::unique_ptr<Variable>(new StringVariable(left->toString() + right->toString()));
-                    }
-                    else if (left->getType() == VariableType::Float || right->getType() == VariableType::Float){
-                        result = std::unique_ptr<Variable>(new FloatVariable(std::stof(left->toString()) + std::stof(right->toString())));
-                    }
-                    else{
-                        result = std::unique_ptr<Variable>(new IntVariable(std::stoi(left->toString()) + std::stoi(right->toString())));
-                    }
+                    result = left + right;
                 }
                 else if (token.value == "-"){
-                    if (left->getType() == VariableType::Float || right->getType() == VariableType::Float){
-                        result = std::unique_ptr<Variable>(new FloatVariable(std::stof(left->toString()) - std::stof(right->toString())));
-                    }
-                    else{
-                        result = std::unique_ptr<Variable>(new IntVariable(std::stoi(left->toString()) - std::stoi(right->toString())));
-                    }
+                    result = left - right;
                 }
                 else if (token.value == "*"){
-                    if (left->getType() == VariableType::Float || right->getType() == VariableType::Float){
-                        result = std::unique_ptr<Variable>(new FloatVariable(std::stof(left->toString()) * std::stof(right->toString())));
-                    }
-                    else{
-                        result = std::unique_ptr<Variable>(new IntVariable(std::stoi(left->toString()) * std::stoi(right->toString())));
-                    }
+                    result = left * right;
                 }
                 else if (token.value == "/"){
-                    if (right->toString() == "0") return EvalResult::failure("ERROR 28 DIVISION BY ZERO");
-                    if (left->getType() == VariableType::Float || right->getType() == VariableType::Float){
-                        result = std::unique_ptr<Variable>(new FloatVariable(std::stof(left->toString()) / std::stof(right->toString())));
-                    }
-                    else{
-                        result = std::unique_ptr<Variable>(new IntVariable(std::stoi(left->toString()) / std::stoi(right->toString())));
-                    }
+                    if (right.toString() == "0") return EvalResult::failure("ERROR 28 DIVISION BY ZERO");
+                    result = left / right;
                 }
                 else if (token.value == "MOD"){
                     if (left->getType() == VariableType::Float || right->getType() == VariableType::Float){
@@ -164,15 +141,10 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
                     }
                 }
                 else if (token.value == "^"){
-                    if (left->getType() == VariableType::Float || right ->getType() == VariableType::Float){
-                        result = std::unique_ptr<Variable>(new FloatVariable(std::pow(std::stof(left->toString()), std::stof(right->toString()))));
-                    }
-                    else{
-                        result = std::unique_ptr<Variable>(new IntVariable(std::pow(std::stoi(left->toString()), std::stoi(right->toString()))));
-                    }
+                    result = left ^ right;
                 }
                 else if (token.value == "="){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toString() == right->toString() ? -1 : 0));
+                    result = left == right;
                 }
                 else if (token.value == "<>"){
                     result = std::unique_ptr<Variable>(new IntVariable(left->toString() != right->toString() ? -1 : 0));
