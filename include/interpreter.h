@@ -30,7 +30,7 @@ public:
 private:
     IOInterface& _io;   ///< Reference to IO system for input/output
     Executor _executor; ///< Executes parsed BASIC statements
-    std::unordered_map<std::string, std::unique_ptr<Variable>> _variables;   ///< Current runtime variables map
+    std::unordered_map<std::string, Variable> _variables;   ///< Current runtime variables map
     Program _program;           ///< Current stored/editing program
 
     /**

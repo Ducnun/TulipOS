@@ -82,9 +82,9 @@ bool BasicInterpreter::handleREPLDirective(const std::string& line){
     if (line == "DUMP"){
         for (const auto& varPair : _variables) {
             const std::string& varName = varPair.first;
-            const std::unique_ptr<Variable>& varValue = varPair.second;
+            const Variable varValue = varPair.second.toString();
 
-            _io.print(varName + " = " + varValue->toString() + "\n");
+            _io.print(varName + " = " + varValue.toString() + "\n");
         }
         return true;
     }

@@ -1,9 +1,6 @@
 #include "variables.h"
 
 Variable::~Variable(){
-    if (type == VariableType::String){
-        stringValue.~basic_string();
-    }
 }
 
 Variable::Variable(const Variable& other) : type(other.type){

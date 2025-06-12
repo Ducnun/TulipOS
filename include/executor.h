@@ -50,7 +50,7 @@ public:
      * @param io 
      * @param variables 
      */
-    Executor(IOInterface& io, std::unordered_map<std::string, std::unique_ptr<Variable>>& variables): _io(io), _variables(variables){}
+    Executor(IOInterface& io, std::unordered_map<std::string, Variable>& variables): _io(io), _variables(variables){}
 
     /**
      * @brief Dispatches the statement to a specific statement handler depending on statement type
@@ -61,7 +61,7 @@ public:
     
 private:
     IOInterface& _io; ///< Reference to interpreters IO interface
-    std::unordered_map<std::string, std::unique_ptr<Variable>>& _variables; ///< Reference to shared runtime variables
+    std::unordered_map<std::string, Variable>& _variables; ///< Reference to shared runtime variables
     std::stack<LoopState> _loopStack;
     std::unordered_set<int> _initializedForLines;
 

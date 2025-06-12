@@ -53,7 +53,7 @@ ExecutionResult Executor::handlePrint(const ParsedStatement& stmt){
     
     EvalResult eval = safeEvaluate(stmt.printTokens, result);
     if (!result.error){
-        _io.print(eval.value->toString() + "\n");
+        _io.print(eval.value.toString() + "\n");
     }
 
     return result;
@@ -72,7 +72,7 @@ ExecutionResult Executor::handleAssignment(const ParsedStatement& stmt){
     else if (suffix == '%') expectedType = VariableType::Integer;
     else expectedType = VariableType::Float;
 
-    VariableType actualType = eval.value->getType();
+    VariableType actualType = eval.value.type;
     if (actualType != expectedType) {
         if (!(expectedType == VariableType::Float && actualType == VariableType::Integer)) {
             result.error = true;
@@ -82,7 +82,7 @@ ExecutionResult Executor::handleAssignment(const ParsedStatement& stmt){
         }
     }
 
-    _variables[varName] = (eval.value)->clone();
+    _variables[varName] = eval.value;
     return result;
 }
 
@@ -91,7 +91,7 @@ ExecutionResult Executor::handleIfThen(const ParsedStatement& stmt){
     EvalResult condition = safeEvaluate(stmt.conditionTokens, result);
     if (result.error) return result;
 
-    if (!condition.value->toBool()) return result;
+    if (!condition.value.toBool()) return result;
 
     Parser parser(stmt.thenTokens);
     ParsedStatement thenStmt = parser.parse();
@@ -102,13 +102,13 @@ ExecutionResult Executor::handleGoto(const ParsedStatement& stmt){
     ExecutionResult result;
     EvalResult eval = safeEvaluate(stmt.expressionTokens, result);
     if (!result.error) {
-        if (eval.value->getType() != VariableType::Integer){
+        if (eval.value.type != VariableType::Integer){
             result.error = true;
             result.output = "?TYPE MISMATCH IN GOTO";
             return result;
         }
         result.action = ExecutionAction::Jump;
-        result.jumpTarget = std::stoi(eval.value->toString());
+        result.jumpTarget = eval.value.intValue;
     }
     return result;
 }
@@ -127,7 +127,7 @@ ExecutionResult Executor::handleInput(const ParsedStatement& stmt){
         EvalResult promptEval = safeEvaluate(stmt.printTokens, result);
         if (result.error) return result;
 
-        _io.print(promptEval.value->toString());
+        _io.print(promptEval.value.toString());
         _io.print(" ");
     }
     else _io.print("? ");
@@ -158,15 +158,15 @@ ExecutionResult Executor::handleInput(const ParsedStatement& stmt){
                 std::getline(iss, strValue);
                 strValue.erase(0, strValue.find_first_not_of(" \t"));
                 strValue.erase(strValue.find_last_not_of(" \t") + 1);
-                _variables[varName] = std::unique_ptr<Variable>(new StringVariable(strValue));
+                _variables[varName] = Variable(strValue);
             } else if (suffix == '%') {
                 int intValue;
                 if (!(iss >> intValue)) throw std::runtime_error("invalid integer");
-                _variables[varName] = std::unique_ptr<Variable>(new IntVariable(intValue));
+                _variables[varName] = Variable::fromInt(intValue);
             } else {
                 double floatValue;
                 if (!(iss >> floatValue)) throw std::runtime_error("invalid float");
-                _variables[varName] = std::unique_ptr<Variable>(new FloatVariable(floatValue));
+                _variables[varName] = Variable::fromFloat(floatValue);
             }
         } catch (...) {
             result.error = true;
@@ -187,19 +187,19 @@ ExecutionResult Executor::handleFor(const ParsedStatement& stmt){
     EvalResult init = safeEvaluate(stmt.forInitTokens, result);
     EvalResult end = safeEvaluate(stmt.forToTokens, result);
     EvalResult step = stmt.forStepTokens.empty()
-        ? EvalResult{std::unique_ptr<Variable>(new IntVariable(1)), false, ""}
+        ? EvalResult{Variable::fromInt(1), false, ""}
         : safeEvaluate(stmt.forStepTokens, result);
 
     if (result.error) return result;;
 
-    _variables[stmt.identifier] = std::unique_ptr<Variable>(new IntVariable(Variable::toInt(init.value.get())));
+    _variables[stmt.identifier] = Variable::fromInt(init.value.intValue);
 
     LoopState loop;
     loop.varName = stmt.identifier;
     loop.lineNumberToReturnTo = stmt.lineNumber;
-    loop.current = Variable::toInt(init.value.get());
-    loop.end = Variable::toInt(end.value.get());
-    loop.step = Variable::toInt(step.value.get());
+    loop.current = init.value.intValue;
+    loop.end = end.value.intValue;
+    loop.step = step.value.intValue;
 
     _initializedForLines.insert(stmt.lineNumber);
     
@@ -226,24 +226,24 @@ ExecutionResult Executor::handleNext(const ParsedStatement& stmt){
         return result;
     }
 
-    if (_variables.find(loop.varName) == _variables.end() || !_variables[loop.varName]){
+    if (_variables.find(loop.varName) == _variables.end()){
         result.error = true;
         result.output = "?LOOP VARIABLE NOT FOUND";
         result.action = ExecutionAction::Halt;
         return result;
     }
 
-    if (_variables[loop.varName]->getType() != VariableType::Integer){
+    if (_variables[loop.varName].type != VariableType::Integer){
         result.error = true;
         result.output = "?LOP VARIABLE TYPE ERROR";
         result.action = ExecutionAction::Halt;
         return result;
     }
 
-    auto& varPtr = _variables[loop.varName];
-    int16_t currentVal = Variable::toInt(varPtr.get());
+    auto& varIterator = _variables[loop.varName];
+    int16_t currentVal = varIterator.intValue;
     currentVal += loop.step;
-    varPtr = std::unique_ptr<Variable>(new IntVariable(currentVal));
+    varIterator = Variable::fromInt(currentVal);
 
     bool loopContinues = (loop.step > 0) ? (currentVal <= loop.end) : (currentVal >= loop.end);
 

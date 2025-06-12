@@ -14,7 +14,7 @@
  * Returns a unique pointer to a Variable type that helds the evaluated result. Can also have an error flag set and a message included if the evaluation was not succesful
  */
 struct EvalResult {
-    std::unique_ptr<const Variable> value;
+    Variable value;
     bool error = false;
     std::string errorMsg;
 
@@ -24,7 +24,7 @@ struct EvalResult {
      * @param err Error flag
      * @param msg Error message
      */
-    EvalResult(std::unique_ptr<const Variable> val, bool err, const std::string& msg)
+    EvalResult(Variable val, bool err, const std::string& msg)
         : value(std::move(val)), error(err), errorMsg(msg) {}
 
     /**
@@ -32,7 +32,7 @@ struct EvalResult {
      * @param val Holds the variable value
      * @return EvalResult The evaluated result, with error flag set to false
      */
-    static EvalResult success(std::unique_ptr<const Variable> val){
+    static EvalResult success(Variable val){
         return EvalResult(std::move(val), false, "");
     }
 
@@ -42,7 +42,7 @@ struct EvalResult {
      * @return EvalResult A result with an error flag set to true and an error message. Variable is a null pointer by default
      */
     static EvalResult failure(const std::string& msg){
-        return EvalResult(nullptr, true, msg);
+        return EvalResult(Variable::fromInt(0), true, msg);
     }
 };
 
@@ -52,7 +52,7 @@ public:
      * @brief Construct a new Expression Evaluator object
      * @param variables The shared variable map, needed to dereference variables used in expressions
      */
-    ExpressionEvaluator(const std::unordered_map<std::string, std::unique_ptr<Variable>>& variables)
+    ExpressionEvaluator(const std::unordered_map<std::string, Variable>& variables)
         : _variables(variables) {}
 
     /**
@@ -63,7 +63,7 @@ public:
     EvalResult evaluate(const std::vector<Token>& expressionTokens);
     
 private:
-    const std::unordered_map<std::string, std::unique_ptr<Variable>>& _variables; ///< Reference to the shared runtime variables
+    const std::unordered_map<std::string, Variable>& _variables; ///< Reference to the shared runtime variables
     
     /**
      * @brief Helper function that transforms an inline expression into a reverse polish notation using shunting yard algorithm

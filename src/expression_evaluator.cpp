@@ -111,7 +111,7 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
                 if (it == _variables.end()){
                     return EvalResult::failure("UNKNOWN VARIABLE: " + token.value);
                 }
-                stack.push_back(it->second);
+                stack.push_back(std::move(it->second));
                 break;
             }
             case TokenType::Symbol:{
@@ -133,39 +133,39 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
                     result = left / right;
                 }
                 else if (token.value == "MOD"){
-                    if (left->getType() == VariableType::Float || right->getType() == VariableType::Float){
+                    if (left.type == VariableType::Float || right.type == VariableType::Float){
                         throw std::runtime_error("?MOD ONLY SUPPORTED ON INTS");
                     }
                     else{
-                        result = std::unique_ptr<Variable>(new IntVariable(std::stoi(left->toString()) % std::stoi(right->toString())));
+                        result = (float)(left.intValue % right.intValue);
                     }
                 }
                 else if (token.value == "^"){
                     result = left ^ right;
                 }
                 else if (token.value == "="){
-                    result = left == right;
+                    result = (float)(left.stringValue == right.stringValue ? -1 : 0);
                 }
                 else if (token.value == "<>"){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toString() != right->toString() ? -1 : 0));
+                    result = (float)(left.stringValue != right.stringValue ? -1 : 0);
                 }
                 else if (token.value == "<"){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toString() < right->toString() ? -1 : 0));
+                    result = (float)(left.stringValue < right.stringValue ? -1 : 0);
                 }
                 else if (token.value == "<="){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toString() <= right->toString() ? -1 : 0));
+                    result = (float)(left.stringValue <= right.stringValue ? -1 : 0);
                 }
                 else if (token.value == ">"){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toString() > right->toString() ? -1 : 0));
+                    result = (float)(left.stringValue > right.stringValue ? -1 : 0);
                 }
                 else if (token.value == ">="){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toString() >= right->toString() ? -1 : 0));
+                    result = (float)(left.stringValue >= right.stringValue ? -1 : 0);
                 }
                 else if (token.value == "AND"){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toBool() & right->toBool()));
+                    result = (float)(left.floatValue == -1 & right.floatValue == -1 ? -1 : 0);
                 }
                 else if (token.value == "OR"){
-                    result = std::unique_ptr<Variable>(new IntVariable(left->toBool() | right->toBool()));
+                    result = (float)(left.floatValue == -1 | right.floatValue == -1 ? -1 : 0);
                 }
                 else {
                     throw std::runtime_error("Unknown operator: " + token.value);
@@ -180,7 +180,7 @@ EvalResult ExpressionEvaluator::evaluateRPN(const std::vector<Token>& rpnTokens)
         return EvalResult::failure("Unexpected token type in expression: " + rpnTokens.front().toString());
     }
 
-    return EvalResult::success(std::move(stack.back()));
+    return EvalResult::success(pop());
 }
 
 EvalResult ExpressionEvaluator::evaluate(const std::vector<Token>& tokens){
