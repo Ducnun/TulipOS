@@ -91,8 +91,8 @@ KeyEvent PS2Keyboard::readEvent(){
                     _scancodeState = ScancodeState::ExpectExtendedBreak;
                 } 
                 else {
-                    if (handleKeyPressEvent(code)) return translateExtendedScancode(code);
                     _scancodeState = ScancodeState::Normal;
+                    if (handleKeyPressEvent(code)) return translateExtendedScancode(code);
                 }
                 continue;
             case ScancodeState::ExpectBreak:
@@ -162,7 +162,9 @@ KeyEvent PS2Keyboard::translateExtendedScancode(uint8_t code){
 
 // Returns whether a key is printable or not
 bool PS2Keyboard::handleKeyPressEvent(uint8_t code){
-    if (code == 0x12) {_shiftHeld = true; return false; }
+    // Ensure that extended sequences dont set unintended flags
+    if (_scancodeState != ScancodeState::ExpectExtended) return true;
+    if (code == 0x12) {_shiftHeld = true; return false;}
     if (code == 0x14) {_ctrlHeld = true; return false; }
     if (code == 0x11) {_altHeld = true; return false; }
     if (code == 0x58) {_capsLockActive = !_capsLockActive; setLEDs(_capsLockActive, _numLockActive, false); return false; } 
@@ -174,7 +176,7 @@ void PS2Keyboard::handleKeyReleaseEvent(uint8_t code, bool extended){
         // Handle extended releases if needed
     }
     else{
-        if (code == 0x12 || code == 0x59) _shiftHeld = false;
+        if (code == 0x12 || code == 0x59) {_shiftHeld = false;};
         if (code == 0x11 || code == 0x58) _ctrlHeld = false;
         if (code == 0x19 || code == 0x11) _altHeld = false;
     }
