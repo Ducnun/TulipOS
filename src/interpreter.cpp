@@ -64,6 +64,7 @@ void BasicInterpreter::runREPL(){
 std::string BasicInterpreter::preprocess(const std::string& line){
     std::string result;
     int charIndex = 0;
+    // Maybe two cursor strategy to trim trailing whitespace, or slicing at the end
 
     while (line[charIndex] == ' ') charIndex++;
     

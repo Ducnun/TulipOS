@@ -7,6 +7,29 @@ PS2Keyboard::PS2Keyboard(uint8_t dataPin, uint8_t clockPin)
     instancePtr = this;
 }
 
+void PS2Keyboard::debugPrintState(const char* context, uint8_t code) {
+    Serial.print("[");
+    Serial.print(context);
+    Serial.print("] code=0x");
+    Serial.print(code, HEX);
+    Serial.print("  state=");
+
+    switch (_scancodeState) {
+        case ScancodeState::Normal: Serial.print("Normal"); break;
+        case ScancodeState::ExpectExtended: Serial.print("ExpectExtended"); break;
+        case ScancodeState::ExpectBreak: Serial.print("ExpectBreak"); break;
+        case ScancodeState::ExpectExtendedBreak: Serial.print("ExpectExtendedBreak"); break;
+    }
+
+    Serial.print("  flags: ");
+    Serial.print(_shiftHeld ? "S" : "-");
+    Serial.print(_ctrlHeld ? "C" : "-");
+    Serial.print(_altHeld ? "A" : "-");
+    Serial.print(_capsLockActive ? "L" : "-");
+    Serial.println();
+}
+
+
 void PS2Keyboard::begin(){
     pinMode(_clockPin, INPUT_PULLUP);
     pinMode(_dataPin, INPUT_PULLUP);
@@ -71,6 +94,8 @@ KeyEvent PS2Keyboard::readEvent(){
         _tail = (_tail + 1) % BufferSize;
         portEXIT_CRITICAL(&_mux);
 
+        debugPrintState("readEvent", code);
+
         if (trackPauseState(code)) return {Pause, 0};
         if (isPauseSequenceInProgress())continue;
 
@@ -85,21 +110,33 @@ KeyEvent PS2Keyboard::readEvent(){
                     continue;
                 }
                 if (handleKeyPressEvent(code)) return translateScancode(code);
-                break;
+                continue;
             case ScancodeState::ExpectExtended:
                 if (code == 0xF0){
                     _scancodeState = ScancodeState::ExpectExtendedBreak;
-                } 
-                else {
-                    _scancodeState = ScancodeState::Normal;
-                    if (handleKeyPressEvent(code)) return translateExtendedScancode(code);
+                    continue;
                 }
+
+                // Ignore phantom Shift in extended make codes
+                if (code == 0x12 || code == 0x59) {
+                    _scancodeState = ScancodeState::Normal; // reset state
+                    continue;  // skip further processing
+                }
+
+                _scancodeState = ScancodeState::Normal;
+                if (handleKeyPressEvent(code)) return translateExtendedScancode(code);
                 continue;
             case ScancodeState::ExpectBreak:
                 handleKeyReleaseEvent(code, false);
                 _scancodeState = ScancodeState::Normal;
                 continue;
             case ScancodeState::ExpectExtendedBreak:
+                // Ignore phantom Shift in extended break codes
+                if (code == 0x12 || code == 0x59) {
+                    _scancodeState = ScancodeState::Normal;
+                    continue;
+                }
+
                 handleKeyReleaseEvent(code, true);
                 _scancodeState = ScancodeState::Normal;
                 continue;
@@ -163,7 +200,7 @@ KeyEvent PS2Keyboard::translateExtendedScancode(uint8_t code){
 // Returns whether a key is printable or not
 bool PS2Keyboard::handleKeyPressEvent(uint8_t code){
     // Ensure that extended sequences dont set unintended flags
-    if (_scancodeState != ScancodeState::ExpectExtended) return true;
+    if (_scancodeState == ScancodeState::ExpectExtended) return true;
     if (code == 0x12) {_shiftHeld = true; return false;}
     if (code == 0x14) {_ctrlHeld = true; return false; }
     if (code == 0x11) {_altHeld = true; return false; }
@@ -174,12 +211,14 @@ bool PS2Keyboard::handleKeyPressEvent(uint8_t code){
 void PS2Keyboard::handleKeyReleaseEvent(uint8_t code, bool extended){
     if (extended){
         // Handle extended releases if needed
+        if (code == 0x59) _shiftHeld = false;
+        if (code == 0x14) _ctrlHeld = false;
+        if (code == 0x11) _altHeld = false;
+        return;
     }
-    else{
-        if (code == 0x12 || code == 0x59) {_shiftHeld = false;};
-        if (code == 0x11 || code == 0x58) _ctrlHeld = false;
-        if (code == 0x19 || code == 0x11) _altHeld = false;
-    }
+    if (code == 0x12) {_shiftHeld = false;};
+    if (code == 0x14) _ctrlHeld = false;
+    if (code == 0x11) _altHeld = false;
 }
 
 uint8_t PS2Keyboard::readRawScancode(){

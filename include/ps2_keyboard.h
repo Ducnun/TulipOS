@@ -163,4 +163,10 @@ private:
      * @return false if pause sequence is not in progress
      */
     bool isPauseSequenceInProgress();
+
+    /**
+     * @brief Prints raw frames and the current scancodestate
+     * 
+     */
+    void debugPrintState(const char* context, uint8_t code);
 };
