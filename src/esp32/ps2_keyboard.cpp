@@ -94,8 +94,6 @@ KeyEvent PS2Keyboard::readEvent(){
         _tail = (_tail + 1) % BufferSize;
         portEXIT_CRITICAL(&_mux);
 
-        debugPrintState("readEvent", code);
-
         if (trackPauseState(code)) return {Pause, 0};
         if (isPauseSequenceInProgress())continue;
 

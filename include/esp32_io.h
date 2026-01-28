@@ -2,6 +2,7 @@
 
 #include "io_interface.h"
 #include "ps2_keyboard.h"
+#include "uart_terminal.h"
 
 class ESP32IO : public IOInterface{
 public: 
@@ -9,7 +10,7 @@ public:
      * @brief Construct a new ESP32IO object
      * @param PS2Keyboard
      */
-    ESP32IO(PS2Keyboard& keyboard): _keyboard(keyboard) {}
+    ESP32IO(PS2Keyboard& keyboard, UARTTerminal& terminal): _keyboard(keyboard), _terminal(terminal){}
 
     /**
      * @brief Starts the IO class, reading out inputs and setting up outputs
@@ -60,6 +61,7 @@ public:
 
 private: 
     PS2Keyboard& _keyboard; ///< Keyboard object used for inputs
+    UARTTerminal& _terminal;
     bool _breakRequested = false;   ///< Buffers the break key
     std::vector<std::string> _history;  ///< Stores command history
     int _historyIndex = -1; ///< Tracks currently selected index in history
