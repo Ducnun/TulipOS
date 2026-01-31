@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <string>
 #include "driver/uart.h"
 
 // --- UART command codes ---
