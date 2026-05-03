@@ -22,7 +22,7 @@ std::string ESP32IO::readLine(){
             if (key.action == KeyAction::Char && key.character == '\n') {
                 _history.push_back(line);
                 Serial.println("");   
-                _terminal.sendChar('\n');
+                _terminal.newline();
                 break;
             }
 
@@ -30,7 +30,7 @@ std::string ESP32IO::readLine(){
                 if (!line.empty()) {
                     line.pop_back();
                     Serial.print("\b \b");  // Erase last char
-                    _terminal.sendString("\b \b");
+                    _terminal.backspace();
                 }
                 continue;
             }

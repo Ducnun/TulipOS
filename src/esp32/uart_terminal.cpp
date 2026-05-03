@@ -43,12 +43,12 @@ bool UARTTerminal::sendMessage(uint8_t cmd, uint8_t length, const uint8_t* data)
 // -------------------------------------------------------------------
 bool UARTTerminal::sendChar(char c) {
     uint8_t b = (uint8_t)c;
-    return sendMessage(CMD_PRINT_CHAR, 1, &b);
+    return sendMessage(STREAM_CMD_PRINT_CHAR, 1, &b);
 }
 
 bool UARTTerminal::sendString(const std::string& txt) {
     return sendMessage(
-        CMD_PRINT_STRING,
+        STREAM_CMD_PRINT_STRING,
         txt.size(),
         reinterpret_cast<const uint8_t*>(txt.data())
     );
@@ -56,7 +56,7 @@ bool UARTTerminal::sendString(const std::string& txt) {
 
 bool UARTTerminal::redrawLine(const std::string& line) {
     return sendMessage(
-        CMD_REDRAW_LINE,
+        STREAM_CMD_REDRAW_LINE,
         line.size(),
         reinterpret_cast<const uint8_t*>(line.data())
     );
@@ -64,18 +64,26 @@ bool UARTTerminal::redrawLine(const std::string& line) {
 
 bool UARTTerminal::setCursor(uint8_t x, uint8_t y) {
     uint8_t pos[2] = {x, y};
-    return sendMessage(CMD_SET_CURSOR, 2, pos);
+    return sendMessage(STREAM_CMD_SET_CURSOR, 2, pos);
 }
 
 bool UARTTerminal::clearScreen() {
-    return sendMessage(CMD_CLEAR, 0, nullptr);
+    return sendMessage(STREAM_CMD_CLEAR, 0, nullptr);
 }
 
 bool UARTTerminal::setBackground(uint8_t color) {
-    return sendMessage(CMD_SET_BG, 1, &color);
+    return sendMessage(STREAM_CMD_SET_BG, 1, &color);
 }
 
 bool UARTTerminal::scroll(int8_t dir, uint8_t lines) {
     uint8_t packet[2] = { (uint8_t)dir, lines };
-    return sendMessage(CMD_SCROLL, 2, packet);
+    return sendMessage(STREAM_CMD_SCROLL, 2, packet);
+}
+
+bool UARTTerminal::backspace(){
+    return sendMessage(STREAM_CMD_BACKSPACE, 0, nullptr);
+}
+
+bool UARTTerminal::newline(){
+    return sendMessage(STREAM_CMD_NEWLINE, 0, nullptr);
 }

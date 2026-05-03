@@ -5,20 +5,26 @@
 #include "driver/uart.h"
 
 // --- UART command codes ---
-enum UARTCmd : uint8_t {
-    CMD_PRINT_CHAR = 1,
-    CMD_SET_CURSOR = 2,
-    CMD_SCROLL     = 3,
-    CMD_SET_BG     = 4,
-    CMD_CLEAR      = 5,
-    CMD_PRINT_STRING = 6,
-    CMD_REDRAW_LINE = 7,
-};
+typedef enum {
+    STREAM_CMD_PRINT_CHAR = 0x01,
+    STREAM_CMD_PRINT_STRING = 0x02,
+    STREAM_CMD_NEWLINE = 0x03,
+    STREAM_CMD_BACKSPACE = 0x04,
+    STREAM_CMD_REDRAW_LINE = 0x05,
+    STREAM_CMD_SET_CURSOR = 0x10,
+    STREAM_CMD_GET_CURSOR = 0x11,
+    STREAM_CMD_SET_CURSOR_VISIBLE = 0x12,
+    STREAM_CMD_SET_FG = 0x20,
+    STREAM_CMD_SET_BG = 0x21,
+    STREAM_CMD_CLEAR = 0x30,
+    STREAM_CMD_SCROLL = 0x31,
+} STREAM_CMD;
 
 #define UART_NUM        UART_NUM_1
-#define UART_TX_PIN     17
-#define UART_RX_PIN     16
+#define UART_TX_PIN     16
+#define UART_RX_PIN     17
 #define UART_BUF_SIZE   1024
+#define UART_MAX_PROTOCOL_SIZE 64
 
 class UARTTerminal {
 public:
@@ -33,6 +39,8 @@ public:
     bool setCursor(uint8_t x, uint8_t y);
     bool clearScreen();
     bool setBackground(uint8_t color);
+    bool backspace();
+    bool newline();
     
     bool scroll(int8_t dir, uint8_t lines = 1);
 private:
