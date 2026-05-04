@@ -5,7 +5,7 @@
   #include "interpreter.h"
 
   PS2Keyboard keyboard(13,14);
-  UARTTerminal terminal(115200);
+  UARTTerminal terminal(1000000);
   ESP32IO io(keyboard, terminal);
   BasicInterpreter interpreter(io);
 

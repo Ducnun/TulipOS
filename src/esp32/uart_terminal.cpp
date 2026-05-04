@@ -19,23 +19,43 @@ bool UARTTerminal::begin() {
     return true;
 }
 
+// Shared witht the receiver
+static inline uint8_t crc8_update(uint8_t crc, uint8_t data) {
+    crc ^= data;
+    for (int i = 0; i < 8; i++) {
+        crc = (crc & 0x80) ? (crc << 1) ^ 0x07 : (crc << 1);
+    }
+    return crc;
+}
+
 // -------------------------------------------------------------------
 //  Send exactly 3 bytes every time (cmd, lengh of data, data)
 // -------------------------------------------------------------------
 bool UARTTerminal::sendMessage(uint8_t cmd, uint8_t length, const uint8_t* data) {
-    uint8_t buffer[2 + UART_BUF_SIZE];
+    uint8_t buffer[UART_PACKET_OVERHEAD + UART_BUF_SIZE];
 
     if (length > UART_BUF_SIZE) return false;
 
-    buffer[0] = cmd;
-    buffer[1] = length;
+    uint8_t crc = 0;
 
-    if (length > 0 && data)
-        memcpy(&buffer[2], data, length);
+    buffer[0] = STREAM_CMD_SYNC_BYTE;
+    buffer[UART_CMD_INDEX] = cmd;
+    crc = crc8_update(crc, cmd);
+    buffer[UART_LEN_INDEX] = length;
+    crc = crc8_update(crc, length);
 
-    int written = uart_write_bytes(UART_NUM, buffer, 2 + length);
+    if (length > 0 && data){
+        memcpy(&buffer[UART_ARG_INDEX], data, length);
+        for (int i = 0; i < length; i++){
+            crc = crc8_update(crc, *(data + i));
+        }
+    }
 
-    return written == (2 + length);
+    buffer[length + UART_ARG_INDEX] = crc;
+
+    int written = uart_write_bytes(UART_NUM, buffer, UART_PACKET_OVERHEAD + length);
+
+    return written == (UART_PACKET_OVERHEAD + length);
 }
 
 // -------------------------------------------------------------------
