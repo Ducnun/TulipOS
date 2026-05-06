@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <sstream>
+#include "esp_heap_caps.h"
 #include "io_interface.h"
 #include "tokenizer.h"
 #include "parser.h"
