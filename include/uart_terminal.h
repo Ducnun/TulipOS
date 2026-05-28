@@ -22,12 +22,19 @@ typedef enum {
     STREAM_CMD_SCROLL       = 0x31,
 } STREAM_CMD;
 
+typedef struct {
+    STREAM_CMD cmd;
+    uint8_t len;
+    uint8_t data[64];
+    uint8_t seq;
+} stream_msg;
+
 #define UART_NUM                UART_NUM_1
 #define UART_TX_PIN             16
 #define UART_RX_PIN             17
 #define UART_BUF_SIZE           1024
 #define UART_MAX_PROTOCOL_SIZE  64
-#define UART_PACKET_OVERHEAD    4
+#define UART_PACKET_OVERHEAD    5   // SYNC, CMD, LEN, SEQ, CRC
 
 #define UART_CMD_INDEX  1
 #define UART_LEN_INDEX  2
@@ -52,6 +59,10 @@ public:
     bool scroll(int8_t dir, uint8_t lines = 1);
 private:
     int _baudRate;
+    uint8_t _curSequenceNr;
 
-    bool sendMessage(uint8_t cmd, uint8_t length, const uint8_t* data);
+    stream_msg _history[256];
+
+    bool sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* data);
+    bool sendMsgStruct(stream_msg msg);
 };

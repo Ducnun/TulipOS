@@ -16,10 +16,12 @@ bool UARTTerminal::begin() {
     if (uart_driver_install(UART_NUM, UART_BUF_SIZE, 0, 0, NULL, 0) != ESP_OK)
         return false;
 
+    _curSequenceNr = 0;
+
     return true;
 }
 
-// Shared witht the receiver
+// Shared with the receiver
 static inline uint8_t crc8_update(uint8_t crc, uint8_t data) {
     crc ^= data;
     for (int i = 0; i < 8; i++) {
@@ -31,31 +33,63 @@ static inline uint8_t crc8_update(uint8_t crc, uint8_t data) {
 // -------------------------------------------------------------------
 //  Send exactly 3 bytes every time (cmd, lengh of data, data)
 // -------------------------------------------------------------------
-bool UARTTerminal::sendMessage(uint8_t cmd, uint8_t length, const uint8_t* data) {
-    uint8_t buffer[UART_PACKET_OVERHEAD + UART_BUF_SIZE];
+bool UARTTerminal::sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* data) {
+    // uint8_t buffer[UART_PACKET_OVERHEAD + UART_BUF_SIZE];
 
-    if (length > UART_BUF_SIZE) return false;
+    // if (length > UART_BUF_SIZE) return false;
 
+    // uint8_t crc = 0;
+
+    // buffer[0] = STREAM_CMD_SYNC_BYTE;
+    // buffer[UART_CMD_INDEX] = cmd;
+    // crc = crc8_update(crc, cmd);
+    // buffer[UART_LEN_INDEX] = length;
+    // crc = crc8_update(crc, length);
+
+    // if (length > 0 && data){
+    //     memcpy(&buffer[UART_ARG_INDEX], data, length);
+    //     for (int i = 0; i < length; i++){
+    //         crc = crc8_update(crc, *(data + i));
+    //     }
+    // }
+
+    // buffer[length + UART_ARG_INDEX] = crc;
+
+    // int written = uart_write_bytes(UART_NUM, buffer, UART_PACKET_OVERHEAD + length);
+
+    // return written == (UART_PACKET_OVERHEAD + length);
+    stream_msg msg;
+    msg.cmd = cmd;
+    msg.len = length;
+    memcpy(msg.data, data, length);
+    return sendMsgStruct(msg);
+}
+
+bool UARTTerminal::sendMsgStruct(stream_msg msg){
+    uint8_t buffer[UART_BUF_SIZE + UART_PACKET_OVERHEAD];
+    
     uint8_t crc = 0;
-
     buffer[0] = STREAM_CMD_SYNC_BYTE;
-    buffer[UART_CMD_INDEX] = cmd;
-    crc = crc8_update(crc, cmd);
-    buffer[UART_LEN_INDEX] = length;
-    crc = crc8_update(crc, length);
+    buffer[UART_CMD_INDEX] = msg.cmd;
+    crc = crc8_update(crc, msg.cmd);
+    buffer[UART_LEN_INDEX] = msg.len;
+    crc = crc8_update(crc, msg.len);
 
-    if (length > 0 && data){
-        memcpy(&buffer[UART_ARG_INDEX], data, length);
-        for (int i = 0; i < length; i++){
-            crc = crc8_update(crc, *(data + i));
+    if (msg.len > 0 && msg.data){
+        memcpy(&buffer[UART_ARG_INDEX], msg.data, msg.len);
+        for (int i = 0; i < msg.len; i++){
+            crc = crc8_update(crc, *(msg.data + i));
         }
     }
+    
+    buffer[msg.len + UART_ARG_INDEX] = ++_curSequenceNr;
+    _history[_curSequenceNr] = msg;
+    crc = crc8_update(crc, _curSequenceNr);
+    buffer[msg.len + UART_ARG_INDEX + 1] = crc;
 
-    buffer[length + UART_ARG_INDEX] = crc;
+    int written = uart_write_bytes(UART_NUM, buffer, UART_PACKET_OVERHEAD + msg.len);
 
-    int written = uart_write_bytes(UART_NUM, buffer, UART_PACKET_OVERHEAD + length);
-
-    return written == (UART_PACKET_OVERHEAD + length);
+    return written == (UART_PACKET_OVERHEAD + msg.len);
 }
 
 // -------------------------------------------------------------------
