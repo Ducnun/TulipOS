@@ -20,6 +20,7 @@ typedef enum {
     STREAM_CMD_SET_BG       = 0x21,
     STREAM_CMD_CLEAR        = 0x30,
     STREAM_CMD_SCROLL       = 0x31,
+    STREAM_CMD_RESYNC       = 0x80,
 } STREAM_CMD;
 
 typedef struct {
@@ -55,8 +56,9 @@ public:
     bool setBackground(uint8_t color);
     bool backspace();
     bool newline();
-    
     bool scroll(int8_t dir, uint8_t lines = 1);
+    bool resync();
+
 private:
     int _baudRate;
     uint8_t _curSequenceNr;
@@ -64,5 +66,4 @@ private:
     stream_msg _history[256];
 
     bool sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* data);
-    bool sendMsgStruct(stream_msg msg);
 };

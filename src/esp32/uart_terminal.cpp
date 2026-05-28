@@ -34,38 +34,11 @@ static inline uint8_t crc8_update(uint8_t crc, uint8_t data) {
 //  Send exactly 3 bytes every time (cmd, lengh of data, data)
 // -------------------------------------------------------------------
 bool UARTTerminal::sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* data) {
-    // uint8_t buffer[UART_PACKET_OVERHEAD + UART_BUF_SIZE];
-
-    // if (length > UART_BUF_SIZE) return false;
-
-    // uint8_t crc = 0;
-
-    // buffer[0] = STREAM_CMD_SYNC_BYTE;
-    // buffer[UART_CMD_INDEX] = cmd;
-    // crc = crc8_update(crc, cmd);
-    // buffer[UART_LEN_INDEX] = length;
-    // crc = crc8_update(crc, length);
-
-    // if (length > 0 && data){
-    //     memcpy(&buffer[UART_ARG_INDEX], data, length);
-    //     for (int i = 0; i < length; i++){
-    //         crc = crc8_update(crc, *(data + i));
-    //     }
-    // }
-
-    // buffer[length + UART_ARG_INDEX] = crc;
-
-    // int written = uart_write_bytes(UART_NUM, buffer, UART_PACKET_OVERHEAD + length);
-
-    // return written == (UART_PACKET_OVERHEAD + length);
     stream_msg msg;
     msg.cmd = cmd;
     msg.len = length;
     memcpy(msg.data, data, length);
-    return sendMsgStruct(msg);
-}
 
-bool UARTTerminal::sendMsgStruct(stream_msg msg){
     uint8_t buffer[UART_BUF_SIZE + UART_PACKET_OVERHEAD];
     
     uint8_t crc = 0;
@@ -140,4 +113,8 @@ bool UARTTerminal::backspace(){
 
 bool UARTTerminal::newline(){
     return sendMessage(STREAM_CMD_NEWLINE, 0, nullptr);
+}
+
+bool UARTTerminal::resync(){
+    return sendMessage(STREAM_CMD_RESYNC, 0, nullptr);
 }

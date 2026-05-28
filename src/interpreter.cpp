@@ -4,6 +4,7 @@ BasicInterpreter::BasicInterpreter(IOInterface &io) : _io(io), _executor(Executo
 
 void BasicInterpreter::runREPL(){
     // Setup
+    _io.reset();
     _io.clearScreen();
     _io.print("**** TULIP BASIC V1 ****\n");
     

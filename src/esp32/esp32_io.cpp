@@ -92,6 +92,10 @@ void ESP32IO::clearScreen(){
     _terminal.clearScreen();
 }
 
+void ESP32IO::reset(){
+    _terminal.resync();
+}
+
 void ESP32IO::setCursor(int x, int y){
     _terminal.setCursor(x, y);
 }
