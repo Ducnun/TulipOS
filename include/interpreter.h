@@ -4,7 +4,9 @@
 #include <unordered_map>
 #include <memory>
 #include <sstream>
+#ifdef ESP32    // Heap cap not available for native builds
 #include "esp_heap_caps.h"
+#endif
 #include "io_interface.h"
 #include "tokenizer.h"
 #include "parser.h"

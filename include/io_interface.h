@@ -29,7 +29,7 @@ public:
     /**
      * @brief Resets the state of the IO
      */
-    virtual void reset();
+    virtual void reset() = 0;
 
     /**
      * @brief Set the Cursor object
