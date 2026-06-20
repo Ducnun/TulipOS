@@ -84,7 +84,7 @@ void ESP32IO::redrawLine(std::string& line){
     Serial.print("                                                  ");
     Serial.print("\r> ");
     Serial.print(line.c_str());
-    _terminal.redrawLine(line);
+    _terminal.redrawLine("> " + line);
 }
 
 void ESP32IO::clearScreen(){
