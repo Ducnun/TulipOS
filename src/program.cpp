@@ -94,3 +94,32 @@ void Program::loadBenchmark(void){
     insertLine(90,  "LET PI = PI * 4");
     insertLine(100, "PRINT PI");
 }
+
+size_t Program::estimateMemoryUsage() const {
+    size_t total = 0;
+
+    // Estimate map node overhead (very rough!)
+    const size_t mapNodeOverhead = 32; // typical ballpark for std::map node
+
+    // Source lines
+    for (const auto& [line, str] : _sourceLines) {
+        total += mapNodeOverhead;
+        total += sizeof(line);
+        total += sizeof(std::string);
+        total += str.capacity(); // actual allocated buffer
+    }
+
+    // Parsed statements
+    for (const auto& [line, stmt] : _statements) {
+        total += mapNodeOverhead;
+        total += sizeof(line);
+        total += sizeof(ParsedStatement);
+        // If ParsedStatement has dynamic memory, add it here too
+    }
+
+    // Line numbers vector
+    total += sizeof(std::vector<int>);
+    total += _lineNumbers.capacity() * sizeof(int);
+
+    return total;
+}

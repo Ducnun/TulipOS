@@ -16,26 +16,53 @@ bool UARTTerminal::begin() {
     if (uart_driver_install(UART_NUM, UART_BUF_SIZE, 0, 0, NULL, 0) != ESP_OK)
         return false;
 
+    _curSequenceNr = 0;
+
     return true;
+}
+
+// Shared with the receiver
+static inline uint8_t crc8_update(uint8_t crc, uint8_t data) {
+    crc ^= data;
+    for (int i = 0; i < 8; i++) {
+        crc = (crc & 0x80) ? (crc << 1) ^ 0x07 : (crc << 1);
+    }
+    return crc;
 }
 
 // -------------------------------------------------------------------
 //  Send exactly 3 bytes every time (cmd, lengh of data, data)
 // -------------------------------------------------------------------
-bool UARTTerminal::sendMessage(uint8_t cmd, uint8_t length, const uint8_t* data) {
-    uint8_t buffer[2 + UART_BUF_SIZE];
+bool UARTTerminal::sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* data) {
+    stream_msg msg;
+    msg.cmd = cmd;
+    msg.len = length;
+    memcpy(msg.data, data, length);
 
-    if (length > UART_BUF_SIZE) return false;
+    uint8_t buffer[UART_BUF_SIZE + UART_PACKET_OVERHEAD];
+    
+    uint8_t crc = 0;
+    buffer[0] = STREAM_CMD_SYNC_BYTE;
+    buffer[UART_CMD_INDEX] = msg.cmd;
+    crc = crc8_update(crc, msg.cmd);
+    buffer[UART_LEN_INDEX] = msg.len;
+    crc = crc8_update(crc, msg.len);
 
-    buffer[0] = cmd;
-    buffer[1] = length;
+    if (msg.len > 0 && msg.data){
+        memcpy(&buffer[UART_ARG_INDEX], msg.data, msg.len);
+        for (int i = 0; i < msg.len; i++){
+            crc = crc8_update(crc, *(msg.data + i));
+        }
+    }
+    
+    buffer[msg.len + UART_ARG_INDEX] = ++_curSequenceNr;
+    _history[_curSequenceNr] = msg;
+    crc = crc8_update(crc, _curSequenceNr);
+    buffer[msg.len + UART_ARG_INDEX + 1] = crc;
 
-    if (length > 0 && data)
-        memcpy(&buffer[2], data, length);
+    int written = uart_write_bytes(UART_NUM, buffer, UART_PACKET_OVERHEAD + msg.len);
 
-    int written = uart_write_bytes(UART_NUM, buffer, 2 + length);
-
-    return written == (2 + length);
+    return written == (UART_PACKET_OVERHEAD + msg.len);
 }
 
 // -------------------------------------------------------------------
@@ -86,4 +113,8 @@ bool UARTTerminal::backspace(){
 
 bool UARTTerminal::newline(){
     return sendMessage(STREAM_CMD_NEWLINE, 0, nullptr);
+}
+
+bool UARTTerminal::resync(){
+    return sendMessage(STREAM_CMD_RESYNC, 0, nullptr);
 }

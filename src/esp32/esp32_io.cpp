@@ -84,12 +84,16 @@ void ESP32IO::redrawLine(std::string& line){
     Serial.print("                                                  ");
     Serial.print("\r> ");
     Serial.print(line.c_str());
-    _terminal.redrawLine(line);
+    _terminal.redrawLine("> " + line);
 }
 
 void ESP32IO::clearScreen(){
     Serial.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     _terminal.clearScreen();
+}
+
+void ESP32IO::reset(){
+    _terminal.resync();
 }
 
 void ESP32IO::setCursor(int x, int y){

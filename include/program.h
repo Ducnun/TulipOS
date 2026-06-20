@@ -68,6 +68,8 @@ public:
      */
     int getProgramCounter() {return _programCounter;}
 
+    size_t estimateMemoryUsage() const;
+
     // Storage
     void saveToSD(const std::string& filename);
     void loadFromSD(const std::string& filename);

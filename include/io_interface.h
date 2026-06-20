@@ -27,6 +27,11 @@ public:
     virtual void clearScreen() = 0;
 
     /**
+     * @brief Resets the state of the IO
+     */
+    virtual void reset() = 0;
+
+    /**
      * @brief Set the Cursor object
      * @param x 
      * @param y 

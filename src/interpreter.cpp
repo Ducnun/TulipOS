@@ -4,10 +4,21 @@ BasicInterpreter::BasicInterpreter(IOInterface &io) : _io(io), _executor(Executo
 
 void BasicInterpreter::runREPL(){
     // Setup
+    _io.reset();
     _io.clearScreen();
-    _io.print("**** TULIP 64 BASIC V2 ****\n");
-    _io.print(" 64K RAM SYSTEM 38911 BASIC BYTES FREE\n");
-    _io.print(" -- WELOME HOME WARRIOR -- \n");
+    _io.print("**** TULIP BASIC V1 ****\n");
+    
+    #ifdef ESP32
+    size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_8BIT);
+    size_t used = _program.estimateMemoryUsage();
+
+    std::string memLine = std::to_string(freeHeap / 1000) + "K BYTES FREE (" +
+                          std::to_string(used) + "B USED)\n";
+
+                          
+    _io.print(memLine);
+                
+    #endif
     _io.print("READY.\n");
 
     while (true){

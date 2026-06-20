@@ -38,4 +38,11 @@ public:
     void setCursor(int x, int y) override {
         std::cout << "\033[" << y << ";" << x << "H";
     }
+
+    /**
+     * @brief Clears terminal, no other things to reset for native builds
+     */
+    void reset() override {
+        clearScreen();
+    }
 };

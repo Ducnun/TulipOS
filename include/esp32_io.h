@@ -41,6 +41,11 @@ public:
     void clearScreen();
 
     /**
+     * @brief Resets any states of the IO
+     */
+    void reset();
+
+    /**
      * @brief Set the Cursor object
      * @param x 
      * @param y 
