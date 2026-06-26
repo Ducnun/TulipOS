@@ -25,7 +25,7 @@ const std::unordered_map<std::string, TokenType> Tokenizer::_keywords = {
 void Tokenizer::reset(){
     _current = 0;
     _start = 0;
-    _line = 0;
+    _line = 1;
     _tokens.clear();
 }
 
@@ -72,6 +72,11 @@ void Tokenizer::scanToken(void){
             else if (isAlpha(c)){
                 identifier();
             }
+            else{
+                addToken(TokenType::Error, "Unexpected Token");
+                advance();
+            }
+            break;
         }
     }
 }
@@ -82,10 +87,13 @@ void Tokenizer::string(){
         advance();
     }
 
-    if (isAtEnd()) return; // This should be an error
+    if (isAtEnd()){
+        addToken(TokenType::Error, "Unterminated String");
+        return;
+    }
 
     advance();
-    std::string value = _source.substr(_start + 1, _start - _current - 1);
+    std::string value = _source.substr(_start + 1, _current - _start - 2);
     addToken(TokenType::String, value);
 }
 
@@ -96,7 +104,7 @@ void Tokenizer::number(){
         advance();
         while (std::isdigit(peek())) advance();
     }
-    addToken(TokenType::Float, _source.substr(_current, _current - _start));
+    addToken(TokenType::Float, _source.substr(_start, _current - _start));
 }
 
 void Tokenizer::identifier(){

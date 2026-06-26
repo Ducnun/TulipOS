@@ -20,9 +20,9 @@ public:
     std::vector<Token>& tokenize(std::string source);
 
 private:
-    int _start;     ///< Start of the current lexeme
-    int _current;   ///< Current char in the scanned lexeme
-    int _line;      ///< Tracking lines for error reporting
+    int _start = 0;     ///< Start of the current lexeme
+    int _current = 0;   ///< Current char in the scanned lexeme
+    int _line = 1;      ///< Tracking lines for error reporting
 
     std::string _source;        ///< Source code being tokenized
     std::vector<Token> _tokens; ///< List of tokens built by the tokenizer
@@ -44,15 +44,17 @@ private:
     }
 
     bool isAtEnd(){
-        return _current < _source.length();
+        return _current >= _source.length();
     }
 
     char peek(){
-        return _source.at(_current);
+        if (isAtEnd()) return '\0';
+        return _source[_current];
     }
 
     char peekNext(){
-        return _source.at(_current + 1);
+        if (_current + 1 >= _source.length()) return '\0';
+        return _source[_current + 1];
     }
 
     bool match(char expected){

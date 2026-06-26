@@ -30,10 +30,13 @@
   int main(){
     // BasicInterpreter interpreter(io);
     // interpreter.runREPL();
+    std::string source = "LET A = 5\nPRINT A";
+    printf(source.c_str());
+
     Tokenizer tokenizer;
-    std::vector<Token> tokens = tokenizer.tokenize("LET A = 5");
+    std::vector<Token> tokens = tokenizer.tokenize(source);
     for (const auto& token : tokens){
-      io.print(TokenUtils::toString(token));
+      io.print(TokenUtils::toString(token) + '\n');
     }
   }
 #endif
