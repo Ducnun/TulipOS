@@ -84,5 +84,10 @@ private:
      * @param op Operation for which precedence is looked up
      * @return int Precedence encoded as int (higher int is higher precendence)
      */
-    int precedence(TokenType);
+    int precedence(TokenType type);
+
+    /**
+     * @brief Helper to decide whether a tokentype should be considered an operator
+     */
+    bool isOperator(TokenType type);
 };
