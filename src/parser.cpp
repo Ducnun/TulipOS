@@ -32,19 +32,23 @@ ParsedStatement Parser::parsePrint(){
 ParsedStatement Parser::parseLet() {
     ParsedStatement stmt;
     stmt.type = StatementType::Assignment;
+
     size_t i = 1; // Skip LET
 
-    if (i < _tokens.size() && _tokens[i].type == TokenType::Identifier){
-        stmt.identifier = _tokens[i].value;
-        if (_tokens[i++].type == TokenType::Identifier) {
-            throw std::runtime_error("Ident can't shadow keyword");
-        }
-        if (i < _tokens.size() && _tokens[i].value == "=") i++;
-        
-        while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
-            stmt.expressionTokens.push_back(_tokens[i++]);
-        }
+    if (i >= _tokens.size() || _tokens[i].type != TokenType::Identifier)
+        throw std::runtime_error("Expected identifier after LET");
+
+    stmt.identifier = _tokens[i++].value;
+
+    if (i >= _tokens.size() || _tokens[i].type != TokenType::Equal)
+        throw std::runtime_error("Expected '=' after identifier");
+
+    ++i; // consume '='
+
+    while (i < _tokens.size()) {
+        stmt.expressionTokens.push_back(_tokens[i++]);
     }
+
     return stmt;
 }
 
@@ -53,12 +57,12 @@ ParsedStatement Parser::parseIfThen() {
     stmt.type = StatementType::IfThen;
     size_t i = 1; // Skip IF
     
-    while (i < _tokens.size() && _tokens[i].value != "THEN" 
+    while (i < _tokens.size() && _tokens[i].type != TokenType::Then 
            && _tokens[i].type != TokenType::EndOfLine){
         stmt.conditionTokens.push_back(_tokens[i++]);
     }
     
-    if (i >= _tokens.size() || _tokens[i].value != "THEN"){
+    if (i >= _tokens.size() || _tokens[i].type != TokenType::Then){
         throw std::runtime_error("IF conditional not followed by THEN");
     }
     i++; // Skip THEN
@@ -93,7 +97,7 @@ ParsedStatement Parser::parseInput(){
         stmt.printTokens.push_back(_tokens[i++]);
 
         if (i < _tokens.size()){
-            if (_tokens[i].value == ";" || _tokens[i].value == ",") i++;
+            if (_tokens[i].type == TokenType::Semicolon || _tokens[i].type == TokenType::Comma) i++;
             else throw std::runtime_error("MISSING ; OR , AFTER PROMPT");
         }
     }
@@ -101,7 +105,7 @@ ParsedStatement Parser::parseInput(){
     bool firstVar = true;
     while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
         if (!firstVar){
-            if (_tokens[i].value != ","){
+            if (_tokens[i].type != TokenType::Comma){
                 throw std::runtime_error("EXPECTED , BETWEEN VARIABLES");
             }
             i++;
@@ -124,21 +128,21 @@ ParsedStatement Parser::parseFor(){
     if (i >= _tokens.size() || _tokens[i].type != TokenType::Identifier) throw std::runtime_error("Expected Loop variable after FOR");
     stmt.identifier = _tokens[i++].value;
 
-    if (i >= _tokens.size() || _tokens[i].value != "=") throw std::runtime_error("Expected '=' after loop variable");
+    if (i >= _tokens.size() || _tokens[i].type != TokenType::Equal) throw std::runtime_error("Expected '=' after loop variable");
     i++;
 
-    while (i < _tokens.size() && _tokens[i].value != "TO"){
+    while (i < _tokens.size() && _tokens[i].type != TokenType::To){
         stmt.forInitTokens.push_back(_tokens[i++]);
     }
 
-    if (i >= _tokens.size() || _tokens[i].value != "TO") throw std::runtime_error("Expected 'TO' in FOR statement");
+    if (i >= _tokens.size() || _tokens[i].type != TokenType::To) throw std::runtime_error("Expected 'TO' in FOR statement");
     i++;
 
-    while (i < _tokens.size() && _tokens[i].value != "STEP"){
+    while (i < _tokens.size() && _tokens[i].type != TokenType::Step){
         stmt.forToTokens.push_back(_tokens[i++]);
     }
 
-    if (i < _tokens.size() && _tokens[i].value == "STEP"){
+    if (i < _tokens.size() && _tokens[i].type == TokenType::Step){
         i++;
         while (i < _tokens.size()){
             stmt.forStepTokens.push_back(_tokens[i++]);

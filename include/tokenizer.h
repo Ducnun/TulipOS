@@ -68,11 +68,12 @@ private:
     }
 
     void addToken(TokenType type){
-        _tokens.emplace_back(type, "", _line);
+        addToken(type, "");
     }
 
     void addToken(TokenType type, std::string literal){
         _tokens.emplace_back(type, literal, _line);
+        printf("Type [%s] with value [%s] at line [%d]\n", TokenUtils::typeToString(type).c_str(), literal.c_str(), _line);
     }
 
     bool isAlpha(char c){

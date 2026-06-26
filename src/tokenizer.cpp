@@ -114,7 +114,7 @@ void Tokenizer::identifier(){
     auto it = _keywords.find(lexeme);
 
     if (it != _keywords.end()){
-        addToken(it->second, lexeme);
+        addToken(it->second);
     }
     else{
         addToken(TokenType::Identifier, lexeme);
