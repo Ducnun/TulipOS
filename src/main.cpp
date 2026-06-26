@@ -1,8 +1,8 @@
+#include "interpreter.h"
+
 // Compiled only if esp32 env is chosen
 #ifdef ESP32
-  #include "Arduino.h"
   #include "esp32_io.h"
-  #include "interpreter.h"
 
   PS2Keyboard keyboard(13,14);
   UARTTerminal terminal(1000000);
@@ -23,13 +23,17 @@
 
 // Compiled only when native env is chosen
 #else
-  #include "interpreter.h"
   #include "console_io.h"
   ConsoleIO io;
 
   // Start IO and Interpreter
   int main(){
-    BasicInterpreter interpreter(io);
-    interpreter.runREPL();
+    // BasicInterpreter interpreter(io);
+    // interpreter.runREPL();
+    Tokenizer tokenizer;
+    std::vector<Token> tokens = tokenizer.tokenize("LET A = 5");
+    for (const auto& token : tokens){
+      io.print(TokenUtils::toString(token));
+    }
   }
 #endif

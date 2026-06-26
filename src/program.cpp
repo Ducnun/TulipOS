@@ -1,125 +1,125 @@
-#include "program.h"
+// #include "program.h"
 
-void Program::insertLine(int lineNumber, const std::string& source){
-    if (source.empty()){
-        deleteLine(lineNumber);
-        return;
-    }
+// void Program::insertLine(int lineNumber, const std::string& source){
+//     if (source.empty()){
+//         deleteLine(lineNumber);
+//         return;
+//     }
 
-    Tokenizer tokenizer;
-    std::vector<Token> tokens = tokenizer.tokenize(source);
-    Parser parser(tokens);
-    ParsedStatement stmt = parser.parse();
-    stmt.lineNumber = lineNumber;
-    _statements[lineNumber] = stmt;
-    _sourceLines[lineNumber] = std::to_string(lineNumber) + " " + source;
-    rebuildLineNumbers();
-}
+//     Tokenizer tokenizer(source);
+//     std::vector<Token> tokens = tokenizer.tokenize();
+//     Parser parser(tokens);
+//     ParsedStatement stmt = parser.parse();
+//     stmt.lineNumber = lineNumber;
+//     _statements[lineNumber] = stmt;
+//     _sourceLines[lineNumber] = std::to_string(lineNumber) + " " + source;
+//     rebuildLineNumbers();
+// }
 
-void Program::deleteLine(int lineNumber){
-    _statements.erase(lineNumber);
-    _sourceLines.erase(lineNumber);
-    rebuildLineNumbers();
-}
+// void Program::deleteLine(int lineNumber){
+//     _statements.erase(lineNumber);
+//     _sourceLines.erase(lineNumber);
+//     rebuildLineNumbers();
+// }
 
-void Program::clear(){
-    _statements.clear();
-    _sourceLines.clear();
-    _lineNumbers.clear();
-    _programCounter = 0;
-}
+// void Program::clear(){
+//     _statements.clear();
+//     _sourceLines.clear();
+//     _lineNumbers.clear();
+//     _programCounter = 0;
+// }
 
-std::vector<std::string> Program::getSource(){
-    std::vector<std::string> result;
+// std::vector<std::string> Program::getSource(){
+//     std::vector<std::string> result;
 
-    for (int line : _lineNumbers){
-        auto it = _sourceLines.find(line);
-        if (it != _sourceLines.end()){
-            result.push_back(_sourceLines[line]);
-        }
-    }
+//     for (int line : _lineNumbers){
+//         auto it = _sourceLines.find(line);
+//         if (it != _sourceLines.end()){
+//             result.push_back(_sourceLines[line]);
+//         }
+//     }
 
-    return result;
-}
+//     return result;
+// }
 
-void Program::rebuildLineNumbers(){
-    _lineNumbers.clear();
-    for (const auto& stmt : _statements){
-        _lineNumbers.push_back(stmt.first);
-    }
-}
+// void Program::rebuildLineNumbers(){
+//     _lineNumbers.clear();
+//     for (const auto& stmt : _statements){
+//         _lineNumbers.push_back(stmt.first);
+//     }
+// }
 
-void Program::resetProgramCounter(){
-    _programCounter = _sourceLines.empty() ? 0 : _lineNumbers.front();
-}
+// void Program::resetProgramCounter(){
+//     _programCounter = _sourceLines.empty() ? 0 : _lineNumbers.front();
+// }
 
-ParsedStatement Program::getNextStatement(){
-    ParsedStatement stmt;
+// ParsedStatement Program::getNextStatement(){
+//     ParsedStatement stmt;
 
-    if (_lineNumbers.empty()) {
-        stmt.type = StatementType::End;
-    }
+//     if (_lineNumbers.empty()) {
+//         stmt.type = StatementType::End;
+//     }
 
-    auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), _programCounter);
-    if (it == _lineNumbers.end()) {
-        stmt.type = StatementType::End;
-    }
-    else{
-        stmt = _statements[*it];
-        it++;
-        _programCounter = (it != _lineNumbers.end()) ? *it : -1;
-    }
+//     auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), _programCounter);
+//     if (it == _lineNumbers.end()) {
+//         stmt.type = StatementType::End;
+//     }
+//     else{
+//         stmt = _statements[*it];
+//         it++;
+//         _programCounter = (it != _lineNumbers.end()) ? *it : -1;
+//     }
 
-    return stmt;
-}
+//     return stmt;
+// }
 
-void Program::jumpTo(int targetLine){
-    auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), targetLine);
-    if (it == _lineNumbers.end()) {
-        throw std::runtime_error("GOTO to undefined line: " + std::to_string(targetLine));
-    }
-    _programCounter = targetLine;
-}
+// void Program::jumpTo(int targetLine){
+//     auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), targetLine);
+//     if (it == _lineNumbers.end()) {
+//         throw std::runtime_error("GOTO to undefined line: " + std::to_string(targetLine));
+//     }
+//     _programCounter = targetLine;
+// }
 
-void Program::loadBenchmark(void){
-    clear();
-    insertLine(10,  "PRINT \"PI APPROXIMATION\"");
-    insertLine(20,  "LET PI = 0");
-    insertLine(30,  "LET SG = 1");
-    insertLine(40,  "FOR I = 0 TO 4999");
-    insertLine(50,  "LET D = 2 * I + 1");
-    insertLine(60,  "LET PI = PI + SG * (1.0 / D)");
-    insertLine(70,  "LET SG = SG * -1");
-    insertLine(80,  "NEXT I");
-    insertLine(90,  "LET PI = PI * 4");
-    insertLine(100, "PRINT PI");
-}
+// void Program::loadBenchmark(void){
+//     clear();
+//     insertLine(10,  "PRINT \"PI APPROXIMATION\"");
+//     insertLine(20,  "LET PI = 0");
+//     insertLine(30,  "LET SG = 1");
+//     insertLine(40,  "FOR I = 0 TO 4999");
+//     insertLine(50,  "LET D = 2 * I + 1");
+//     insertLine(60,  "LET PI = PI + SG * (1.0 / D)");
+//     insertLine(70,  "LET SG = SG * -1");
+//     insertLine(80,  "NEXT I");
+//     insertLine(90,  "LET PI = PI * 4");
+//     insertLine(100, "PRINT PI");
+// }
 
-size_t Program::estimateMemoryUsage() const {
-    size_t total = 0;
+// size_t Program::estimateMemoryUsage() const {
+//     size_t total = 0;
 
-    // Estimate map node overhead (very rough!)
-    const size_t mapNodeOverhead = 32; // typical ballpark for std::map node
+//     // Estimate map node overhead (very rough!)
+//     const size_t mapNodeOverhead = 32; // typical ballpark for std::map node
 
-    // Source lines
-    for (const auto& [line, str] : _sourceLines) {
-        total += mapNodeOverhead;
-        total += sizeof(line);
-        total += sizeof(std::string);
-        total += str.capacity(); // actual allocated buffer
-    }
+//     // Source lines
+//     for (const auto& [line, str] : _sourceLines) {
+//         total += mapNodeOverhead;
+//         total += sizeof(line);
+//         total += sizeof(std::string);
+//         total += str.capacity(); // actual allocated buffer
+//     }
 
-    // Parsed statements
-    for (const auto& [line, stmt] : _statements) {
-        total += mapNodeOverhead;
-        total += sizeof(line);
-        total += sizeof(ParsedStatement);
-        // If ParsedStatement has dynamic memory, add it here too
-    }
+//     // Parsed statements
+//     for (const auto& [line, stmt] : _statements) {
+//         total += mapNodeOverhead;
+//         total += sizeof(line);
+//         total += sizeof(ParsedStatement);
+//         // If ParsedStatement has dynamic memory, add it here too
+//     }
 
-    // Line numbers vector
-    total += sizeof(std::vector<int>);
-    total += _lineNumbers.capacity() * sizeof(int);
+//     // Line numbers vector
+//     total += sizeof(std::vector<int>);
+//     total += _lineNumbers.capacity() * sizeof(int);
 
-    return total;
-}
+//     return total;
+// }

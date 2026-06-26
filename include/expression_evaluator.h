@@ -84,13 +84,5 @@ private:
      * @param op Operation for which precedence is looked up
      * @return int Precedence encoded as int (higher int is higher precendence)
      */
-    int precedence(const std::string& op);
-
-    /**
-     * @brief Helper function that validates that a symbol token is a valid operator
-     * @param token Token object to be checked
-     * @return true If Token matches a value in a predefined map
-     * @return false If token is not found in the predefined map
-     */
-    bool isOperator(const Token& token);
+    int precedence(TokenType);
 };
