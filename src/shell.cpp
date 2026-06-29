@@ -137,6 +137,9 @@ void Shell::evaluateImmediateCommand(const std::string& line){
     PrettyPrinter printer;
     printer.print(statements);
     _io.print(printer.result);
+
+    Interpreter interpr(_ctx, _io);
+    interpr.execute(statements);
 }
 
 void Shell::runProgram(){

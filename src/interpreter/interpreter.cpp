@@ -43,14 +43,24 @@ void Interpreter::visit(const BinaryExpr& expr){
 
 void Interpreter::visit(const UnaryExpr& expr){
     Value val = evaluate(expr.val);
+
+    switch (expr.op.type) {
+        case TokenType::Minus: _lastValue = Value(-val.asNumber()); break;
+        case TokenType::Not: _lastValue = Value(!val.isTruthy()); break;
+    }
 }
 
 void Interpreter::visit(const GroupingExpr& expr){
-
+    _lastValue = evaluate(expr.expression);
 }
 
 void Interpreter::visit(const PrintStmt& stmt){
-
+    for (const auto& item : stmt.items) {
+        Value val = evaluate(item.expression);
+        _io.print(val.asString());
+        if (item.separator == PrintSeparator::Comma) _io.print("\t");
+    }
+    _io.print("\n");
 }
 
 void Interpreter::visit(const LetStmt& stmt){
@@ -82,5 +92,13 @@ void Interpreter::visit(const CallStmt& stmt){
 }
 
 void Interpreter::visit(const AssignmentStmt& stmt){
+
+}
+
+void Interpreter::visit(const EndStmt& stmt){
+
+}
+
+void Interpreter::visit(const ReturnStmt& stmt){
 
 }

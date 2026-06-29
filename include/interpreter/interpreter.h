@@ -42,6 +42,8 @@ private:
     void visit(const BlockStmt& stmt) override;
     void visit(const CallStmt& stmt) override;
     void visit(const AssignmentStmt& stmt) override;
+    void visit(const EndStmt& stmt) override;
+    void visit(const ReturnStmt& stmt) override;
 
     bool checkEqual(const Value& a, const Value& b) {
         if (a.type != b.type) return false;

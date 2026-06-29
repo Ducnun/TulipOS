@@ -10,6 +10,8 @@
 #include "io_interface.h"
 #include "tokenizer/tokenizer.h"
 #include "parser/parser.h"
+#include "interpreter/interpreter.h"
+#include "interpreter/runtime_context.h"
 #include "program.h"
 
 // Debug
@@ -34,6 +36,7 @@ public:
 private:
     IOInterface& _io;   ///< Reference to IO system for input/output
     Program _program;           ///< Current stored/editing program
+    RuntimeContext _ctx;
 
     /**
      * @brief Preprocesses the input line, trims whitespace forces all uper
