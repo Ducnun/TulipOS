@@ -92,16 +92,6 @@ std::string Shell::preprocess(const std::string& line){
 }
 
 bool Shell::handleREPLDirective(const std::string& line){    
-    if (line == "DUMP"){
-        for (const auto& varPair : _variables) {
-            const std::string& varName = varPair.first;
-            const Variable varValue = varPair.second.toString();
-
-            _io.print(varName + " = " + varValue.toString() + "\n");
-        }
-        return true;
-    }
-
     if (line == "BENCH"){
         _program.loadBenchmark();
         return true;
@@ -114,11 +104,6 @@ bool Shell::handleREPLDirective(const std::string& line){
 
     if (line == "CLS"){
         _io.clearScreen();
-        return true;
-    }
-
-    if (line == "CLEAR"){
-        clearVariables();
         return true;
     }
 
@@ -188,8 +173,4 @@ void Shell::listProgram(){
 
 void Shell::clearProgram(){
     _program.clear();
-}
-
-void Shell::clearVariables(){
-    _variables.clear();
 }

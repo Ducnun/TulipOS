@@ -10,7 +10,6 @@
 #include "io_interface.h"
 #include "tokenizer/tokenizer.h"
 #include "parser/parser.h"
-#include "variables.h"
 #include "program.h"
 
 // Debug
@@ -34,7 +33,6 @@ public:
     
 private:
     IOInterface& _io;   ///< Reference to IO system for input/output
-    std::unordered_map<std::string, Variable> _variables;   ///< Current runtime variables map
     Program _program;           ///< Current stored/editing program
 
     /**
@@ -78,9 +76,4 @@ private:
      * @brief Clears currently stored program lines
      */
     void clearProgram();
-
-    /**
-     * @brief Clears runtime variables stored in current REPL loop
-     */
-    void clearVariables();
 };
