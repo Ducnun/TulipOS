@@ -16,6 +16,10 @@ struct Value {
     Value(std::string val) : type(ValueType::String), numberValue(0.0), boolValue(!val.empty()), stringValue(std::move(val)) {}
     Value(bool val) : type(ValueType::Boolean), numberValue(val ? 1.0 : 0.0), boolValue(val) {}
 
+    bool isNumber()  const { return type == ValueType::Number; }
+    bool isString()  const { return type == ValueType::String; }
+    bool isBoolean() const { return type == ValueType::Boolean; }
+
     bool isTruthy() const {
         switch (type) {
             case ValueType::Boolean: return boolValue;

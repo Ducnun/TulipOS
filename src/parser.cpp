@@ -229,8 +229,8 @@ ExprPtr Parser::factor(){
 ExprPtr Parser::unary(){
     if (match({TokenType::Minus, TokenType::Not})){
         Token op = previous();
-        ExprPtr right = unary();
-        return util::make_unique<UnaryExpr>(op, std::move(right));
+        ExprPtr val = unary();
+        return util::make_unique<UnaryExpr>(op, std::move(val));
     }
     return primary();
 }
@@ -243,7 +243,7 @@ ExprPtr Parser::primary(){
         case TokenType::False:
             advance();
             return util::make_unique<LiteralExpr>(Token(TokenType::False, "false", previous().line));
-            
+
         case TokenType::Integer:
         case TokenType::Float:
         case TokenType::String:

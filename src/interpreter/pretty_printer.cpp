@@ -21,7 +21,7 @@ void PrettyPrinter::visit(const BinaryExpr& expr) {
 void PrettyPrinter::visit(const UnaryExpr& expr) {
     result += pad() + "Unary(" + expr.op.value + ")\n";
     indent++;
-    expr.right->accept(*this);
+    expr.val->accept(*this);
     indent--;
 }
 

@@ -42,4 +42,22 @@ private:
     void visit(const BlockStmt& stmt) override;
     void visit(const CallStmt& stmt) override;
     void visit(const AssignmentStmt& stmt) override;
+
+    bool checkEqual(const Value& a, const Value& b) {
+        if (a.type != b.type) return false;
+
+        if (a.isNumber()) return a.numberValue == b.numberValue;
+        if (a.isString()) return a.stringValue == b.stringValue;
+        if (a.type == ValueType::Boolean) return a.boolValue == b.boolValue;
+        return false;
+    }
+
+    bool checkGreater(const Value& a, const Value& b) {
+        // String comparison (lexicographical)
+        if (a.isString() && b.isString()) {
+            return a.stringValue > b.stringValue;
+        }
+        // Numeric comparison
+        return a.asNumber() > b.asNumber();
+    }
 };

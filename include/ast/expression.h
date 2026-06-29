@@ -34,10 +34,10 @@ struct VariableExpr : Expr{
 
 struct UnaryExpr : Expr{
     Token op;
-    ExprPtr right;
+    ExprPtr val;
 
-    UnaryExpr(Token op, ExprPtr right) :
-        op(std::move(op)), right(std::move(right)) {}
+    UnaryExpr(Token op, ExprPtr val) :
+        op(std::move(op)), val(std::move(val)) {}
         
     void accept(ExprVisitor&) const override;
 };
