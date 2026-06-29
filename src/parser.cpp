@@ -1,167 +1,255 @@
-#include "parser.h"
-#include <iostream>
+#include "parser/parser.h"
 
-ParsedStatement Parser::parse(){
-    ParsedStatement stmt;
-    if(_tokens.empty()) return stmt;
+std::vector<StmtPtr> Parser::parse(std::vector<Token> tokens){
+    _tokens = std::move(tokens);
+    _current = 0;
+    std::vector<StmtPtr> _statements;
 
-    switch (_tokens[0].type){
-        case TokenType::Print: return parsePrint();
-        case TokenType::Let: return parseLet();
-        case TokenType::If: return parseIfThen();
-        case TokenType::Goto: return parseGoto();
-        case TokenType::Input: return parseInput();
-        case TokenType::For: return parseFor();
-        case TokenType::Next: return parseNext();
+    while (!isAtEnd()){
+        _statements.push_back(statement());
+    }
+
+    return _statements;
+}
+
+StmtPtr Parser::statement(){
+    switch (peek().type){
+        case TokenType::Print: return printStatement();
+        case TokenType::Let: return letStatement();
+        case TokenType::Input: return inputStatement();
+        case TokenType::Goto: return gotoStatement();
+        case TokenType::If: return ifStatement();
+        case TokenType::For: return forStatement();
+        case TokenType::LeftBrace: return blockStatement();
+        case TokenType::Call: advance(); return callStatement();
+        case TokenType::Identifier:
+            if (checkNext(TokenType::Equal)) return assignmentStatement();
+            if (checkNext(TokenType::LeftParen) || checkNext(TokenType::Dot)) return callStatement();
+            throw std::runtime_error("Unexpected identifier: " + peek().value);
         default:
-            throw std::runtime_error("Unknown statement type");
+            throw std::runtime_error("Unknown Statement: " + TokenUtils::typeToString(_tokens[_current].type));
     }
 }
 
-ParsedStatement Parser::parsePrint(){
-    ParsedStatement stmt;
-    stmt.type = StatementType::Print;
-    size_t i = 1; // Skip PRINT
-    
-    while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
-        stmt.printTokens.push_back(_tokens[i++]);
+StmtPtr Parser::blockStatement(){
+    consume(TokenType::LeftBrace, "Expected '{' (Parser misaligned)");
+    std::vector<StmtPtr> statements; 
+
+    while (!check(TokenType::RightBrace) && !isAtEnd()){
+        statements.push_back(statement());
     }
-    return stmt;
+    consume(TokenType::RightBrace, "Expected '}' after body (Unterminated '{')");
+
+    return util::make_unique<BlockStmt>(std::move(statements));
 }
 
-ParsedStatement Parser::parseLet() {
-    ParsedStatement stmt;
-    stmt.type = StatementType::Assignment;
+StmtPtr Parser::printStatement(){
+    std::vector<PrintItem> items;
+    consume(TokenType::Print, "Expected PRINT (Parser misaligned)");
 
-    size_t i = 1; // Skip LET
+    ExprPtr expr = expression();
+    items.emplace_back(std::move(expr), PrintSeparator::None);
 
-    if (i >= _tokens.size() || _tokens[i].type != TokenType::Identifier)
-        throw std::runtime_error("Expected identifier after LET");
+    while (match({TokenType::Comma, TokenType::Semicolon})) {
+        TokenType sep = previous().type;
+        PrintSeparator separator = sep == TokenType::Comma ? PrintSeparator::Comma : PrintSeparator::Semicolon;
 
-    stmt.identifier = _tokens[i++].value;
-
-    if (i >= _tokens.size() || _tokens[i].type != TokenType::Equal)
-        throw std::runtime_error("Expected '=' after identifier");
-
-    ++i; // consume '='
-
-    while (i < _tokens.size()) {
-        stmt.expressionTokens.push_back(_tokens[i++]);
+        ExprPtr expr = expression();
+        items.emplace_back(std::move(expr), separator);
     }
 
-    return stmt;
+    return util::make_unique<PrintStmt>(std::move(items));
 }
 
-ParsedStatement Parser::parseIfThen() {
-    ParsedStatement stmt;
-    stmt.type = StatementType::IfThen;
-    size_t i = 1; // Skip IF
-    
-    while (i < _tokens.size() && _tokens[i].type != TokenType::Then 
-           && _tokens[i].type != TokenType::EndOfLine){
-        stmt.conditionTokens.push_back(_tokens[i++]);
-    }
-    
-    if (i >= _tokens.size() || _tokens[i].type != TokenType::Then){
-        throw std::runtime_error("IF conditional not followed by THEN");
-    }
-    i++; // Skip THEN
-    
-    while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
-        stmt.thenTokens.push_back(_tokens[i++]);
-    }
-    return stmt;
+StmtPtr Parser::letStatement(){
+    consume(TokenType::Let, "Expected LET (Parser misaligned)");
+    Token var = consume(TokenType::Identifier, "Expected variable after LET");
+    consume(TokenType::Equal, "Expected '=' after variable");
+    ExprPtr value = expression();
+    return util::make_unique<LetStmt>(var.value, std::move(value));
 }
 
-ParsedStatement Parser::parseGoto(){
-    ParsedStatement stmt;
-    stmt.type = StatementType::Goto;
-    size_t i = 1; // Skip GOTO
+StmtPtr Parser::inputStatement(){
+    std::string prompt;
+    bool hasPrompt = false;
+    std::vector<std::string> variables;
+    consume(TokenType::Input, "Expected INPUT (Parser misaligned)");
     
-    if (i >= _tokens.size()){
-        throw std::runtime_error("GOTO missing target line");
+    if (match({TokenType::String})) {
+        prompt = previous().value;
+        hasPrompt = true;
+        consume(TokenType::Semicolon, "Expected ';' after prompt");
     }
-    
-    while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
-        stmt.expressionTokens.push_back(_tokens[i++]);
-    }
-    return stmt;
+
+    do{
+        variables.push_back(consume(TokenType::Identifier, "Expected variable after ','").value);
+    }while (match({TokenType::Comma}));
+
+    return util::make_unique<InputStmt>(std::move(prompt), hasPrompt, std::move(variables));
 }
 
-ParsedStatement Parser::parseInput(){
-    ParsedStatement stmt;
-    stmt.type = StatementType::Input;
-    size_t i = 1;   // Skip Input
+StmtPtr Parser::gotoStatement(){
+    consume(TokenType::Goto, "Expected GOTO (Parser misaligned)");
+    ExprPtr target = expression();
+    return util::make_unique<GotoStmt>(std::move(target));
+}
 
-    if (i < _tokens.size() && _tokens[i].type == TokenType::String){
-        stmt.printTokens.push_back(_tokens[i++]);
+StmtPtr Parser::ifStatement(){
+    // Header
+    consume(TokenType::If, "Expected IF (Parser misaligned)");
+    ExprPtr condition = expression();
+    consume(TokenType::Then, "Expected THEN after expression");
+    StmtPtr thenBranch = statement();
+    
+    // If ELSE token available, consume and create else branch statement(s)
+    StmtPtr elseBranch = nullptr;
+    if (match({TokenType::Else})) elseBranch = statement();
 
-        if (i < _tokens.size()){
-            if (_tokens[i].type == TokenType::Semicolon || _tokens[i].type == TokenType::Comma) i++;
-            else throw std::runtime_error("MISSING ; OR , AFTER PROMPT");
+    return util::make_unique<IfStmt>(std::move(condition), std::move(thenBranch), std::move(elseBranch));
+}
+
+StmtPtr Parser::forStatement(){
+    // Header
+    consume(TokenType::For, "Expected FOR (Parser misaligned)");
+    std::string variable = consume(TokenType::Identifier, "Expected variable after FOR").value;
+    consume(TokenType::Equal, "Expected '=' after variable");
+    ExprPtr start = expression();
+    consume(TokenType::To, "Expected TO after expression");
+    ExprPtr end = expression();
+
+    // Optional Step expression
+    ExprPtr step;
+    if (match({TokenType::Step})) step = expression();
+
+    // Construct body statement(s)
+    std::vector<StmtPtr> bodyStmts;
+    while (!check(TokenType::Next) && !isAtEnd()) {
+        bodyStmts.push_back(statement());
+    }
+    consume(TokenType::Next, "Expected NEXT after body (Unterminated FOR loop)");
+    StmtPtr compressedBody = util::make_unique<BlockStmt>(std::move(bodyStmts));
+
+    return util::make_unique<ForStmt>(std::move(variable), std::move(start), std::move(end), std::move(step), std::move(compressedBody));
+}
+
+StmtPtr Parser::assignmentStatement() {
+    // Identifier = Expression
+    Token var = consume(TokenType::Identifier, "Expected variable name");
+    consume(TokenType::Equal, "Expected '=' after variable");
+    ExprPtr value = expression();
+    return util::make_unique<AssignmentStmt>(var.value, std::move(value));
+}
+
+StmtPtr Parser::callStatement() {
+    std::string moduleName = "";
+    std::string functionName = consume(TokenType::Identifier, "Expected function name").value;
+
+    // If there's a dot, the first identifier was the module
+    if (match({TokenType::Dot})) {
+        moduleName = functionName;
+        functionName = consume(TokenType::Identifier, "Expected function name after '.'").value;
+    }
+
+    // Arguments
+    consume(TokenType::LeftParen, "Expected '(' after function name");
+    std::vector<ExprPtr> args;
+    if (!check(TokenType::RightParen)) {
+        do args.push_back(expression());
+        while (match({TokenType::Comma}));
+    }
+    consume(TokenType::RightParen, "Expected ')' after arguments");
+
+    return util::make_unique<CallStmt>(moduleName, functionName, std::move(args));
+}
+
+ExprPtr Parser::expression() {
+    return orExpr();
+}
+
+ExprPtr Parser::orExpr() {
+    ExprPtr expr = andExpr();
+    while (match({TokenType::Or})) {
+        Token op = previous();
+        ExprPtr right = andExpr();
+        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+    }
+    return expr;
+}
+
+ExprPtr Parser::andExpr() {
+    ExprPtr expr = equality();
+    while (match({TokenType::And})) {
+        Token op = previous();
+        ExprPtr right = equality();
+        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+    }
+    return expr;
+}
+
+ExprPtr Parser::equality(){
+    ExprPtr expr = comparison();
+    while (match({TokenType::Equal, TokenType::NotEqual})){
+        Token op = previous();
+        ExprPtr right = comparison();
+        expr = util::make_unique<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
+    }
+    return expr;
+}
+
+ExprPtr Parser::comparison(){
+    ExprPtr expr = term();
+    while (match({TokenType::Less, TokenType::LessEqual, TokenType::Greater, TokenType::GreaterEqual})){
+        Token op = previous();
+        ExprPtr right = term();
+        expr = util::make_unique<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
+    }
+    return expr;
+}
+
+ExprPtr Parser::term(){
+    ExprPtr expr = factor();
+    while (match({TokenType::Plus, TokenType::Minus})){
+        Token op = previous();
+        ExprPtr right = factor();
+        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+    }
+    return expr;
+}
+
+ExprPtr Parser::factor(){
+    ExprPtr expr = unary();
+    while (match({TokenType::Star, TokenType::Slash})){
+        Token op = previous();
+        ExprPtr right = unary();
+        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+    }
+    return expr;
+}
+
+ExprPtr Parser::unary(){
+    if (match({TokenType::Minus, TokenType::Not})){
+        Token op = previous();
+        ExprPtr right = unary();
+        return util::make_unique<UnaryExpr>(op, std::move(right));
+    }
+    return primary();
+}
+
+ExprPtr Parser::primary(){
+    switch(peek().type){
+        case TokenType::Integer:
+        case TokenType::Float:
+        case TokenType::String:
+            return util::make_unique<LiteralExpr>(advance());
+        case TokenType::Identifier:
+            return util::make_unique<VariableExpr>(advance());
+        case TokenType::LeftParen:{
+            advance();
+            ExprPtr expr = expression();
+            consume(TokenType::RightParen, "Expected ')'");
+            return util::make_unique<GroupingExpr>(std::move(expr));
         }
+        default:
+            throw std::runtime_error("Expected Expression");
     }
-
-    bool firstVar = true;
-    while (i < _tokens.size() && _tokens[i].type != TokenType::EndOfLine){
-        if (!firstVar){
-            if (_tokens[i].type != TokenType::Comma){
-                throw std::runtime_error("EXPECTED , BETWEEN VARIABLES");
-            }
-            i++;
-        }
-        if (i >= _tokens.size() || _tokens[i].type != TokenType::Identifier){
-            throw std::runtime_error("EXPECTED VARIABLE NAME");
-        }
-
-        stmt.identifierTokens.push_back(_tokens[i++]);
-        firstVar = false;
-    }
-    return stmt;
-}
-
-ParsedStatement Parser::parseFor(){
-    ParsedStatement stmt;
-    stmt.type = StatementType::For;
-    size_t i = 1;   // Skip for token
-
-    if (i >= _tokens.size() || _tokens[i].type != TokenType::Identifier) throw std::runtime_error("Expected Loop variable after FOR");
-    stmt.identifier = _tokens[i++].value;
-
-    if (i >= _tokens.size() || _tokens[i].type != TokenType::Equal) throw std::runtime_error("Expected '=' after loop variable");
-    i++;
-
-    while (i < _tokens.size() && _tokens[i].type != TokenType::To){
-        stmt.forInitTokens.push_back(_tokens[i++]);
-    }
-
-    if (i >= _tokens.size() || _tokens[i].type != TokenType::To) throw std::runtime_error("Expected 'TO' in FOR statement");
-    i++;
-
-    while (i < _tokens.size() && _tokens[i].type != TokenType::Step){
-        stmt.forToTokens.push_back(_tokens[i++]);
-    }
-
-    if (i < _tokens.size() && _tokens[i].type == TokenType::Step){
-        i++;
-        while (i < _tokens.size()){
-            stmt.forStepTokens.push_back(_tokens[i++]);
-        }
-    }
-    return stmt;
-}
-
-ParsedStatement Parser::parseNext(){
-    ParsedStatement stmt;
-    stmt.type = StatementType::Next;
-    size_t i = 1;
-
-    if (i >= _tokens.size() || _tokens[i].type != TokenType::Identifier) throw std::runtime_error("Expected Loop variable after NEXT");
-    stmt.identifier = _tokens[i++].value;
-
-    if (i != _tokens.size() && _tokens[i].type != TokenType::EndOfLine) {
-        throw std::runtime_error("Unexpected token after NEXT statement");
-    }
-
-    return stmt;
 }

@@ -8,23 +8,25 @@
 #include "esp_heap_caps.h"
 #endif
 #include "io_interface.h"
-#include "tokenizer.h"
-#include "parser.h"
+#include "tokenizer/tokenizer.h"
+#include "parser/parser.h"
 #include "variables.h"
-#include "executor.h"
 #include "program.h"
 
-class BasicInterpreter{
+// Debug
+#include "interpreter/pretty_printer.h" 
+
+class Shell{
 public: 
     /**
      * @brief Construct a new Basic Interpreter object
      * @param io A reference to an IOInterface (console or ESP32 based)
      */
-    BasicInterpreter(IOInterface& io);
+    Shell(IOInterface& io);
     /**
      * @brief Destroy the Basic Interpreter object
      */
-    ~BasicInterpreter() = default;
+    ~Shell() = default;
     /**
      * @brief Start main REPL loop
      */
@@ -32,7 +34,6 @@ public:
     
 private:
     IOInterface& _io;   ///< Reference to IO system for input/output
-    Executor _executor; ///< Executes parsed BASIC statements
     std::unordered_map<std::string, Variable> _variables;   ///< Current runtime variables map
     Program _program;           ///< Current stored/editing program
 

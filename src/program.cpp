@@ -8,10 +8,9 @@ void Program::insertLine(int lineNumber, const std::string& source){
 
     Tokenizer tokenizer;
     std::vector<Token> tokens = tokenizer.tokenize(source);
-    Parser parser(tokens);
-    ParsedStatement stmt = parser.parse();
-    stmt.lineNumber = lineNumber;
-    _statements[lineNumber] = stmt;
+    Parser parser;
+    std::vector<StmtPtr> stmts = parser.parse(tokens);
+    _statements[lineNumber] = std::move(stmts);
     _sourceLines[lineNumber] = std::to_string(lineNumber) + " " + source;
     rebuildLineNumbers();
 }
@@ -53,26 +52,6 @@ void Program::resetProgramCounter(){
     _programCounter = _sourceLines.empty() ? 0 : _lineNumbers.front();
 }
 
-ParsedStatement Program::getNextStatement(){
-    ParsedStatement stmt;
-
-    if (_lineNumbers.empty()) {
-        stmt.type = StatementType::End;
-    }
-
-    auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), _programCounter);
-    if (it == _lineNumbers.end()) {
-        stmt.type = StatementType::End;
-    }
-    else{
-        stmt = _statements[*it];
-        it++;
-        _programCounter = (it != _lineNumbers.end()) ? *it : -1;
-    }
-
-    return stmt;
-}
-
 void Program::jumpTo(int targetLine){
     auto it = std::find(_lineNumbers.begin(), _lineNumbers.end(), targetLine);
     if (it == _lineNumbers.end()) {
@@ -93,33 +72,4 @@ void Program::loadBenchmark(void){
     insertLine(80,  "NEXT I");
     insertLine(90,  "LET PI = PI * 4");
     insertLine(100, "PRINT PI");
-}
-
-size_t Program::estimateMemoryUsage() const {
-    size_t total = 0;
-
-    // Estimate map node overhead (very rough!)
-    const size_t mapNodeOverhead = 32; // typical ballpark for std::map node
-
-    // Source lines
-    for (const auto& [line, str] : _sourceLines) {
-        total += mapNodeOverhead;
-        total += sizeof(line);
-        total += sizeof(std::string);
-        total += str.capacity(); // actual allocated buffer
-    }
-
-    // Parsed statements
-    for (const auto& [line, stmt] : _statements) {
-        total += mapNodeOverhead;
-        total += sizeof(line);
-        total += sizeof(ParsedStatement);
-        // If ParsedStatement has dynamic memory, add it here too
-    }
-
-    // Line numbers vector
-    total += sizeof(std::vector<int>);
-    total += _lineNumbers.capacity() * sizeof(int);
-
-    return total;
 }

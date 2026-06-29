@@ -65,5 +65,6 @@ private:
 
     stream_msg _history[256];
 
-    bool sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* data);
+    bool sendMessage(STREAM_CMD cmd, uint16_t length, const uint8_t* data);
+    bool sendPacket(STREAM_CMD cmd, uint8_t length, const uint8_t* data);
 };

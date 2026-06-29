@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
-#include "tokens.h"
+#include "token.h"
 
 class Tokenizer {
 public: 
@@ -73,7 +73,6 @@ private:
 
     void addToken(TokenType type, std::string literal){
         _tokens.emplace_back(type, literal, _line);
-        printf("Type [%s] with value [%s] at line [%d]\n", TokenUtils::typeToString(type).c_str(), literal.c_str(), _line);
     }
 
     bool isAlpha(char c){

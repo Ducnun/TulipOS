@@ -1,10 +1,11 @@
-#include "tokenizer.h"
+#include "tokenizer/tokenizer.h"
 
 const std::unordered_map<std::string, TokenType> Tokenizer::_keywords = {
     {"PRINT", TokenType::Print},
     {"LET", TokenType::Let},
     {"IF", TokenType::If},
     {"THEN", TokenType::Then},
+    {"ELSE", TokenType::Else},
     {"GOTO", TokenType::Goto},
     {"INPUT", TokenType::Input},
     {"FOR", TokenType::For},
@@ -20,6 +21,7 @@ const std::unordered_map<std::string, TokenType> Tokenizer::_keywords = {
     {"OR", TokenType::Or},
     {"NOT", TokenType::Not},
     {"MOD", TokenType::Mod},
+    {"CALL", TokenType::Call},
 };
 
 void Tokenizer::reset(){
@@ -36,6 +38,8 @@ std::vector<Token>& Tokenizer::tokenize(std::string source){
         _start = _current;
         scanToken();
     }
+    addToken(TokenType::Eof);
+
     return _tokens;
 }
 
@@ -57,6 +61,9 @@ void Tokenizer::scanToken(void){
         case '/': addToken(TokenType::Slash); break;
         case '^': addToken(TokenType::Caret); break;
         case '=': addToken(TokenType::Equal); break;
+        case '{': addToken(TokenType::LeftBrace); break;
+        case '}': addToken(TokenType::RightBrace); break;
+        case '.': addToken(TokenType::Dot); break;
         case '>': addToken(match('=') ? TokenType::GreaterEqual : TokenType::Greater); break;
         case '<': 
             if (match('=')) addToken(TokenType::LessEqual);

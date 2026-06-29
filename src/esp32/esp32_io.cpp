@@ -8,7 +8,7 @@ void ESP32IO::begin(){
 
 void ESP32IO::print(const std::string& txt){
     Serial.print(txt.c_str());
-    _terminal.sendString(txt);
+    _terminal.sendString(txt.c_str());
 }
 
 std::string ESP32IO::readLine(){

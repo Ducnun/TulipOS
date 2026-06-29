@@ -1,8 +1,8 @@
-#include "interpreter.h"
+#include "shell.h"
 
-BasicInterpreter::BasicInterpreter(IOInterface &io) : _io(io), _executor(Executor(_io, _variables)) {}
+Shell::Shell(IOInterface &io) : _io(io) {}
 
-void BasicInterpreter::runREPL(){
+void Shell::runREPL(){
     // Setup
     _io.reset();
     _io.clearScreen();
@@ -10,7 +10,7 @@ void BasicInterpreter::runREPL(){
     
     #ifdef ESP32
     size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-    size_t used = _program.estimateMemoryUsage();
+    size_t used = 0;
 
     std::string memLine = std::to_string(freeHeap / 1000) + "K BYTES FREE (" +
                           std::to_string(used) + "B USED)\n";
@@ -68,11 +68,12 @@ void BasicInterpreter::runREPL(){
         catch (std::runtime_error e){
             _io.print("\n ?");
             _io.print(e.what());
+            _io.print("\n");
         }
     }
 }
 
-std::string BasicInterpreter::preprocess(const std::string& line){
+std::string Shell::preprocess(const std::string& line){
     std::string result;
     int charIndex = 0;
     // Maybe two cursor strategy to trim trailing whitespace, or slicing at the end
@@ -90,7 +91,7 @@ std::string BasicInterpreter::preprocess(const std::string& line){
     return result;
 }
 
-bool BasicInterpreter::handleREPLDirective(const std::string& line){    
+bool Shell::handleREPLDirective(const std::string& line){    
     if (line == "DUMP"){
         for (const auto& varPair : _variables) {
             const std::string& varName = varPair.first;
@@ -124,7 +125,7 @@ bool BasicInterpreter::handleREPLDirective(const std::string& line){
     return false;
 }
 
-void BasicInterpreter::storeProgramLine(const std::string& line){
+void Shell::storeProgramLine(const std::string& line){
     std::istringstream iss(line);
     int lineNumber;
     iss >> lineNumber;
@@ -140,15 +141,20 @@ void BasicInterpreter::storeProgramLine(const std::string& line){
     }
 }
 
-void BasicInterpreter::evaluateImmediateCommand(const std::string& line){
+void Shell::evaluateImmediateCommand(const std::string& line){
+    // Hotwired to pretty print for DEBUGGING
     Tokenizer tokenizer;
     std::vector<Token> tokens = tokenizer.tokenize(line);
-    Parser parser(tokens);
-    ParsedStatement stmt = parser.parse();
-    _executor.execute(stmt);
+
+    Parser parser;
+    std::vector<StmtPtr> statements = parser.parse(tokens);
+
+    PrettyPrinter printer;
+    printer.print(statements);
+    _io.print(printer.result);
 }
 
-void BasicInterpreter::runProgram(){
+void Shell::runProgram(){
     _program.resetProgramCounter();
     bool running = true;
 
@@ -168,17 +174,11 @@ void BasicInterpreter::runProgram(){
             _io.print("READY.\n");
             running = false;
             continue;
-        }
-
-        ExecutionResult result = _executor.execute(_program.getNextStatement());
-        
-        if (result.action == ExecutionAction::Jump) _program.jumpTo(result.jumpTarget);
-        if (result.action == ExecutionAction::Halt) running = false;        
+        }  
     }
-
 }
 
-void BasicInterpreter::listProgram(){
+void Shell::listProgram(){
     std::vector<std::string> lines = _program.getSource();
     if (lines.empty()) return;
     for (const std::string& line : lines){
@@ -186,10 +186,10 @@ void BasicInterpreter::listProgram(){
     }
 }
 
-void BasicInterpreter::clearProgram(){
+void Shell::clearProgram(){
     _program.clear();
 }
 
-void BasicInterpreter::clearVariables(){
+void Shell::clearVariables(){
     _variables.clear();
 }

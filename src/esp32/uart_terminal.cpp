@@ -30,10 +30,24 @@ static inline uint8_t crc8_update(uint8_t crc, uint8_t data) {
     return crc;
 }
 
-// -------------------------------------------------------------------
-//  Send exactly 3 bytes every time (cmd, lengh of data, data)
-// -------------------------------------------------------------------
-bool UARTTerminal::sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* data) {
+bool UARTTerminal::sendMessage(STREAM_CMD cmd, uint16_t length, const uint8_t* data) {
+    constexpr uint16_t MAX_PAYLOAD = UART_MAX_PROTOCOL_SIZE;
+
+    uint16_t offset = 0;
+
+    while (offset < length) {
+        uint16_t chunk = std::min(MAX_PAYLOAD, static_cast<uint16_t>(length - offset));
+        if (!sendPacket(cmd, chunk, data + offset)) {
+            return false;
+        }
+
+        offset += chunk;
+    }
+
+    return true;
+}
+
+bool UARTTerminal::sendPacket(STREAM_CMD cmd, uint8_t length, const uint8_t* data) {
     stream_msg msg;
     msg.cmd = cmd;
     msg.len = length;
@@ -70,7 +84,7 @@ bool UARTTerminal::sendMessage(STREAM_CMD cmd, uint8_t length, const uint8_t* da
 // -------------------------------------------------------------------
 bool UARTTerminal::sendChar(char c) {
     uint8_t b = (uint8_t)c;
-    return sendMessage(STREAM_CMD_PRINT_CHAR, 1, &b);
+    return sendPacket(STREAM_CMD_PRINT_CHAR, 1, &b);
 }
 
 bool UARTTerminal::sendString(const std::string& txt) {
@@ -91,30 +105,30 @@ bool UARTTerminal::redrawLine(const std::string& line) {
 
 bool UARTTerminal::setCursor(uint8_t x, uint8_t y) {
     uint8_t pos[2] = {x, y};
-    return sendMessage(STREAM_CMD_SET_CURSOR, 2, pos);
+    return sendPacket(STREAM_CMD_SET_CURSOR, 2, pos);
 }
 
 bool UARTTerminal::clearScreen() {
-    return sendMessage(STREAM_CMD_CLEAR, 0, nullptr);
+    return sendPacket(STREAM_CMD_CLEAR, 0, nullptr);
 }
 
 bool UARTTerminal::setBackground(uint8_t color) {
-    return sendMessage(STREAM_CMD_SET_BG, 1, &color);
+    return sendPacket(STREAM_CMD_SET_BG, 1, &color);
 }
 
 bool UARTTerminal::scroll(int8_t dir, uint8_t lines) {
     uint8_t packet[2] = { (uint8_t)dir, lines };
-    return sendMessage(STREAM_CMD_SCROLL, 2, packet);
+    return sendPacket(STREAM_CMD_SCROLL, 2, packet);
 }
 
 bool UARTTerminal::backspace(){
-    return sendMessage(STREAM_CMD_BACKSPACE, 0, nullptr);
+    return sendPacket(STREAM_CMD_BACKSPACE, 0, nullptr);
 }
 
 bool UARTTerminal::newline(){
-    return sendMessage(STREAM_CMD_NEWLINE, 0, nullptr);
+    return sendPacket(STREAM_CMD_NEWLINE, 0, nullptr);
 }
 
 bool UARTTerminal::resync(){
-    return sendMessage(STREAM_CMD_RESYNC, 0, nullptr);
+    return sendPacket(STREAM_CMD_RESYNC, 0, nullptr);
 }

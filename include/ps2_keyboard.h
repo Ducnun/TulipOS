@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <queue>
 #include <unordered_map> 
+#include <string>
 
 /**
  * @brief Enum that holds the different kinds of actions from the keyboard

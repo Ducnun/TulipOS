@@ -1,4 +1,4 @@
-#include "tokens.h"
+#include "tokenizer/token.h"
 
 std::string TokenUtils::typeToString(TokenType type)
 {
@@ -26,11 +26,14 @@ std::string TokenUtils::typeToString(TokenType type)
         case TokenType::RightParen: return "RightParen";
         case TokenType::Comma: return "Comma";
         case TokenType::Semicolon: return "Semicolon";
+        case TokenType::LeftBrace: return "LeftBrace";
+        case TokenType::RightBrace: return "RightBrace";
         
         case TokenType::Print: return "Print";
         case TokenType::Let: return "Let";
         case TokenType::If: return "If";
         case TokenType::Then: return "Then";
+        case TokenType::Else: return "Else";
         case TokenType::Goto: return "Goto";
         case TokenType::Input: return "Input";
         case TokenType::For: return "For";

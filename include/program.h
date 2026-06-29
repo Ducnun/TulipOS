@@ -4,10 +4,8 @@
 #include <map>
 #include <unordered_map>
 #include <algorithm>
-#include "tokenizer.h"
-#include "parser.h"
-#include "executor.h"
-
+#include "tokenizer/tokenizer.h"
+#include "parser/parser.h"
 
 class Program{
 public:
@@ -54,7 +52,7 @@ public:
      * @brief Get the next statement based on program counter
      * @return ParsedStatement Is either a valid statement or a statement with statementtype end if the line does not exist or is an explicit end line
      */
-    ParsedStatement getNextStatement();
+    StmtPtr getNextStatement();
 
     /**
      * @brief Moves the program counter to the specified line
@@ -78,7 +76,7 @@ public:
     void loadBenchmark();
 
 private:
-    std::map<int, ParsedStatement> _statements; ///< Holds the parsed statements
+    std::map<int, std::vector<StmtPtr>> _statements; ///< Holds the parsed statements
     std::map<int, std::string> _sourceLines; ///< Holds the raw input lines
     std::vector<int> _lineNumbers; ///< Stores the currently available line numbers
     int _programCounter;    ///< Tracks the program counter

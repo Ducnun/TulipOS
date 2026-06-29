@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Arduino.h"
 #include "io_interface.h"
 #include "ps2_keyboard.h"
 #include "uart_terminal.h"
