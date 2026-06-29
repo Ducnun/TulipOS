@@ -57,6 +57,8 @@ enum class TokenType
     Not,
     Mod,
     Call,
+    True,
+    False,
     
     EndOfLine,
     Eof,

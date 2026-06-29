@@ -22,6 +22,8 @@ const std::unordered_map<std::string, TokenType> Tokenizer::_keywords = {
     {"NOT", TokenType::Not},
     {"MOD", TokenType::Mod},
     {"CALL", TokenType::Call},
+    {"TRUE", TokenType::True},
+    {"FALSE", TokenType::False},
 };
 
 void Tokenizer::reset(){

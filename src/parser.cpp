@@ -237,6 +237,13 @@ ExprPtr Parser::unary(){
 
 ExprPtr Parser::primary(){
     switch(peek().type){
+        case TokenType::True:
+            advance();
+            return util::make_unique<LiteralExpr>(Token(TokenType::True, "true", previous().line));
+        case TokenType::False:
+            advance();
+            return util::make_unique<LiteralExpr>(Token(TokenType::False, "false", previous().line));
+            
         case TokenType::Integer:
         case TokenType::Float:
         case TokenType::String:
