@@ -1,6 +1,6 @@
 #include "parser/parser.h"
 
-std::vector<StmtPtr> Parser::parse(std::vector<Token> tokens){
+std::vector<StmtPtr> Parser::parse(const std::vector<Token>& tokens){
     _tokens = std::move(tokens);
     _current = 0;
     std::vector<StmtPtr> _statements;
@@ -20,6 +20,7 @@ StmtPtr Parser::statement(){
         case TokenType::Goto: return gotoStatement();
         case TokenType::If: return ifStatement();
         case TokenType::For: return forStatement();
+        case TokenType::Next: return nextStatement();
         case TokenType::LeftBrace: return blockStatement();
         case TokenType::Call: advance(); return callStatement();
         case TokenType::Identifier:
@@ -121,15 +122,16 @@ StmtPtr Parser::forStatement(){
     ExprPtr step;
     if (match({TokenType::Step})) step = expression();
 
-    // Construct body statement(s)
-    std::vector<StmtPtr> bodyStmts;
-    while (!check(TokenType::Next) && !isAtEnd()) {
-        bodyStmts.push_back(statement());
-    }
-    consume(TokenType::Next, "Expected NEXT after body (Unterminated FOR loop)");
-    StmtPtr compressedBody = util::make_unique<BlockStmt>(std::move(bodyStmts));
+    return util::make_unique<ForStmt>(std::move(variable), std::move(start), std::move(end), std::move(step));
+}
 
-    return util::make_unique<ForStmt>(std::move(variable), std::move(start), std::move(end), std::move(step), std::move(compressedBody));
+StmtPtr Parser::nextStatement(){
+    consume(TokenType::Next, "Expected NEXT (Parser misaligned)");
+    std::string var = "";
+    if (check(TokenType::Identifier)) {
+        var = advance().value;
+    }
+    return util::make_unique<NextStmt>(std::move(var));
 }
 
 StmtPtr Parser::assignmentStatement() {

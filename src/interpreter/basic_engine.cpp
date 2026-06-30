@@ -3,9 +3,12 @@
 // Adds a line to the program
 void BasicEngine::storeLine(int lineNumber, const std::string& source) {
     auto tokens = _tokenizer.tokenize(source);
-    auto statements = _parser.parse(tokens);
+    auto statements = _parser.parse(std::move(tokens));
 
-    if (!statements.empty()) {
+    Serial.printf("Free heap: %u bytes\n", ESP.getFreeHeap());
+    Serial.printf("Largest free block: %u bytes\n", ESP.getMaxAllocHeap());
+
+    if (!statements.empty()){
         // We store the first statement and the source string
         _program.addLine(lineNumber, std::move(statements[0]), source);
     }
@@ -19,7 +22,7 @@ void BasicEngine::removeLine(int lineNumber) {
 // Executes a single line immediately
 void BasicEngine::executeImmediate(const std::string& source) {
     auto tokens = _tokenizer.tokenize(source);
-    auto statements = _parser.parse(tokens);
+    auto statements = _parser.parse(std::move(tokens));
 
     for (auto& stmt : statements) {
         stmt->accept(_interpreter);
@@ -33,13 +36,14 @@ void BasicEngine::run() {
 
     auto pc = _program.begin();
     while (pc != _program.end() && !_ctx.halted) {
+        _ctx.currentLine = pc->first;
         try {
             if (pc->second.statement) {
                 pc->second.statement->accept(_interpreter);
             }
             pc++;
         } catch (const GotoSignal& g) {
-            pc = _program.find(g.targetLine);
+            pc = _program.lower_bound(g.targetLine);
             if (pc == _program.end()) throw std::runtime_error("Line not found");
         } catch (const EndSignal& e) {
             break;

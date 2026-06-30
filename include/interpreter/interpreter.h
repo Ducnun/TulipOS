@@ -41,6 +41,7 @@ private:
     void visit(const GotoStmt& stmt) override;
     void visit(const IfStmt& stmt) override;
     void visit(const ForStmt& stmt) override;
+    void visit(const NextStmt& stmt) override;
     void visit(const BlockStmt& stmt) override;
     void visit(const CallStmt& stmt) override;
     void visit(const AssignmentStmt& stmt) override;

@@ -28,11 +28,9 @@ void Shell::runREPL() {
                 if (rest.find_first_not_of(" \t\r\n") == std::string::npos) {
                     _engine.removeLine(num);
                 } else {
-                    _io.print("Stored\n");
                     _engine.storeLine(num, rest);
                 }
             } else {
-                _io.print("Immediate eval\n");
                 _engine.executeImmediate(line);
             }
         } catch (const std::exception& e) {
@@ -50,12 +48,12 @@ void Shell::printWelcome(){
     
     #ifdef ESP32
         size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-        size_t used = 327680 - freeHeap;
+        size_t used = 296636 - freeHeap;
         std::string memLine = std::to_string(freeHeap / 1000) + "K BYTES FREE (" +
                             std::to_string(used) + "B USED)\n";      
         _io.print(memLine);
     #endif
-    _io.print("READY.\n\n");
+    _io.print("READY.\n");
 }
 
 std::string Shell::toUpper(const std::string& line){

@@ -13,6 +13,7 @@ public:
     virtual void visit(const GotoStmt&) = 0;
     virtual void visit(const IfStmt&) = 0;
     virtual void visit(const ForStmt&) = 0;
+    virtual void visit(const NextStmt&) = 0;
     virtual void visit(const EndStmt&) = 0;
     virtual void visit(const ReturnStmt&) = 0;
     virtual void visit(const CallStmt&) = 0;

@@ -86,23 +86,29 @@ void Interpreter::visit(const IfStmt& stmt){
 }
 
 void Interpreter::visit(const ForStmt& stmt){
-    double startVal = evaluate(stmt.start).asNumber();
     double endVal = evaluate(stmt.end).asNumber();
-    double step = stmt.step ? evaluate(stmt.step).asNumber() : 1.0;
+    double stepVal = stmt.step ? evaluate(stmt.step).asNumber() : 1.0;
+    double startVal = evaluate(stmt.start).asNumber();
     _ctx.set(stmt.variable, Value(startVal));
 
-    while (true){
-        double currentVal = _ctx.get(stmt.variable).asNumber();
-        if (step >= 0 && currentVal > endVal) break;
-        if (step < 0 && currentVal < endVal) break;
+    _ctx.forLoopStack.push_back({stmt.variable, endVal, stepVal, _ctx.currentLine});
+}
 
-        if (stmt.body) stmt.body->accept(*this);
+void Interpreter::visit(const NextStmt& stmt){
+    if (_ctx.forLoopStack.empty()) throw std::runtime_error("NEXT without FOR");
 
-        if (_ctx.halted) break;
-
-        currentVal += step;
-        _ctx.set(stmt.variable, currentVal);
+    ForLoopFrame& frame = _ctx.forLoopStack.back();
+    if (!stmt.variable.empty() && stmt.variable != frame.variable){ 
+        throw std::runtime_error("NEXT var doesnt match: " + stmt.variable);
     }
+
+    double current = _ctx.get(frame.variable).asNumber();
+    current += frame.stepValue;
+    _ctx.set(frame.variable, Value(current));
+
+    bool loopAgain = (frame.stepValue >= 0) ? (current <= frame.endValue) : (current >= frame.endValue);
+    if (loopAgain) throw GotoSignal(frame.bodyStartLine + 1);
+    else _ctx.forLoopStack.pop_back();
 }
 
 void Interpreter::visit(const BlockStmt& stmt){

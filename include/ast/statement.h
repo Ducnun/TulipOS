@@ -93,10 +93,17 @@ struct ForStmt : Stmt{
     ExprPtr start;
     ExprPtr end;
     ExprPtr step;
-    StmtPtr body;
 
-    ForStmt(std::string variable, ExprPtr start, ExprPtr end, ExprPtr step, StmtPtr body) : 
-        variable(std::move(variable)), start(std::move(start)), end(std::move(end)), step(std::move(step)), body(std::move(body)) {} 
+    ForStmt(std::string variable, ExprPtr start, ExprPtr end, ExprPtr step) : 
+        variable(std::move(variable)), start(std::move(start)), end(std::move(end)), step(std::move(step)) {} 
+
+    void accept(StmtVisitor&) const override;
+};
+
+struct NextStmt : Stmt{
+    std::string variable = "";
+
+    NextStmt(std::string variable) : variable(std::move(variable)) {}
 
     void accept(StmtVisitor&) const override;
 };

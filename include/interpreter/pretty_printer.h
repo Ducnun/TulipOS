@@ -28,6 +28,7 @@ public:
     void visit(const GotoStmt& stmt) override;
     void visit(const IfStmt& stmt) override;
     void visit(const ForStmt& stmt) override;
+    void visit(const NextStmt& stmt) override;
     void visit(const EndStmt& stmt) override;
     void visit(const ReturnStmt& stmt) override;
     void visit(const CallStmt& stmt) override;

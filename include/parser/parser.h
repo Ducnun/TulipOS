@@ -10,7 +10,7 @@ class Parser{
 public:
     ~Parser() = default;
 
-    std::vector<StmtPtr> parse(std::vector<Token> tokens);
+    std::vector<StmtPtr> parse(const std::vector<Token>& tokens);
 
 private:
     std::vector<Token> _tokens;

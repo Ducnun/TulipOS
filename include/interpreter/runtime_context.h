@@ -4,8 +4,17 @@
 
 #include "value.h"
 
+struct ForLoopFrame {
+    std::string variable;
+    double endValue;
+    double stepValue;
+    int bodyStartLine;
+};
+
 struct RuntimeContext {
     std::unordered_map<std::string, Value> variables;
+    std::vector<ForLoopFrame> forLoopStack;
+    int currentLine = 0;
     bool halted = false;
     Value returnValue;
 

@@ -44,6 +44,10 @@ public:
         return _lines.find(number);
     }
 
+    LineMap::const_iterator lower_bound(int number) const {
+        return _lines.lower_bound(number);
+    }
+
 private:
     LineMap _lines;
 };

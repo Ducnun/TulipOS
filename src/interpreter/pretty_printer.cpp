@@ -100,33 +100,37 @@ void PrettyPrinter::visit(const IfStmt& stmt) {
 }
 
 void PrettyPrinter::visit(const ForStmt& stmt) {
-    result += pad() + "ForStmt(" + stmt.variable + ")\n";
-    indent++;
+    // result += pad() + "ForStmt(" + stmt.variable + ")\n";
+    // indent++;
 
-    result += pad() + "Start:\n";
-    indent++;
-    stmt.start->accept(*this);
-    indent--;
+    // result += pad() + "Start:\n";
+    // indent++;
+    // stmt.start->accept(*this);
+    // indent--;
 
-    result += pad() + "End:\n";
-    indent++;
-    stmt.end->accept(*this);
-    indent--;
+    // result += pad() + "End:\n";
+    // indent++;
+    // stmt.end->accept(*this);
+    // indent--;
 
-    if (stmt.step) {
-        result += pad() + "Step:\n";
-        indent++;
-        stmt.step->accept(*this);
-        indent--;
-    }
+    // if (stmt.step) {
+    //     result += pad() + "Step:\n";
+    //     indent++;
+    //     stmt.step->accept(*this);
+    //     indent--;
+    // }
 
-    if (stmt.body) {
-        result += pad() + "Body:\n";
-        indent++;
-        stmt.body->accept(*this);
-        indent--;
-    }
-    indent--;
+    // if (stmt.body) {
+    //     result += pad() + "Body:\n";
+    //     indent++;
+    //     stmt.body->accept(*this);
+    //     indent--;
+    // }
+    // indent--;
+}
+
+void PrettyPrinter::visit(const NextStmt& stmt){
+    
 }
 
 void PrettyPrinter::visit(const EndStmt& stmt) {

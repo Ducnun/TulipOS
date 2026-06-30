@@ -29,6 +29,10 @@ void ForStmt::accept(StmtVisitor& v) const {
     v.visit(*this);
 }
 
+void NextStmt::accept(StmtVisitor& v) const {
+    v.visit(*this);
+}
+
 void EndStmt::accept(StmtVisitor& v) const {
     v.visit(*this);
 }
