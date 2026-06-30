@@ -2,8 +2,8 @@
 
 void Interpreter::visit(const LiteralExpr& expr){
     switch (expr.literal.type){
-        case TokenType::Float: _lastValue = Value(expr.literal.value); break;
-        case TokenType::String: _lastValue = Value(std::stod(expr.literal.value)); break;
+        case TokenType::Float: _lastValue = Value(std::stod(expr.literal.value)); break;
+        case TokenType::String: _lastValue = Value(expr.literal.value); break;
         case TokenType::True: _lastValue = Value(true); break;
         case TokenType::False: _lastValue = Value(false); break;
     }
@@ -64,11 +64,14 @@ void Interpreter::visit(const PrintStmt& stmt){
 }
 
 void Interpreter::visit(const LetStmt& stmt){
-
+    _ctx.set(stmt.variable, evaluate(stmt.value));
 }
 
 void Interpreter::visit(const InputStmt& stmt){
-
+    if (stmt.hasPrompt) _io.print(stmt.prompt + "\n");
+    // Simple implementation: read one line, assign to first variable
+    std::string input = _io.readLine();
+    if (!stmt.variables.empty()) _ctx.set(stmt.variables[0], Value(input));
 }
 
 void Interpreter::visit(const GotoStmt& stmt){
@@ -76,7 +79,9 @@ void Interpreter::visit(const GotoStmt& stmt){
 }
 
 void Interpreter::visit(const IfStmt& stmt){
-
+    Value condition = evaluate(stmt.condition);
+    if (condition.asNumber() != 0.0) stmt.thenBranch->accept(*this);
+    else if (stmt.elseBranch) stmt.elseBranch->accept(*this);
 }
 
 void Interpreter::visit(const ForStmt& stmt){
@@ -84,15 +89,25 @@ void Interpreter::visit(const ForStmt& stmt){
 }
 
 void Interpreter::visit(const BlockStmt& stmt){
-
+    for (const auto& s : stmt.statements) s->accept(*this);
 }
 
 void Interpreter::visit(const CallStmt& stmt){
+    std::vector<Value> argList;
+    for (const auto& arg : stmt.args){
+        argList.push_back(evaluate(arg));
+    }
 
+    if (stmt.module == "GPIO"){
+        _lastValue = gpio::call(stmt, argList);
+    }
+    else{
+        _lastValue = Value(false);
+    }
 }
 
 void Interpreter::visit(const AssignmentStmt& stmt){
-
+    _ctx.set(stmt.variable, evaluate(stmt.value));
 }
 
 void Interpreter::visit(const EndStmt& stmt){

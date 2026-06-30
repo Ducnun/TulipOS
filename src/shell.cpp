@@ -134,9 +134,9 @@ void Shell::evaluateImmediateCommand(const std::string& line){
     Parser parser;
     std::vector<StmtPtr> statements = parser.parse(tokens);
 
-    PrettyPrinter printer;
-    printer.print(statements);
-    _io.print(printer.result);
+    // PrettyPrinter printer;
+    // printer.print(statements);
+    // _io.print(printer.result);
 
     Interpreter interpr(_ctx, _io);
     interpr.execute(statements);

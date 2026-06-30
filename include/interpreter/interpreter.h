@@ -4,6 +4,7 @@
 #include "ast/statement_visitor.h"
 #include "runtime_context.h"
 #include "io_interface.h"
+#include "gpio_module.h"
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
 public:
