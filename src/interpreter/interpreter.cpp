@@ -85,7 +85,23 @@ void Interpreter::visit(const IfStmt& stmt){
 }
 
 void Interpreter::visit(const ForStmt& stmt){
+    double startVal = evaluate(stmt.start).asNumber();
+    double endVal = evaluate(stmt.end).asNumber();
+    double step = stmt.step ? evaluate(stmt.step).asNumber() : 1.0;
+    _ctx.set(stmt.variable, Value(startVal));
 
+    while (true){
+        double currentVal = _ctx.get(stmt.variable).asNumber();
+        if (step >= 0 && currentVal > endVal) break;
+        if (step < 0 && currentVal < endVal) break;
+
+        if (stmt.body) stmt.body->accept(*this);
+
+        if (_ctx.halted) break;
+
+        currentVal += step;
+        _ctx.set(stmt.variable, currentVal);
+    }
 }
 
 void Interpreter::visit(const BlockStmt& stmt){
@@ -115,5 +131,6 @@ void Interpreter::visit(const EndStmt& stmt){
 }
 
 void Interpreter::visit(const ReturnStmt& stmt){
-
+    if (stmt.value) _ctx.returnValue = evaluate(stmt.value);
+    throw ReturnSignal();
 }
