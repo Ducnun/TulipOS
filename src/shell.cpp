@@ -1,97 +1,90 @@
 #include "shell.h"
 
-Shell::Shell(IOInterface &io) : _io(io) {}
+Shell::Shell(IOInterface &io) : _io(io), _engine(_io) {}
 
-void Shell::runREPL(){
-    // Setup
-    _io.reset();
-    _io.clearScreen();
-    _io.print("**** TULIP BASIC V1 ****\n");
-    
-    #ifdef ESP32
-    size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-    size_t used = 0;
+void Shell::runREPL() {
+    printWelcome();
 
-    std::string memLine = std::to_string(freeHeap / 1000) + "K BYTES FREE (" +
-                          std::to_string(used) + "B USED)\n";
-
-                          
-    _io.print(memLine);
-                
-    #endif
-    _io.print("READY.\n");
-
-    while (true){
-        // Start by checking break
-        if (_io.checkBreakRequested()) _io.print("BREAK\n");
-
-        // Get new line
-        _io.print("");
+    while (true) {
         _io.print("> ");
         std::string line = _io.readLine();
+        if (line.empty()) continue;
 
-        // Clean line, if empty, skip
-        std::string cleaned = preprocess(line);
-        if (cleaned.empty()) continue;
+        // 1. Handle Built-in Shell Commands
+        std::string upper = toUpper(line);
+        if (handleREPLDirective(upper)) continue;
 
-        // If input is a REPL directive, skip rest
-        if (handleREPLDirective(cleaned)) continue;
-
-        // TODO: Abstract program handling away to handleProgramDirectives to clean up runREPL
-
-        // Store as program line if line starts with digits
-        if (isdigit(cleaned[0])){
-            storeProgramLine(cleaned);
-            continue;
-        }
-
-        // Run stored program when called
-        if (cleaned == "RUN"){
-            runProgram();
-            continue;
-        }
-
-        // List stored program lines
-        if (cleaned == "LIST"){
-            listProgram();
-            continue;
-        }
-
-        // Clean program when command NEW is entered in the terminal
-        if (cleaned == "NEW"){
-            clearProgram();
-            continue;
-        }
-
-        // Call tokenizer and parser to process input
-        try {evaluateImmediateCommand(cleaned); }
-        catch (std::runtime_error e){
-            _io.print("\n ?");
+        // 2. Handle Program Storage or Immediate Execution
+        try {
+            if (std::isdigit(line[0])) {
+                // Parse line number
+                std::istringstream iss(line);
+                int num;
+                iss >> num;
+                
+                std::string rest;
+                std::getline(iss, rest);
+                
+                if (rest.find_first_not_of(" \t\r\n") == std::string::npos) {
+                    _engine.removeLine(num);
+                } else {
+                    _io.print("Stored\n");
+                    _engine.storeLine(num, rest);
+                }
+            } else {
+                _io.print("Immediate eval\n");
+                _engine.executeImmediate(line);
+            }
+        } catch (const std::exception& e) {
+            _io.print("? ERROR: ");
             _io.print(e.what());
             _io.print("\n");
         }
     }
 }
 
-std::string Shell::preprocess(const std::string& line){
+void Shell::printWelcome(){
+    _io.reset();
+    _io.clearScreen();
+    _io.print("**** TULIP BASIC V1 ****\n");
+    
+    #ifdef ESP32
+        size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_8BIT);
+        size_t used = 327680 - freeHeap;
+        std::string memLine = std::to_string(freeHeap / 1000) + "K BYTES FREE (" +
+                            std::to_string(used) + "B USED)\n";      
+        _io.print(memLine);
+    #endif
+    _io.print("READY.\n\n");
+}
+
+std::string Shell::toUpper(const std::string& line){
     std::string result;
     int charIndex = 0;
-    // Maybe two cursor strategy to trim trailing whitespace, or slicing at the end
-
-    while (line[charIndex] == ' ') charIndex++;
     
     while (charIndex < line.length()){
-        if (line[charIndex] == '\n' || line[charIndex] == '\r') {
-            charIndex++; 
-            continue;
+        if (!(line[charIndex] == '\n' || line[charIndex] == '\r')) {
+            result += std::toupper(line[charIndex]);
         }
-        result += std::toupper(line[charIndex]);
-        charIndex++;
+        charIndex++; 
     }
     return result;
 }
 
 bool Shell::handleREPLDirective(const std::string& line){    
+    if (line == "RUN") {
+        _engine.run();
+        _io.print("READY.\n");
+        return true;
+    }
+    if (line == "LIST") {
+        _engine.list();
+        return true;
+    }
+    if (line == "NEW") {
+        _engine.clear();
+        return true;
+    }
     if (line == "BENCH"){
 
         return true;
@@ -108,80 +101,4 @@ bool Shell::handleREPLDirective(const std::string& line){
     }
 
     return false;
-}
-
-void Shell::storeProgramLine(const std::string& line){
-    std::istringstream iss(line);
-    int lineNumber;
-    iss >> lineNumber;
-    
-    std::string rest;
-    std::getline(iss, rest);
-    std::string cleanedRest = preprocess(rest);
-}
-
-void Shell::evaluateImmediateCommand(const std::string& line){
-    // Hotwired to pretty print for DEBUGGING
-    Tokenizer tokenizer;
-    std::vector<Token> tokens = tokenizer.tokenize(line);
-
-    Parser parser;
-    std::vector<StmtPtr> statements = parser.parse(tokens);
-
-    // PrettyPrinter printer;
-    // printer.print(statements);
-    // _io.print(printer.result);
-
-    Interpreter interpr(_ctx, _io);
-    interpr.execute(statements);
-}
-
-void Shell::runProgram() {
-    if (_program.isEmpty()) return;
-
-    _ctx.reset(); // Clear variables and halted flag
-    
-    // PC (Program Counter) is an iterator to our map
-    auto pc = _program.begin();
-    Interpreter _interpreter(_ctx, _io);
-
-    while (pc != _program.end() && !_ctx.halted) {
-        try {
-            // 1. Execute the current line
-            if (pc->second.statement) {
-                pc->second.statement->accept(_interpreter);
-            }
-
-            // 2. Advance to the next sequential line
-            pc++;
-
-        } catch (const GotoSignal& signal) {
-            // Handle GOTO: Look up the new iterator
-            pc = _program.find(signal.targetLine);
-            
-            if (pc == _program.end()) {
-                _io.print("?UNDEF'D STATEMENT ERROR IN LINE " + std::to_string(signal.targetLine) + "\n");
-                break;
-            }
-        } catch (const EndSignal& signal) {
-            break;
-        } catch (const std::runtime_error& e) {
-            _io.print("\nRUNTIME ERROR: ");
-            _io.print(e.what());
-            _io.print("\n");
-            break;
-        }
-    }
-    
-    _io.print("READY.\n");
-}
-
-void Shell::listProgram(){
-    for (auto const& line : _program) {
-        _io.print(std::to_string(line.first) + " " + line.second.source + "\n");
-    }
-}
-
-void Shell::clearProgram(){
-    _program.clear();
 }

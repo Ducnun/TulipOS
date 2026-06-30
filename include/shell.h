@@ -8,11 +8,7 @@
 #include "esp_heap_caps.h"
 #endif
 #include "io/io_interface.h"
-#include "tokenizer/tokenizer.h"
-#include "parser/parser.h"
-#include "interpreter/interpreter.h"
-#include "interpreter/runtime_context.h"
-#include "interpreter/program.h"
+#include "interpreter/basic_engine.h"
 
 // Debug
 #include "interpreter/pretty_printer.h" 
@@ -35,15 +31,16 @@ public:
     
 private:
     IOInterface& _io;   ///< Reference to IO system for input/output
-    Program _program;           ///< Current stored/editing program
-    RuntimeContext _ctx;
+    BasicEngine _engine;
+
+    void printWelcome();
 
     /**
      * @brief Preprocesses the input line, trims whitespace forces all uper
      * @param line 
      * @return std::string 
      */
-    std::string preprocess(const std::string& line);
+    std::string toUpper(const std::string& line);
 
     /**
      * @brief Handled interpreter specific commands 'RUN', 'LIST', 'NEW', 'DUMP'
@@ -52,31 +49,4 @@ private:
      * @return false If the input needs to be passed down to the rest of the interpreter chain
      */
     bool handleREPLDirective(const std::string& line);
-
-    /**
-     * @brief Stores a BASIC line if processed line starts with a line number
-     * @param line Full line including line number
-     */
-    void storeProgramLine(const std::string& line);
-
-    /**
-     * @brief Evaluate command in immediate mode (no line number present)
-     * @param line 
-     */
-    void evaluateImmediateCommand(const std::string& line);
-
-    /**
-     * @brief Runs currently stored program lines
-     */
-    void runProgram();
-
-    /**
-     * @brief Prints currently stored program
-     */
-    void listProgram();
-
-    /**
-     * @brief Clears currently stored program lines
-     */
-    void clearProgram();
 };

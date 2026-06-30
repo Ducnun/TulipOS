@@ -1,0 +1,59 @@
+#include "interpreter/basic_engine.h"
+
+// Adds a line to the program
+void BasicEngine::storeLine(int lineNumber, const std::string& source) {
+    auto tokens = _tokenizer.tokenize(source);
+    auto statements = _parser.parse(tokens);
+
+    if (!statements.empty()) {
+        // We store the first statement and the source string
+        _program.addLine(lineNumber, std::move(statements[0]), source);
+    }
+}
+
+// Removes a line
+void BasicEngine::removeLine(int lineNumber) {
+    _program.removeLine(lineNumber);
+}
+
+// Executes a single line immediately
+void BasicEngine::executeImmediate(const std::string& source) {
+    auto tokens = _tokenizer.tokenize(source);
+    auto statements = _parser.parse(tokens);
+
+    for (auto& stmt : statements) {
+        stmt->accept(_interpreter);
+    }
+}
+
+// Runs the stored program
+void BasicEngine::run() {
+    if (_program.isEmpty()) return;
+    _ctx.reset();
+
+    auto pc = _program.begin();
+    while (pc != _program.end() && !_ctx.halted) {
+        try {
+            if (pc->second.statement) {
+                pc->second.statement->accept(_interpreter);
+            }
+            pc++;
+        } catch (const GotoSignal& g) {
+            pc = _program.find(g.targetLine);
+            if (pc == _program.end()) throw std::runtime_error("Line not found");
+        } catch (const EndSignal& e) {
+            break;
+        }
+    }
+}
+
+void BasicEngine::list() {
+    for (auto const& line : _program) {
+        _io.print(std::to_string(line.first) + " " + line.second.source + "\n");
+    }
+}
+
+void BasicEngine::clear() {
+    _program.clear();
+    _ctx.reset();
+}

@@ -75,7 +75,8 @@ void Interpreter::visit(const InputStmt& stmt){
 }
 
 void Interpreter::visit(const GotoStmt& stmt){
-
+    Value target = evaluate(stmt.target);
+    throw GotoSignal(int(target.asNumber()));
 }
 
 void Interpreter::visit(const IfStmt& stmt){
@@ -127,7 +128,7 @@ void Interpreter::visit(const AssignmentStmt& stmt){
 }
 
 void Interpreter::visit(const EndStmt& stmt){
-    _ctx.halted = true;
+    throw EndSignal();
 }
 
 void Interpreter::visit(const ReturnStmt& stmt){
