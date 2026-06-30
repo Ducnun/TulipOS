@@ -13,6 +13,7 @@ public:
     void run(void);
     void list(void);
     void clear(void);
+    void loadProgram(const std::string& scrip);
 
 private:
     IOInterface& _io;

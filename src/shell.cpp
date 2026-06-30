@@ -71,7 +71,11 @@ std::string Shell::toUpper(const std::string& line){
 
 bool Shell::handleREPLDirective(const std::string& line){    
     if (line == "RUN") {
+        uint32_t start = millis();
         _engine.run();
+        uint32_t duration = millis() - start;
+        Serial.printf("\nExecution time: %u ms\n", duration);
+        
         _io.print("READY.\n");
         return true;
     }
@@ -84,6 +88,18 @@ bool Shell::handleREPLDirective(const std::string& line){
         return true;
     }
     if (line == "BENCH"){
+        std::string benchScript = 
+            "10 PRINT \"PI APPROXIMATION\"\n"
+            "20 LET PI = 0\n"
+            "30 LET SG = 1\n"
+            "40 FOR I = 0 TO 4999\n"
+            "50 LET D = 2 * I + 1\n"
+            "60 LET PI = PI + SG * (1.0 / D)\n"
+            "70 LET SG = SG * -1\n"   // Note: Fixed the '=' here
+            "80 NEXT I\n"
+            "90 LET PI = PI * 4\n"
+            "100 PRINT PI\n";
+        _engine.loadProgram(benchScript);
 
         return true;
     }

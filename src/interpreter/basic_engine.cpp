@@ -61,3 +61,27 @@ void BasicEngine::clear() {
     _program.clear();
     _ctx.reset();
 }
+
+void BasicEngine::loadProgram(const std::string& script) {
+    _program.clear(); // Optional: clear existing program first
+    
+    std::stringstream ss(script);
+    std::string line;
+    
+    while (std::getline(ss, line)) {
+        if (line.empty()) continue;
+
+        // Find the first space to separate line number from code
+        size_t firstSpace = line.find(' ');
+        if (firstSpace != std::string::npos) {
+            try {
+                int lineNum = std::stoi(line.substr(0, firstSpace));
+                std::string content = line.substr(firstSpace + 1);
+                storeLine(lineNum, content);
+            } catch (...) {
+                // Skip lines that don't start with a valid number
+                continue;
+            }
+        }
+    }
+}
