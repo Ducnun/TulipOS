@@ -7,12 +7,12 @@
 #ifdef ESP32    // Heap cap not available for native builds
 #include "esp_heap_caps.h"
 #endif
-#include "io_interface.h"
+#include "io/io_interface.h"
 #include "tokenizer/tokenizer.h"
 #include "parser/parser.h"
 #include "interpreter/interpreter.h"
 #include "interpreter/runtime_context.h"
-#include "program.h"
+#include "interpreter/program.h"
 
 // Debug
 #include "interpreter/pretty_printer.h" 

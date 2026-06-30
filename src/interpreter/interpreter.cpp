@@ -111,7 +111,7 @@ void Interpreter::visit(const AssignmentStmt& stmt){
 }
 
 void Interpreter::visit(const EndStmt& stmt){
-
+    _ctx.halted = true;
 }
 
 void Interpreter::visit(const ReturnStmt& stmt){

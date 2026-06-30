@@ -1,6 +1,6 @@
 // Compiled only if esp32 env is chosen
 #ifdef ESP32
-  #include "esp32_io.h"
+  #include "io/esp32_io.h"
   #include "shell.h"
 
   PS2Keyboard keyboard(13,14);
@@ -22,7 +22,7 @@
 
 // Compiled only when native env is chosen
 #else
-  #include "console_io.h"
+  #include "io/console_io.h"
   #include "shell.h"
   ConsoleIO io;
 

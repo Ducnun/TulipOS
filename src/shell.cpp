@@ -93,7 +93,7 @@ std::string Shell::preprocess(const std::string& line){
 
 bool Shell::handleREPLDirective(const std::string& line){    
     if (line == "BENCH"){
-        _program.loadBenchmark();
+
         return true;
     }
 
@@ -118,12 +118,6 @@ void Shell::storeProgramLine(const std::string& line){
     std::string rest;
     std::getline(iss, rest);
     std::string cleanedRest = preprocess(rest);
-    
-    if (cleanedRest.empty()){
-        _program.deleteLine(lineNumber);
-    }else{
-        _program.insertLine(lineNumber, cleanedRest);
-    }
 }
 
 void Shell::evaluateImmediateCommand(const std::string& line){
@@ -142,35 +136,49 @@ void Shell::evaluateImmediateCommand(const std::string& line){
     interpr.execute(statements);
 }
 
-void Shell::runProgram(){
-    _program.resetProgramCounter();
-    bool running = true;
+void Shell::runProgram() {
+    if (_program.isEmpty()) return;
 
-    while (running){
-        _io.pollKeyboard();
-        int currentLine = _program.getProgramCounter();
+    _ctx.reset(); // Clear variables and halted flag
+    
+    // PC (Program Counter) is an iterator to our map
+    auto pc = _program.begin();
+    Interpreter _interpreter(_ctx, _io);
 
-        if (currentLine == 0){
-            _io.print("?UNDEF'D STATEMENT ERROR\n");
-            _io.print("READY.\n");
-            running = false;
-            continue;
+    while (pc != _program.end() && !_ctx.halted) {
+        try {
+            // 1. Execute the current line
+            if (pc->second.statement) {
+                pc->second.statement->accept(_interpreter);
+            }
+
+            // 2. Advance to the next sequential line
+            pc++;
+
+        } catch (const GotoSignal& signal) {
+            // Handle GOTO: Look up the new iterator
+            pc = _program.find(signal.targetLine);
+            
+            if (pc == _program.end()) {
+                _io.print("?UNDEF'D STATEMENT ERROR IN LINE " + std::to_string(signal.targetLine) + "\n");
+                break;
+            }
+        } catch (const EndSignal& signal) {
+            break;
+        } catch (const std::runtime_error& e) {
+            _io.print("\nRUNTIME ERROR: ");
+            _io.print(e.what());
+            _io.print("\n");
+            break;
         }
-
-        if (_io.checkBreakRequested()){     // checkBreakRequested consumes the break flag
-            _io.print("BREAK IN " + std::to_string(currentLine) + "\n");
-            _io.print("READY.\n");
-            running = false;
-            continue;
-        }  
     }
+    
+    _io.print("READY.\n");
 }
 
 void Shell::listProgram(){
-    std::vector<std::string> lines = _program.getSource();
-    if (lines.empty()) return;
-    for (const std::string& line : lines){
-        _io.print(line + "\n");
+    for (auto const& line : _program) {
+        _io.print(std::to_string(line.first) + " " + line.second.source + "\n");
     }
 }
 

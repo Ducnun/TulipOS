@@ -1,4 +1,4 @@
-#include "uart_terminal.h"
+#include "io/uart_terminal.h"
 
 bool UARTTerminal::begin() {
     uart_config_t uart_config = {

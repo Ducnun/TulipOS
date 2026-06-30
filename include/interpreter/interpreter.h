@@ -2,8 +2,9 @@
 
 #include "ast/expression_visitor.h"
 #include "ast/statement_visitor.h"
+#include "io/io_interface.h"
 #include "runtime_context.h"
-#include "io_interface.h"
+#include "signals.h"
 #include "gpio_module.h"
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
