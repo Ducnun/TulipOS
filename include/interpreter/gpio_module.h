@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #endif
 
+#include <stdexcept>
 #include "ast/statement.h"
 #include "value.h"
 

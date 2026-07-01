@@ -6,6 +6,7 @@
 #include "runtime_context.h"
 #include "gpio_module.h"
 #include "math_module.h"
+#include "signals.h"
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
 public:
