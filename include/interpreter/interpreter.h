@@ -4,7 +4,6 @@
 #include "ast/statement_visitor.h"
 #include "io/io_interface.h"
 #include "runtime_context.h"
-#include "signals.h"
 #include "gpio_module.h"
 #include "math_module.h"
 
