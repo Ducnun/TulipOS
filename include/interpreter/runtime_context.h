@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include "value.h"
+#include <vector>
 
 struct ForLoopFrame {
     std::string variable;

@@ -5,6 +5,7 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "utils/ptrs.h"
+#include "engine/symboltable.h"
 
 class Parser{
 public:

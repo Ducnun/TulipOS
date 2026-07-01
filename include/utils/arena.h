@@ -13,7 +13,7 @@ public:
     ~Arena(){free(_buffer);}
 
     void* alloc(size_t size){
-        size = (size + 3) & ~3;
+        size = (size + 1) & ~1;
 
         if (_offset + _capacity > _capacity){
             return nullptr;
