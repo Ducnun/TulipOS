@@ -7,6 +7,8 @@ std::vector<StmtPtr> Parser::parse(const std::vector<Token>& tokens){
 
     while (!isAtEnd()){
         _statements.push_back(statement());
+
+        while (match({TokenType::Colon})); 
     }
 
     return _statements;
@@ -238,27 +240,49 @@ ExprPtr Parser::unary(){
 }
 
 ExprPtr Parser::primary(){
-    switch(peek().type){
-        case TokenType::True:
-            advance();
-            return util::make_unique<LiteralExpr>(Token(TokenType::True, "true", previous().line));
-        case TokenType::False:
-            advance();
-            return util::make_unique<LiteralExpr>(Token(TokenType::False, "false", previous().line));
+    if (match({TokenType::True}))    return util::make_unique<LiteralExpr>(Value(true));
+    if (match({TokenType::False}))   return util::make_unique<LiteralExpr>(Value(false));
 
-        case TokenType::Integer:
-        case TokenType::Float:
-        case TokenType::String:
-            return util::make_unique<LiteralExpr>(advance());
-        case TokenType::Identifier:
-            return util::make_unique<VariableExpr>(advance());
-        case TokenType::LeftParen:{
-            advance();
-            ExprPtr expr = expression();
-            consume(TokenType::RightParen, "Expected ')'");
-            return util::make_unique<GroupingExpr>(std::move(expr));
-        }
-        default:
-            throw std::runtime_error("Expected Expression");
+    if (match({TokenType::Integer, TokenType::Float})) {
+        // match() calls advance() for us, so previous() is now the number token
+        return util::make_unique<LiteralExpr>(Value(std::stof(previous().value)));
     }
+
+    if (match({TokenType::String})) {
+        return util::make_unique<LiteralExpr>(Value(previous().value));
+    }
+
+    if (match({TokenType::Identifier})) {
+        Token nameToken = previous();
+
+        // Check for a function call (module or otherwise) as an identifier (e.g. IF GPIO.read(2) THEN PRINT "PRESSED")
+        if (check(TokenType::Dot) || check(TokenType::LeftParen)) {
+            std::string module = "";
+            std::string function = nameToken.value;
+
+            if (match({TokenType::Dot})) {
+                module = function;
+                function = consume(TokenType::Identifier, "Expected function name after '.'").value;
+            }
+
+            consume(TokenType::LeftParen, "Expected '(' after function name");
+            std::vector<ExprPtr> args;
+            if (!check(TokenType::RightParen)) {
+                do { args.push_back(expression()); } while (match({TokenType::Comma}));
+            }
+            consume(TokenType::RightParen, "Expected ')' after arguments");
+
+            return util::make_unique<CallExpr>(module, function, std::move(args));
+        }
+
+        return util::make_unique<VariableExpr>(previous()); 
+    }
+
+    if (match({TokenType::LeftParen})) {
+        ExprPtr expr = expression();
+        consume(TokenType::RightParen, "Expected ')' after expression.");
+        return util::make_unique<GroupingExpr>(std::move(expr));
+    }
+
+    throw std::runtime_error("Expected expression, found: " + peek().value);
 }

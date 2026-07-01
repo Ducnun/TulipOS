@@ -8,7 +8,7 @@
 #include "value.h"
 
 namespace gpio{
-    Value call(const CallStmt& stmt, const std::vector<Value>& args);
+    Value call(const std::string& func, const std::vector<Value>& args);
     Value write(const std::vector<Value>& args);
     Value read(const std::vector<Value>& args);
 };

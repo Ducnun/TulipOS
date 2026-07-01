@@ -2,6 +2,7 @@
 #include "parser/parser.h"
 #include "interpreter/interpreter.h"
 #include "program.h"
+#include <sstream>
 
 class BasicEngine {
 public:
@@ -22,4 +23,7 @@ private:
     Tokenizer _tokenizer;
     Parser _parser;
     Interpreter _interpreter;
+
+    StmtPtr wrapStatements(std::vector<StmtPtr>&& statements);
+    void runInternal(int startLine, bool shouldReset, bool limitToOneLine);
 };

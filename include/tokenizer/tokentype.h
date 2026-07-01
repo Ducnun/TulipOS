@@ -30,6 +30,7 @@ enum class TokenType
     LeftParen,
     RightParen,
     Comma,
+    Colon,
     Semicolon,
     LeftBrace,
     RightBrace,

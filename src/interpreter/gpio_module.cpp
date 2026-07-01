@@ -1,14 +1,14 @@
 #include "interpreter/gpio_module.h"
 
-Value gpio::call(const CallStmt& stmt, const std::vector<Value>& args) {
+Value gpio::call(const std::string& func, const std::vector<Value>& args) {
     #ifndef ESP32
         throw std::runtime_error("GPIO Module not supported on native interpreter");
     #endif
 
-    if (stmt.function == "WRITE") {
+    if (func == "WRITE") {
         return gpio::write(args);
     } 
-    else if (stmt.function == "READ") {
+    else if (func == "READ") {
         return gpio::read(args);
     }
 
@@ -16,7 +16,7 @@ Value gpio::call(const CallStmt& stmt, const std::vector<Value>& args) {
     return Value(false); 
 }
 
-Value gpio::write(const std::vector<Value>& args) {
+Value gpio::write(const std::vector<Value>& args){
     // Safety check: ensure we have 2 arguments
     if (args.size() < 2) return Value(false);
 
@@ -30,10 +30,10 @@ Value gpio::write(const std::vector<Value>& args) {
 }
 
 Value gpio::read(const std::vector<Value>& args) {
-    if (args.empty()) return Value(0.0);
+    if (args.empty()) return Value(0.0f);
 
     int pin = (int)args[0].asNumber();
     pinMode(pin, INPUT);
     
-    return Value((double)digitalRead(pin));
+    return Value((float)digitalRead(pin));
 }

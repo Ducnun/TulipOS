@@ -56,6 +56,7 @@ void Tokenizer::scanToken(void){
         case '(': addToken(TokenType::LeftParen); break;
         case ')': addToken(TokenType::RightParen); break;
         case ',': addToken(TokenType::Comma); break;
+        case ':': addToken(TokenType::Colon); break;
         case ';': addToken(TokenType::Semicolon); break;
         case '+': addToken(TokenType::Plus); break;
         case '-': addToken(TokenType::Minus); break;

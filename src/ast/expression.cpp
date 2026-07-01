@@ -20,3 +20,7 @@ void BinaryExpr::accept(ExprVisitor& v) const {
 void GroupingExpr::accept(ExprVisitor& v) const {
     v.visit(*this);
 }
+
+void CallExpr::accept(ExprVisitor& v) const {
+    v.visit(*this);
+}

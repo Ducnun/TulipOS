@@ -6,17 +6,24 @@
 
 struct ForLoopFrame {
     std::string variable;
-    double endValue;
-    double stepValue;
+    float endValue;
+    float stepValue;
     int bodyStartLine;
 };
 
 struct RuntimeContext {
+    // Variables
     std::unordered_map<std::string, Value> variables;
     std::vector<ForLoopFrame> forLoopStack;
+    
+    // Jump control
+    bool jumpRequested = false;
+    int jumpTarget = -1;
+    
+    // Program control
     int currentLine = 0;
-    bool halted = false;
     Value returnValue;
+    bool halted = false;
 
     void set(const std::string& name, Value val){
         variables[name] = std::move(val);
@@ -25,7 +32,7 @@ struct RuntimeContext {
     Value get(const std::string& name) const{
         auto it = variables.find(name);
         if (it == variables.end()) {
-            return Value(0.0); // BASIC default value
+            return Value(0.0f); // BASIC default value
         }
         return it->second;
     }
@@ -37,6 +44,6 @@ struct RuntimeContext {
     void reset(){
         clear();
         halted = false;
-        returnValue = Value(0.0);
+        returnValue = Value(0.0f);
     }
 };

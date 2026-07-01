@@ -2,7 +2,9 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 #include "tokenizer/token.h"
+#include "interpreter/value.h"
 
 // Forward declaration
 class ExprVisitor;
@@ -15,10 +17,10 @@ struct Expr{
 using ExprPtr = std::unique_ptr<Expr>;
 
 struct LiteralExpr : Expr{
-    Token literal;
+    Value value;
 
-    LiteralExpr(Token literal) :
-        literal(std::move(literal)) {}
+    LiteralExpr(Value value) :
+        value(std::move(value)) {}
     
     void accept(ExprVisitor&) const override;
 };
@@ -59,5 +61,16 @@ struct GroupingExpr : Expr{
     GroupingExpr(ExprPtr expression) : 
         expression(std::move(expression)) {}
 
+    void accept(ExprVisitor&) const override;
+};
+
+struct CallExpr : Expr{
+    std::string module;
+    std::string function;
+    std::vector<ExprPtr> args;
+
+    CallExpr(std::string module, std::string function, std::vector<ExprPtr> args) :
+        module(std::move(module)), function(std::move(function)), args(std::move(args)) {}
+    
     void accept(ExprVisitor&) const override;
 };

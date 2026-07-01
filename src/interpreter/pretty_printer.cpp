@@ -3,7 +3,7 @@
 // --- Expressions ---
 
 void PrettyPrinter::visit(const LiteralExpr& expr) {
-    result += pad() + "Literal(" + expr.literal.value + ")\n";
+    result += pad() + "Literal(" + expr.value.asString() + ")\n";
 }
 
 void PrettyPrinter::visit(const VariableExpr& expr) {
@@ -29,6 +29,15 @@ void PrettyPrinter::visit(const GroupingExpr& expr) {
     result += pad() + "Grouping\n";
     indent++;
     expr.expression->accept(*this);
+    indent--;
+}
+
+void PrettyPrinter::visit(const CallExpr& expr){
+    result += pad() + "CallStmt(" + expr.module + "::" + expr.function + ")\n";
+    indent++;
+    for (const auto& arg : expr.args) {
+        arg->accept(*this);
+    }
     indent--;
 }
 

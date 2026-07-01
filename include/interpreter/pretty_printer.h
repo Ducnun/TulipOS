@@ -19,6 +19,7 @@ public:
     void visit(const UnaryExpr& expr) override;
     void visit(const BinaryExpr& expr) override;
     void visit(const GroupingExpr& expr) override;
+    void visit(const CallExpr& expr) override;
 
     // StmtVisitor
     void visit(const PrintStmt& stmt) override;

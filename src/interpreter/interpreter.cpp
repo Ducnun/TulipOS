@@ -1,12 +1,7 @@
 #include "interpreter/interpreter.h"
 
 void Interpreter::visit(const LiteralExpr& expr){
-    switch (expr.literal.type){
-        case TokenType::Float: _lastValue = Value(std::stod(expr.literal.value)); break;
-        case TokenType::String: _lastValue = Value(expr.literal.value); break;
-        case TokenType::True: _lastValue = Value(true); break;
-        case TokenType::False: _lastValue = Value(false); break;
-    }
+    _lastValue = expr.value;
 }
 
 void Interpreter::visit(const VariableExpr& expr){
@@ -75,8 +70,8 @@ void Interpreter::visit(const InputStmt& stmt){
 }
 
 void Interpreter::visit(const GotoStmt& stmt){
-    Value target = evaluate(stmt.target);
-    throw GotoSignal(int(target.asNumber()));
+    _ctx.jumpTarget = (int)evaluate(stmt.target).asNumber();
+    _ctx.jumpRequested = true;
 }
 
 void Interpreter::visit(const IfStmt& stmt){
@@ -85,13 +80,20 @@ void Interpreter::visit(const IfStmt& stmt){
     else if (stmt.elseBranch) stmt.elseBranch->accept(*this);
 }
 
-void Interpreter::visit(const ForStmt& stmt){
-    double endVal = evaluate(stmt.end).asNumber();
-    double stepVal = stmt.step ? evaluate(stmt.step).asNumber() : 1.0;
-    double startVal = evaluate(stmt.start).asNumber();
-    _ctx.set(stmt.variable, Value(startVal));
+void Interpreter::visit(const ForStmt& stmt) {
+    // Check if we are already in this specific loop
+    bool isReEntry = !_ctx.forLoopStack.empty() && 
+                      _ctx.forLoopStack.back().variable == stmt.variable;
 
-    _ctx.forLoopStack.push_back({stmt.variable, endVal, stepVal, _ctx.currentLine});
+    if (!isReEntry) {
+        // Normal initialization
+        float startVal = evaluate(stmt.start).asNumber();
+        float endVal = evaluate(stmt.end).asNumber();
+        float stepVal = stmt.step ? evaluate(stmt.step).asNumber() : 1.0f;
+        
+        _ctx.set(stmt.variable, Value(startVal));
+        _ctx.forLoopStack.push_back({stmt.variable, endVal, stepVal, _ctx.currentLine});
+    }
 }
 
 void Interpreter::visit(const NextStmt& stmt){
@@ -102,31 +104,50 @@ void Interpreter::visit(const NextStmt& stmt){
         throw std::runtime_error("NEXT var doesnt match: " + stmt.variable);
     }
 
-    double current = _ctx.get(frame.variable).asNumber();
+    float current = _ctx.get(frame.variable).asNumber();
     current += frame.stepValue;
     _ctx.set(frame.variable, Value(current));
 
     bool loopAgain = (frame.stepValue >= 0) ? (current <= frame.endValue) : (current >= frame.endValue);
-    if (loopAgain) throw GotoSignal(frame.bodyStartLine + 1);
-    else _ctx.forLoopStack.pop_back();
+    
+    if (loopAgain){
+        _ctx.jumpTarget = frame.bodyStartLine;
+        _ctx.jumpRequested = true;
+    } else{
+        _ctx.forLoopStack.pop_back();
+    }
 }
 
 void Interpreter::visit(const BlockStmt& stmt){
-    for (const auto& s : stmt.statements) s->accept(*this);
+    for (const auto& s : stmt.statements){
+        s->accept(*this);
+        if (_ctx.jumpRequested || _ctx.halted) return;
+    }
 }
 
-void Interpreter::visit(const CallStmt& stmt){
-    std::vector<Value> argList;
-    for (const auto& arg : stmt.args){
-        argList.push_back(evaluate(arg));
+Value Interpreter::handleCall(const std::string& mod, const std::string& func, const std::vector<Value>& args) {
+    if (mod == "MATH") {
+        return math::call(func, args);
+    }
+    
+    if (mod == "GPIO") {
+        return gpio::call(func, args);
     }
 
-    if (stmt.module == "GPIO"){
-        _lastValue = gpio::call(stmt, argList);
-    }
-    else{
-        _lastValue = Value(false);
-    }
+    return Value(0.0f); // Default return
+}
+
+// Then your visitors are simple:
+void Interpreter::visit(const CallStmt& stmt) {
+    std::vector<Value> argValues;
+    for (const auto& a : stmt.args) argValues.push_back(evaluate(a));
+    _lastValue = handleCall(stmt.module, stmt.function, argValues);
+}
+
+void Interpreter::visit(const CallExpr& expr) {
+    std::vector<Value> argValues;
+    for (const auto& a : expr.args) argValues.push_back(evaluate(a));
+    _lastValue = handleCall(expr.module, expr.function, argValues);
 }
 
 void Interpreter::visit(const AssignmentStmt& stmt){

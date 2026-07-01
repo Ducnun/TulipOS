@@ -11,4 +11,5 @@ public:
     virtual void visit(const UnaryExpr&) = 0;
     virtual void visit(const BinaryExpr&) = 0;
     virtual void visit(const GroupingExpr&) = 0;
+    virtual void visit(const CallExpr&) = 0;
 };

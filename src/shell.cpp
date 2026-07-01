@@ -87,7 +87,7 @@ bool Shell::handleREPLDirective(const std::string& line){
         _engine.clear();
         return true;
     }
-    if (line == "BENCH"){
+    if (line == "BENCHPI"){
         std::string benchScript = 
             "10 PRINT \"PI APPROXIMATION\"\n"
             "20 LET PI = 0\n"
@@ -101,6 +101,46 @@ bool Shell::handleREPLDirective(const std::string& line){
             "100 PRINT PI\n";
         _engine.loadProgram(benchScript);
 
+        return true;
+    }
+    if (line == "BENCHPRIME") {
+        std::string script = 
+            "10 PRINT \"SEARCHING FOR PRIMES...\"\n"
+            "20 LET C = 0\n"
+            "30 FOR N = 2 TO 300\n"
+            "40 LET P = 1\n"
+            "50 FOR D = 2 TO N - 1\n"
+            "60 IF MATH.INT(N / D) * D = N THEN LET P = 0\n" // Divisibility check
+            "70 NEXT D\n"
+            "80 IF P = 1 THEN LET C = C + 1\n"
+            "90 NEXT N\n"
+            "100 PRINT \"FOUND \": PRINT C: PRINT \" PRIMES\"\n";
+        _engine.loadProgram(script);
+        return true;
+    }
+    if (line == "BENCHSTR") {
+        std::string script = 
+            "10 LET A = \"*\"\n"
+            "20 FOR I = 1 TO 1000\n"
+            "30 LET A = A + \".\"\n"
+            "40 NEXT I\n"
+            "50 PRINT \"STRING LENGTH: \": PRINT 1000\n"
+            "60 PRINT \"LAST CHAR: \": PRINT \".\"\n";
+        _engine.loadProgram(script);
+        return true;
+    }
+    if (line == "BENCHNEST") {
+        std::string script = 
+            "10 LET K = 0\n"
+            "20 FOR I = 1 TO 20\n"
+            "30 FOR J = 1 TO 20\n"
+            "40 FOR L = 1 TO 20\n"
+            "50 LET K = K + 1\n"
+            "60 NEXT L\n"
+            "70 NEXT J\n"
+            "80 NEXT I\n"
+            "90 PRINT \"TOTAL ITERATIONS: \": PRINT K\n";
+        _engine.loadProgram(script);
         return true;
     }
 

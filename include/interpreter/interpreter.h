@@ -6,6 +6,7 @@
 #include "runtime_context.h"
 #include "signals.h"
 #include "gpio_module.h"
+#include "math_module.h"
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
 public:
@@ -33,6 +34,7 @@ private:
     void visit(const BinaryExpr& expr) override;
     void visit(const UnaryExpr& expr) override;
     void visit(const GroupingExpr& expr) override;
+    void visit(const CallExpr& expr) override;
 
     // --- Statement Execution ---
     void visit(const PrintStmt& stmt) override;
@@ -65,4 +67,6 @@ private:
         // Numeric comparison
         return a.asNumber() > b.asNumber();
     }
+
+    Value handleCall(const std::string& mod, const std::string& func, const std::vector<Value>& args);
 };
