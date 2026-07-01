@@ -71,10 +71,10 @@ std::string Shell::toUpper(const std::string& line){
 
 bool Shell::handleREPLDirective(const std::string& line){    
     if (line == "RUN") {
-        uint32_t start = millis();
+        // uint32_t start = millis();
         _engine.run();
-        uint32_t duration = millis() - start;
-        Serial.printf("\nExecution time: %u ms\n", duration);
+        // uint32_t duration = millis() - start;
+        // Serial.printf("\nExecution time: %u ms\n", duration);
         
         _io.print("READY.\n");
         return true;

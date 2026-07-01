@@ -11,7 +11,7 @@ void PrettyPrinter::visit(const VariableExpr& expr) {
 }
 
 void PrettyPrinter::visit(const BinaryExpr& expr) {
-    result += pad() + "Binary(" + TokenUtils::typeToString(expr.op.type) + ")\n";
+    result += pad() + "Binary(" + TokenUtils::typeToString(expr.op) + ")\n";
     indent++;
     expr.left->accept(*this);
     expr.right->accept(*this);
@@ -19,7 +19,7 @@ void PrettyPrinter::visit(const BinaryExpr& expr) {
 }
 
 void PrettyPrinter::visit(const UnaryExpr& expr) {
-    result += pad() + "Unary(" + expr.op.value + ")\n";
+    result += pad() + "Unary(" + TokenUtils::typeToString(expr.op) + ")\n";
     indent++;
     expr.val->accept(*this);
     indent--;

@@ -173,7 +173,7 @@ ExprPtr Parser::expression() {
 ExprPtr Parser::orExpr() {
     ExprPtr expr = andExpr();
     while (match({TokenType::Or})) {
-        Token op = previous();
+        TokenType op = previous().type;
         ExprPtr right = andExpr();
         expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
     }
@@ -183,7 +183,7 @@ ExprPtr Parser::orExpr() {
 ExprPtr Parser::andExpr() {
     ExprPtr expr = equality();
     while (match({TokenType::And})) {
-        Token op = previous();
+        TokenType op = previous().type;
         ExprPtr right = equality();
         expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
     }
@@ -193,7 +193,7 @@ ExprPtr Parser::andExpr() {
 ExprPtr Parser::equality(){
     ExprPtr expr = comparison();
     while (match({TokenType::Equal, TokenType::NotEqual})){
-        Token op = previous();
+        TokenType op = previous().type;
         ExprPtr right = comparison();
         expr = util::make_unique<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
     }
@@ -203,7 +203,7 @@ ExprPtr Parser::equality(){
 ExprPtr Parser::comparison(){
     ExprPtr expr = term();
     while (match({TokenType::Less, TokenType::LessEqual, TokenType::Greater, TokenType::GreaterEqual})){
-        Token op = previous();
+        TokenType op = previous().type;
         ExprPtr right = term();
         expr = util::make_unique<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
     }
@@ -213,7 +213,7 @@ ExprPtr Parser::comparison(){
 ExprPtr Parser::term(){
     ExprPtr expr = factor();
     while (match({TokenType::Plus, TokenType::Minus})){
-        Token op = previous();
+        TokenType op = previous().type;
         ExprPtr right = factor();
         expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
     }
@@ -223,7 +223,7 @@ ExprPtr Parser::term(){
 ExprPtr Parser::factor(){
     ExprPtr expr = unary();
     while (match({TokenType::Star, TokenType::Slash})){
-        Token op = previous();
+        TokenType op = previous().type;
         ExprPtr right = unary();
         expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
     }
@@ -232,7 +232,7 @@ ExprPtr Parser::factor(){
 
 ExprPtr Parser::unary(){
     if (match({TokenType::Minus, TokenType::Not})){
-        Token op = previous();
+        TokenType op = previous().type;
         ExprPtr val = unary();
         return util::make_unique<UnaryExpr>(op, std::move(val));
     }

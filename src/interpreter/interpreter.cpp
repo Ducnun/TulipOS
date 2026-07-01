@@ -12,7 +12,7 @@ void Interpreter::visit(const BinaryExpr& expr){
     Value left = evaluate(expr.left);
     Value right = evaluate(expr.right);
 
-    switch (expr.op.type){
+    switch (expr.op){
         // --- Basic Operators ---
         case TokenType::Plus:
             if (left.isString() || right.isString()) _lastValue = Value(left.asString() + right.asString());
@@ -39,7 +39,7 @@ void Interpreter::visit(const BinaryExpr& expr){
 void Interpreter::visit(const UnaryExpr& expr){
     Value val = evaluate(expr.val);
 
-    switch (expr.op.type) {
+    switch (expr.op) {
         case TokenType::Minus: _lastValue = Value(-val.asNumber()); break;
         case TokenType::Not: _lastValue = Value(!val.isTruthy()); break;
     }

@@ -5,6 +5,7 @@
 #include <vector>
 #include "tokenizer/token.h"
 #include "interpreter/value.h"
+#include "engine/symboltable.h"
 
 // Forward declaration
 class ExprVisitor;
@@ -35,22 +36,22 @@ struct VariableExpr : Expr{
 };
 
 struct UnaryExpr : Expr{
-    Token op;
+    TokenType op;
     ExprPtr val;
 
-    UnaryExpr(Token op, ExprPtr val) :
-        op(std::move(op)), val(std::move(val)) {}
+    UnaryExpr(TokenType op, ExprPtr val) :
+        op(op), val(std::move(val)) {}
         
     void accept(ExprVisitor&) const override;
 };
 
 struct BinaryExpr : Expr{
     ExprPtr left;
-    Token op;
+    TokenType op;
     ExprPtr right;
 
-    BinaryExpr(ExprPtr left, Token op, ExprPtr right) :
-        left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
+    BinaryExpr(ExprPtr left, TokenType op, ExprPtr right) :
+        left(std::move(left)), op(op), right(std::move(right)) {}
     
     void accept(ExprVisitor&) const override;
 };
