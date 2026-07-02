@@ -125,6 +125,7 @@ StmtPtr Parser::forStatement(){
     // Optional Step expression
     ExprPtr step;
     if (match({TokenType::Step})) step = expression();
+    else step = allocate<LiteralExpr>(Value::Float(1.0f));
 
     Symbol varId = _registry.getOrCreate(variable);
     return allocate<ForStmt>(varId, std::move(start), std::move(end), std::move(step));

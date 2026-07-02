@@ -109,5 +109,5 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
         return std::move(statements[0]);
     }
     void* mem = _staticArena.alloc(sizeof(BlockStmt));
-    return new (mem) BlockStmt(statements);
+    return new (mem) BlockStmt(std::move(statements));
 }
