@@ -28,6 +28,7 @@ struct RuntimeContext {
 
     void clear(){
         variables.clear();
+        forLoopStack.clear();
     }
 
     void reset(){

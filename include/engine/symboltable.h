@@ -38,6 +38,14 @@ public:
         _names.clear();
     }
 
+    void DumpTable(){
+        printf("--- SYMBOL TABLE DUMP ---\n");
+        for (size_t i = 0; i < _names.size(); i++) {
+            printf("ID %d: %s\n", (int)i, _names[i]);
+        }
+        printf("-------------------------\n");
+    }
+
 private:
     std::unordered_map<util::StringView, Symbol, util::StringViewHasher> _lookup;
     std::vector<const char*> _names;

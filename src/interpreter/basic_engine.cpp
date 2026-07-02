@@ -3,6 +3,7 @@
 void BasicEngine::storeLine(int lineNumber, const std::string& source){
     auto tokens = _tokenizer.tokenize(source);
     auto statements = _parser.parse(std::move(tokens));
+    _stringRegistry.DumpTable();
     if (statements.empty()) return;
 
     _program.addLine(lineNumber, wrapStatements(std::move(statements)), source);
@@ -77,6 +78,8 @@ void BasicEngine::list(){
 void BasicEngine::clear(){
     _program.clear();
     _ctx.reset();
+    _stringRegistry.clear();
+    _staticArena.reset();
 }
 
 void BasicEngine::loadProgram(const std::string& script){
