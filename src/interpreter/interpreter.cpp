@@ -40,7 +40,12 @@ void Interpreter::visit(const BinaryExpr& expr){
 
         case TokenType::Minus: _lastValue = Value::Float(left.number - right.number); break;
         case TokenType::Star:  _lastValue = Value::Float(left.number * right.number); break;
-        case TokenType::Slash: _lastValue = Value::Float(left.number / right.number); break;
+        case TokenType::Slash: 
+            _lastValue = Value::Float(left.number / right.number);
+            if (expr.op == TokenType::Slash) {
+                // printf("DIV: %f / %f = %f\n", left.number, right.number, _lastValue.number);
+            }
+            break;
 
         case TokenType::Greater:      _lastValue = Value::Bool(checkGreater(left, right)); break;
         case TokenType::GreaterEqual: _lastValue = Value::Bool(checkGreater(left, right) || checkEqual(left, right)); break;

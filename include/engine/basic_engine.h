@@ -1,6 +1,7 @@
 #include "tokenizer/tokenizer.h"
 #include "parser/parser.h"
 #include "interpreter/interpreter.h"
+#include "interpreter/pretty_printer.h"
 #include "program.h"
 #include <sstream>
 
@@ -24,6 +25,7 @@ public:
     void list(void);
     void clear(void);
     void loadProgram(const std::string& scrip);
+    void DumpProgram();
 
 private:
     IOInterface& _io;

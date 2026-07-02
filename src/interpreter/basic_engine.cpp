@@ -3,7 +3,6 @@
 void BasicEngine::storeLine(int lineNumber, const std::string& source){
     auto tokens = _tokenizer.tokenize(source);
     auto statements = _parser.parse(std::move(tokens));
-    _stringRegistry.DumpTable();
     if (statements.empty()) return;
 
     _program.addLine(lineNumber, wrapStatements(std::move(statements)), source);
@@ -32,6 +31,7 @@ void BasicEngine::executeImmediate(const std::string& source){
 
 void BasicEngine::run() {
     // Normal program execution starts from the beginning and resets state
+    DumpProgram();
     runInternal(_program.begin() != _program.end() ? _program.begin()->first : 1, true, false);
 }
 
@@ -115,4 +115,22 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
     }
     void* mem = _staticArena.alloc(sizeof(BlockStmt));
     return new (mem) BlockStmt(std::move(statements));
+}
+
+void BasicEngine::DumpProgram() {
+    _stringRegistry.DumpTable();
+    printf("--- PROGRAM AST DUMP ---\n");
+
+    PrettyPrinter printer(_stringRegistry);
+
+    // Iterating through the map of program lines
+    for (auto const& [lineNum, lineData] : _program) {
+        printf("[%d] ", lineNum);
+        
+        // This triggers the visitor pattern
+        std::string output = printer.print(lineData.statement);
+        
+        printf("%s", output.c_str());
+    }
+    printf("------------------------\n");
 }
