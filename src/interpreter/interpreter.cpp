@@ -181,11 +181,13 @@ void Interpreter::visit(const CallExpr& expr) {
 }
 
 void Interpreter::visit(const GroupingExpr& expr){
-
+    expr.expression->accept(*this);
 }
 
-void Interpreter::visit(const BlockStmt& expr){
-
+void Interpreter::visit(const BlockStmt& stmt) {
+    for (const auto& s : stmt.statements) {
+        if (s) s->accept(*this);
+    }
 }
 
 void Interpreter::visit(const EndStmt& expr){

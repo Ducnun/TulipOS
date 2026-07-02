@@ -9,11 +9,11 @@ class BasicEngine {
 public:
     BasicEngine(IOInterface& io) 
         : _io(io),
-          _staticArena(1024 * 32),          // 1. Give the Arena a size (e.g., 32KB)
-          _stringRegistry(_staticArena),     // 2. Pass Arena to Registry
-          _parser(_stringRegistry, _staticArena), // 3. Pass Registry and Arena to Parser
-          _ctx(),                           // 4. Default init context
-          _interpreter(_ctx, _io, _stringRegistry, _staticArena) // 5. Init interpreter
+          _staticArena(2048 * 32),
+          _stringRegistry(_staticArena),
+          _parser(_stringRegistry, _staticArena),
+          _ctx(),
+          _interpreter(_ctx, _io, _stringRegistry, _staticArena)
     {
         // Constructor body
     }

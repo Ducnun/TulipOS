@@ -13,7 +13,6 @@ public:
     ~Arena(){free(_buffer);}
 
     void* alloc(size_t size){
-        printf("Capacity: %zu, Offset: %zu\n", _capacity, _offset);
         #ifdef ESP32
         size = (size + 3) & ~3;
         #else

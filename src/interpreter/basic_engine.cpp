@@ -31,7 +31,7 @@ void BasicEngine::executeImmediate(const std::string& source){
 
 void BasicEngine::run() {
     // Normal program execution starts from the beginning and resets state
-    DumpProgram();
+    // DumpProgram();
     runInternal(_program.begin() != _program.end() ? _program.begin()->first : 1, true, false);
 }
 
@@ -118,6 +118,24 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
 }
 
 void BasicEngine::DumpProgram() {
+    #ifdef ESP32
+    _stringRegistry.DumpTable();
+    Serial.printf("--- PROGRAM AST DUMP ---\n");
+
+    PrettyPrinter printer(_stringRegistry);
+
+    // Iterating through the map of program lines
+    for (auto const& [lineNum, lineData] : _program) {
+        Serial.printf("[%d] ", lineNum);
+        
+        // This triggers the visitor pattern
+        std::string output = printer.print(lineData.statement);
+        
+        Serial.printf("%s", output.c_str());
+    }
+    Serial.printf("------------------------\n");
+
+    #else
     _stringRegistry.DumpTable();
     printf("--- PROGRAM AST DUMP ---\n");
 
@@ -133,4 +151,5 @@ void BasicEngine::DumpProgram() {
         printf("%s", output.c_str());
     }
     printf("------------------------\n");
+    #endif
 }
