@@ -26,14 +26,14 @@ struct Value {
     static Value Bool(bool val){
         Value v;
         v.type = ValueType::Boolean;
-        v.number = val;
+        v.boolean = val;
         return v;
     }
 
     static Value Str(Symbol id){
         Value v;
         v.type = ValueType::String;
-        v.number = id;
+        v.stringId = id;
         return v;
     }
 
