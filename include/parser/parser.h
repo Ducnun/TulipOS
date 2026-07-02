@@ -4,11 +4,11 @@
 
 #include "ast/expression.h"
 #include "ast/statement.h"
-#include "utils/ptrs.h"
 #include "engine/symboltable.h"
 
 class Parser{
 public:
+    Parser(StringRegistry& registry, Arena& arena) : _registry(registry), _arena(arena) {}
     ~Parser() = default;
 
     std::vector<StmtPtr> parse(const std::vector<Token>& tokens);
@@ -16,6 +16,8 @@ public:
 private:
     std::vector<Token> _tokens;
     size_t _current = 0;
+    StringRegistry& _registry;
+    Arena& _arena;
 
     // Helper functions
     Token& peek() {
@@ -85,4 +87,13 @@ private:
     ExprPtr factor();
     ExprPtr unary();
     ExprPtr primary();
+
+    template<typename T, typename... Args>
+    T* allocate(Args&&... args) {
+        // 1. Ask the arena for enough memory for the object
+        void* mem = _arena.alloc(sizeof(T));
+        
+        // 2. "Placement New": Call the constructor on that specific memory address
+        return new (mem) T(std::forward<Args>(args)...);
+    }
 };

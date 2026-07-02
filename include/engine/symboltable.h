@@ -25,6 +25,7 @@ public:
         Symbol newId = (Symbol)_names.size();
         _names.push_back(storage);
         _lookup[util::StringView(storage, sv.length)] = newId;
+        return newId;
     }
 
     const char* getString(Symbol sym) const {

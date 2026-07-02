@@ -13,7 +13,7 @@ Value gpio::call(const std::string& func, const std::vector<Value>& args) {
     }
 
     // ALWAYS return something, even for unknown functions
-    return Value(false); 
+    return Value::Bool(false); 
 }
 
 Value gpio::write(const std::vector<Value>& args){
@@ -28,7 +28,7 @@ Value gpio::write(const std::vector<Value>& args){
     digitalWrite(pin, val);
 
     #endif
-    return Value(true); // Return success
+    return Value::Bool(true); // Return success
 }
 
 Value gpio::read(const std::vector<Value>& args) {
@@ -38,8 +38,8 @@ Value gpio::read(const std::vector<Value>& args) {
     int pin = (int)args[0].asNumber();
     pinMode(pin, INPUT);
     
-    return Value((float)digitalRead(pin));
+    return Value::Float((float)digitalRead(pin));
     #else
-    return Value(true);
+    return Value::Bool(true);
     #endif
 }

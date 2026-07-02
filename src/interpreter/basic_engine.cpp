@@ -108,5 +108,6 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
     if (statements.size() == 1) {
         return std::move(statements[0]);
     }
-    return util::make_unique<BlockStmt>(std::move(statements));
+    void* mem = _staticArena.alloc(sizeof(BlockStmt));
+    return new (mem) BlockStmt(statements);
 }

@@ -41,9 +41,8 @@ StmtPtr Parser::blockStatement(){
     while (!check(TokenType::RightBrace) && !isAtEnd()){
         statements.push_back(statement());
     }
-    consume(TokenType::RightBrace, "Expected '}' after body (Unterminated '{')");
-
-    return util::make_unique<BlockStmt>(std::move(statements));
+    consume(TokenType::RightBrace, "Expected '}' after body (Unterminated '{')");;
+    return allocate<BlockStmt>(std::move(statements));
 }
 
 StmtPtr Parser::printStatement(){
@@ -61,7 +60,7 @@ StmtPtr Parser::printStatement(){
         items.emplace_back(std::move(expr), separator);
     }
 
-    return util::make_unique<PrintStmt>(std::move(items));
+    return allocate<PrintStmt>(std::move(items));
 }
 
 StmtPtr Parser::letStatement(){
@@ -69,13 +68,14 @@ StmtPtr Parser::letStatement(){
     Token var = consume(TokenType::Identifier, "Expected variable after LET");
     consume(TokenType::Equal, "Expected '=' after variable");
     ExprPtr value = expression();
-    return util::make_unique<LetStmt>(var.value, std::move(value));
+    Symbol varId = _registry.getOrCreate(var.value);
+    return allocate<LetStmt>(varId, std::move(value));
 }
 
 StmtPtr Parser::inputStatement(){
     std::string prompt;
     bool hasPrompt = false;
-    std::vector<std::string> variables;
+    std::vector<Symbol> varIds;
     consume(TokenType::Input, "Expected INPUT (Parser misaligned)");
     
     if (match({TokenType::String})) {
@@ -85,16 +85,18 @@ StmtPtr Parser::inputStatement(){
     }
 
     do{
-        variables.push_back(consume(TokenType::Identifier, "Expected variable after ','").value);
+        varIds.push_back(_registry.getOrCreate(consume(TokenType::Identifier, "Expected variable after ','").value));
+
     }while (match({TokenType::Comma}));
 
-    return util::make_unique<InputStmt>(std::move(prompt), hasPrompt, std::move(variables));
+    Symbol promptId = _registry.getOrCreate(prompt);
+    return allocate<InputStmt>(promptId, hasPrompt, varIds);
 }
 
 StmtPtr Parser::gotoStatement(){
     consume(TokenType::Goto, "Expected GOTO (Parser misaligned)");
     ExprPtr target = expression();
-    return util::make_unique<GotoStmt>(std::move(target));
+    return allocate<GotoStmt>(std::move(target));
 }
 
 StmtPtr Parser::ifStatement(){
@@ -108,7 +110,7 @@ StmtPtr Parser::ifStatement(){
     StmtPtr elseBranch = nullptr;
     if (match({TokenType::Else})) elseBranch = statement();
 
-    return util::make_unique<IfStmt>(std::move(condition), std::move(thenBranch), std::move(elseBranch));
+    return allocate<IfStmt>(std::move(condition), std::move(thenBranch), std::move(elseBranch));
 }
 
 StmtPtr Parser::forStatement(){
@@ -124,7 +126,8 @@ StmtPtr Parser::forStatement(){
     ExprPtr step;
     if (match({TokenType::Step})) step = expression();
 
-    return util::make_unique<ForStmt>(std::move(variable), std::move(start), std::move(end), std::move(step));
+    Symbol varId = _registry.getOrCreate(variable);
+    return allocate<ForStmt>(varId, std::move(start), std::move(end), std::move(step));
 }
 
 StmtPtr Parser::nextStatement(){
@@ -133,7 +136,8 @@ StmtPtr Parser::nextStatement(){
     if (check(TokenType::Identifier)) {
         var = advance().value;
     }
-    return util::make_unique<NextStmt>(std::move(var));
+    Symbol varId = _registry.getOrCreate(var);
+    return allocate<NextStmt>(varId);
 }
 
 StmtPtr Parser::assignmentStatement() {
@@ -141,7 +145,8 @@ StmtPtr Parser::assignmentStatement() {
     Token var = consume(TokenType::Identifier, "Expected variable name");
     consume(TokenType::Equal, "Expected '=' after variable");
     ExprPtr value = expression();
-    return util::make_unique<AssignmentStmt>(var.value, std::move(value));
+    Symbol varId = _registry.getOrCreate(var.value);
+    return allocate<AssignmentStmt>(varId, std::move(value));
 }
 
 StmtPtr Parser::callStatement() {
@@ -163,7 +168,9 @@ StmtPtr Parser::callStatement() {
     }
     consume(TokenType::RightParen, "Expected ')' after arguments");
 
-    return util::make_unique<CallStmt>(moduleName, functionName, std::move(args));
+    Symbol moduleId = _registry.getOrCreate(moduleName);
+    Symbol functionId = _registry.getOrCreate(functionName);
+    return allocate<CallStmt>(moduleId, functionId, std::move(args));
 }
 
 ExprPtr Parser::expression() {
@@ -175,7 +182,7 @@ ExprPtr Parser::orExpr() {
     while (match({TokenType::Or})) {
         TokenType op = previous().type;
         ExprPtr right = andExpr();
-        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+        expr = allocate<BinaryExpr>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
@@ -185,7 +192,7 @@ ExprPtr Parser::andExpr() {
     while (match({TokenType::And})) {
         TokenType op = previous().type;
         ExprPtr right = equality();
-        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+        expr = allocate<BinaryExpr>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
@@ -195,7 +202,7 @@ ExprPtr Parser::equality(){
     while (match({TokenType::Equal, TokenType::NotEqual})){
         TokenType op = previous().type;
         ExprPtr right = comparison();
-        expr = util::make_unique<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
+        expr = allocate<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
     }
     return expr;
 }
@@ -205,7 +212,7 @@ ExprPtr Parser::comparison(){
     while (match({TokenType::Less, TokenType::LessEqual, TokenType::Greater, TokenType::GreaterEqual})){
         TokenType op = previous().type;
         ExprPtr right = term();
-        expr = util::make_unique<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
+        expr = allocate<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
     }
     return expr;
 }
@@ -215,7 +222,7 @@ ExprPtr Parser::term(){
     while (match({TokenType::Plus, TokenType::Minus})){
         TokenType op = previous().type;
         ExprPtr right = factor();
-        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+        expr = allocate<BinaryExpr>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
@@ -225,7 +232,7 @@ ExprPtr Parser::factor(){
     while (match({TokenType::Star, TokenType::Slash})){
         TokenType op = previous().type;
         ExprPtr right = unary();
-        expr = util::make_unique<BinaryExpr>(std::move(expr), op, std::move(right));
+        expr = allocate<BinaryExpr>(std::move(expr), op, std::move(right));
     }
     return expr;
 }
@@ -234,22 +241,23 @@ ExprPtr Parser::unary(){
     if (match({TokenType::Minus, TokenType::Not})){
         TokenType op = previous().type;
         ExprPtr val = unary();
-        return util::make_unique<UnaryExpr>(op, std::move(val));
+        return allocate<UnaryExpr>(op, std::move(val));
     }
     return primary();
 }
 
 ExprPtr Parser::primary(){
-    if (match({TokenType::True}))    return util::make_unique<LiteralExpr>(Value(true));
-    if (match({TokenType::False}))   return util::make_unique<LiteralExpr>(Value(false));
+    if (match({TokenType::True}))    return allocate<LiteralExpr>(Value::Bool(true));
+    if (match({TokenType::False}))   return allocate<LiteralExpr>(Value::Bool(false));
 
     if (match({TokenType::Integer, TokenType::Float})) {
         // match() calls advance() for us, so previous() is now the number token
-        return util::make_unique<LiteralExpr>(Value(std::stof(previous().value)));
+        return allocate<LiteralExpr>(Value::Float(std::stof(previous().value)));
     }
 
     if (match({TokenType::String})) {
-        return util::make_unique<LiteralExpr>(Value(previous().value));
+        Symbol id = _registry.getOrCreate(previous().value);
+        return allocate<LiteralExpr>(Value::Str(id));
     }
 
     if (match({TokenType::Identifier})) {
@@ -272,16 +280,18 @@ ExprPtr Parser::primary(){
             }
             consume(TokenType::RightParen, "Expected ')' after arguments");
 
-            return util::make_unique<CallExpr>(module, function, std::move(args));
+            Symbol moduleId = _registry.getOrCreate(module);
+            Symbol functionId = _registry.getOrCreate(function);
+            return allocate<CallExpr>(moduleId, functionId, std::move(args));
         }
 
-        return util::make_unique<VariableExpr>(previous()); 
+        return allocate<VariableExpr>(_registry.getOrCreate(previous().value)); 
     }
 
     if (match({TokenType::LeftParen})) {
         ExprPtr expr = expression();
         consume(TokenType::RightParen, "Expected ')' after expression.");
-        return util::make_unique<GroupingExpr>(std::move(expr));
+        return allocate<GroupingExpr>(std::move(expr));
     }
 
     throw std::runtime_error("Expected expression, found: " + peek().value);

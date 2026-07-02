@@ -15,22 +15,22 @@ struct Expr{
     virtual void accept(ExprVisitor& visitor) const = 0;
 };
 
-using ExprPtr = std::unique_ptr<Expr>;
+using ExprPtr = Expr*;
 
 struct LiteralExpr : Expr{
     Value value;
 
     LiteralExpr(Value value) :
-        value(std::move(value)) {}
+        value(value) {}
     
     void accept(ExprVisitor&) const override;
 };
 
 struct VariableExpr : Expr{
-    Token name;
+    Symbol nameId;
 
-    VariableExpr(Token name) :
-        name(std::move(name)) {}
+    VariableExpr(Symbol nameId) :
+        nameId(nameId) {}
     
     void accept(ExprVisitor&) const override;
 };
@@ -66,12 +66,12 @@ struct GroupingExpr : Expr{
 };
 
 struct CallExpr : Expr{
-    std::string module;
-    std::string function;
+    Symbol module;
+    Symbol function;
     std::vector<ExprPtr> args;
 
-    CallExpr(std::string module, std::string function, std::vector<ExprPtr> args) :
-        module(std::move(module)), function(std::move(function)), args(std::move(args)) {}
+    CallExpr(Symbol module, Symbol function, std::vector<ExprPtr> args) :
+        module(module), function(function), args(std::move(args)) {}
     
     void accept(ExprVisitor&) const override;
 };

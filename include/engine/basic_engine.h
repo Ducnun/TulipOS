@@ -6,7 +6,16 @@
 
 class BasicEngine {
 public:
-    BasicEngine(IOInterface& io) : _io(io), _interpreter(_ctx, io) {}
+    BasicEngine(IOInterface& io) 
+        : _io(io),
+          _staticArena(1024 * 32),          // 1. Give the Arena a size (e.g., 32KB)
+          _stringRegistry(_staticArena),     // 2. Pass Arena to Registry
+          _parser(_stringRegistry, _staticArena), // 3. Pass Registry and Arena to Parser
+          _ctx(),                           // 4. Default init context
+          _interpreter(_ctx, _io, _stringRegistry, _staticArena) // 5. Init interpreter
+    {
+        // Constructor body
+    }
 
     void storeLine(int lineNumber, const std::string& source);
     void removeLine(int lineNumber);
@@ -18,8 +27,10 @@ public:
 
 private:
     IOInterface& _io;
-    Program _program;
+    Arena _staticArena;
+    StringRegistry _stringRegistry;
     RuntimeContext _ctx;
+    Program _program;
     Tokenizer _tokenizer;
     Parser _parser;
     Interpreter _interpreter;

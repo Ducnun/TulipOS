@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "ast/expression.h"
+#include "engine/symboltable.h"
 
 enum class PrintSeparator{
     None, Comma, Semicolon
@@ -16,7 +17,7 @@ struct PrintItem{
     PrintSeparator separator;
 
     PrintItem(ExprPtr expression, PrintSeparator separator) : 
-        expression(std::move(expression)), separator(separator) {} 
+        expression(expression), separator(separator) {} 
 };
 
 class StmtVisitor;
@@ -26,7 +27,7 @@ struct Stmt{
     virtual void accept(StmtVisitor& visitor) const = 0;
 };
 
-using StmtPtr = std::unique_ptr<Stmt>;
+using StmtPtr = Stmt*;
 
 struct PrintStmt : Stmt{
     std::vector<PrintItem> items;
@@ -38,42 +39,31 @@ struct PrintStmt : Stmt{
 };
 
 struct LetStmt : Stmt{
-    std::string variable;
+    Symbol variable;
     ExprPtr value;
-
-    LetStmt(std::string variable, ExprPtr value) :
-        variable(std::move(variable)), value(std::move(value)) {}
-
+    LetStmt(Symbol variable, ExprPtr value) : variable(variable), value(value) {}
     void accept(StmtVisitor&) const override;
 };
 
 struct AssignmentStmt : Stmt{
-    std::string variable;
+    Symbol variable;
     ExprPtr value;
-
-    AssignmentStmt(std::string variable, ExprPtr value) :
-        variable(std::move(variable)), value(std::move(value)) {}
-
+    AssignmentStmt(Symbol variable, ExprPtr value) : variable(variable), value(value) {}
     void accept(StmtVisitor&) const override;
 };
 
 struct InputStmt : Stmt{
-    std::string prompt;
+    Symbol promptId;
     bool hasPrompt = false;
-    std::vector<std::string> variables;
-
-    InputStmt(std::string prompt, bool hasPrompt, std::vector<std::string> variables) : 
-        prompt(std::move(prompt)), hasPrompt(hasPrompt), variables(std::move(variables)) {}
-
+    std::vector<Symbol> variables;
+    InputStmt(Symbol promptId, bool hasPrompt, std::vector<Symbol> variables) : 
+        promptId(promptId), hasPrompt(hasPrompt), variables(variables) {}
     void accept(StmtVisitor&) const override;
 };
 
 struct GotoStmt : Stmt{
     ExprPtr target;
-
-    GotoStmt(ExprPtr target) : 
-        target(std::move(target)) {}
-
+    GotoStmt(ExprPtr target) : target(target) {}
     void accept(StmtVisitor&) const override;
 };
 
@@ -83,28 +73,26 @@ struct IfStmt : Stmt{
     StmtPtr elseBranch;
 
     IfStmt(ExprPtr condition, StmtPtr thenBranch, StmtPtr elseBranch = nullptr) :
-        condition(std::move(condition)), thenBranch(std::move(thenBranch)), elseBranch(std::move(elseBranch)) {}
+        condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
 
     void accept(StmtVisitor&) const override;
 };
 
 struct ForStmt : Stmt{
-    std::string variable;
+    Symbol variable;
     ExprPtr start;
     ExprPtr end;
     ExprPtr step;
 
-    ForStmt(std::string variable, ExprPtr start, ExprPtr end, ExprPtr step) : 
-        variable(std::move(variable)), start(std::move(start)), end(std::move(end)), step(std::move(step)) {} 
+    ForStmt(Symbol variable, ExprPtr start, ExprPtr end, ExprPtr step) : 
+        variable(variable), start(start), end(end), step(step) {} 
 
     void accept(StmtVisitor&) const override;
 };
 
 struct NextStmt : Stmt{
-    std::string variable = "";
-
-    NextStmt(std::string variable) : variable(std::move(variable)) {}
-
+    Symbol variable;
+    NextStmt(Symbol variable) : variable(variable) {}
     void accept(StmtVisitor&) const override;
 };
 
@@ -114,29 +102,22 @@ struct EndStmt : Stmt{
 
 struct ReturnStmt : Stmt{
     ExprPtr value;
-
-    ReturnStmt(ExprPtr value = nullptr) :
-        value(std::move(value)) {}
-
+    ReturnStmt(ExprPtr value = nullptr) : value(value) {}
     void accept(StmtVisitor&) const override;
 };
 
 struct CallStmt : Stmt{
-    std::string module;
-    std::string function;
+    Symbol module;
+    Symbol function;
     std::vector<ExprPtr> args;
-
-    CallStmt(std::string module, std::string function, std::vector<ExprPtr> args) :
-        module(std::move(module)), function(std::move(function)), args(std::move(args)) {}
-    
+    CallStmt(Symbol module, Symbol function, std::vector<ExprPtr> args) :
+        module(module), function(function), args(std::move(args)) {}
     void accept(StmtVisitor&) const override;
 };
 
 struct BlockStmt : Stmt{
     std::vector<StmtPtr> statements;
-
     BlockStmt(std::vector<StmtPtr> statements) : 
         statements(std::move(statements)) {}
-
     void accept(StmtVisitor&) const override;
 };
