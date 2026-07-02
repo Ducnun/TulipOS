@@ -5,10 +5,14 @@ void Interpreter::visit(const LiteralExpr& expr){
 }
 
 void Interpreter::visit(const VariableExpr& expr){
-    // Context now lookups up by Symbol (uint16_t)
     auto it = _ctx.variables.find(expr.nameId);
-    if (it != _ctx.variables.end()) _lastValue = it->second;
-    else _lastValue = Value();
+    if (it != _ctx.variables.end()) {
+        _lastValue = it->second;
+    } else {
+        // DEBUG: This should not happen for 'I' in your loop!
+        printf("DEBUG: Variable ID %d was undefined, defaulting to 0\n", expr.nameId);
+        _lastValue = Value::Float(0.0f);
+    }
 }
 
 void Interpreter::visit(const BinaryExpr& expr){

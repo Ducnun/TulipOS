@@ -84,6 +84,8 @@ void BasicEngine::clear(){
 
 void BasicEngine::loadProgram(const std::string& script){
     _program.clear(); // Optional: clear existing program first
+    _stringRegistry.clear();
+    _staticArena.reset();
     
     std::stringstream ss(script);
     std::string line;
