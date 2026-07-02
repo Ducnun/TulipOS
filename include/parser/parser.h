@@ -90,10 +90,11 @@ private:
 
     template<typename T, typename... Args>
     T* allocate(Args&&... args) {
-        // 1. Ask the arena for enough memory for the object
         void* mem = _arena.alloc(sizeof(T));
-        
-        // 2. "Placement New": Call the constructor on that specific memory address
+        if (!mem) {
+            // Fallback: This will still cause issues, but at least we see why
+            throw std::runtime_error("Parser: Arena Allocation Failed");
+        }
         return new (mem) T(std::forward<Args>(args)...);
     }
 };

@@ -12,13 +12,13 @@ class StringRegistry{
 public:
     StringRegistry(Arena& arena) : _arena(arena) {}
 
-    Symbol getOrCreate(util::StringView sv){
-        // Already exists
+    Symbol getOrCreate(util::StringView sv) {
         auto it = _lookup.find(sv);
         if (it != _lookup.end()) return it->second;
 
-        // Create and store in static arena
         char* storage = (char*)_arena.alloc(sv.length + 1);
+        if (!storage) return INVALID_SYMBOL;
+
         memcpy(storage, sv.data, sv.length);
         storage[sv.length] = '\0';
 

@@ -13,9 +13,16 @@ public:
     ~Arena(){free(_buffer);}
 
     void* alloc(size_t size){
-        size = (size + 1) & ~1;
+        printf("Capacity: %zu, Offset: %zu\n", _capacity, _offset);
+        #ifdef ESP32
+        size = (size + 3) & ~3;
+        #else
+        size = (size + 7) & ~7;
+        #endif
 
-        if (_offset + _capacity > _capacity){
+        if (_offset + size > _capacity){
+            printf("!!! ARENA OUT OF MEMORY: Requested %d, Left %d\n", 
+                (int)size, (int)(_capacity - _offset));
             return nullptr;
         }
 
