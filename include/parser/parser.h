@@ -4,10 +4,11 @@
 
 #include "ast/expression.h"
 #include "ast/statement.h"
-#include "utils/ptrs.h"
+#include "runtime/core/string_registry.h"
 
 class Parser{
 public:
+    Parser(StringRegistry& registry, Arena& arena) : _registry(registry), _arena(arena) {}
     ~Parser() = default;
 
     std::vector<StmtPtr> parse(const std::vector<Token>& tokens);
@@ -15,6 +16,8 @@ public:
 private:
     std::vector<Token> _tokens;
     size_t _current = 0;
+    StringRegistry& _registry;
+    Arena& _arena;
 
     // Helper functions
     Token& peek() {
@@ -84,4 +87,14 @@ private:
     ExprPtr factor();
     ExprPtr unary();
     ExprPtr primary();
+
+    template<typename T, typename... Args>
+    T* allocate(Args&&... args) {
+        void* mem = _arena.alloc(sizeof(T));
+        if (!mem) {
+            // Fallback: This will still cause issues, but at least we see why
+            throw std::runtime_error("Parser: Arena Allocation Failed");
+        }
+        return new (mem) T(std::forward<Args>(args)...);
+    }
 };

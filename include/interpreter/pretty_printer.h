@@ -5,12 +5,25 @@
 
 class PrettyPrinter : public ExprVisitor, public StmtVisitor{
 public:
+    PrettyPrinter(StringRegistry& registry) : _registry(registry) {}
+
     std::string result;
 
     void print(const std::vector<StmtPtr>& statements) {
         for (const auto& stmt : statements) {
             stmt->accept(*this);
         }
+    }
+
+    std::string print(const Stmt* stmt) {
+        result.clear();    // Clear previous output
+        indent = 0;        // Reset indentation
+        if (stmt) {
+            stmt->accept(*this);
+        } else {
+            result = " (NULL STATEMENT)\n";
+        }
+        return result;
     }
 
     // ExprVisitor
@@ -35,8 +48,12 @@ public:
     void visit(const CallStmt& stmt) override;
     void visit(const BlockStmt& stmt) override;
 
+    std::string sym(Symbol id) const;
+    std::string valStr(const Value& val) const;
+
 private:
     int indent = 0;
+    StringRegistry& _registry;
 
     std::string pad(){
         return std::string(indent * 2, ' ');

@@ -1,4 +1,4 @@
-#include "interpreter/basic_engine.h"
+#include "engine/basic_engine.h"
 
 void BasicEngine::storeLine(int lineNumber, const std::string& source){
     auto tokens = _tokenizer.tokenize(source);
@@ -31,6 +31,7 @@ void BasicEngine::executeImmediate(const std::string& source){
 
 void BasicEngine::run() {
     // Normal program execution starts from the beginning and resets state
+    // DumpProgram();
     runInternal(_program.begin() != _program.end() ? _program.begin()->first : 1, true, false);
 }
 
@@ -56,6 +57,9 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
             }
         }
 
+        // Clear all temporary results per line
+        _ctx.transientArena.reset();
+
         // Handle Control Flow
         if (_ctx.jumpRequested){
             _ctx.jumpRequested = false;
@@ -77,10 +81,14 @@ void BasicEngine::list(){
 void BasicEngine::clear(){
     _program.clear();
     _ctx.reset();
+    _stringRegistry.clear();
+    _staticArena.reset();
 }
 
 void BasicEngine::loadProgram(const std::string& script){
     _program.clear(); // Optional: clear existing program first
+    _stringRegistry.clear();
+    _staticArena.reset();
     
     std::stringstream ss(script);
     std::string line;
@@ -108,5 +116,31 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
     if (statements.size() == 1) {
         return std::move(statements[0]);
     }
-    return util::make_unique<BlockStmt>(std::move(statements));
+    void* mem = _staticArena.alloc(sizeof(BlockStmt));
+    return new (mem) BlockStmt(std::move(statements));
+}
+
+void BasicEngine::DumpProgram() {
+    _stringRegistry.DumpTable();
+    _io.print("--- PROGRAM AST DUMP ---\n");
+
+    PrettyPrinter printer(_stringRegistry);
+
+    // Iterating through the map of program lines
+    for (auto const& [lineNum, lineData] : _program) {
+        _io.print("[");
+        _io.print(std::to_string(lineNum));
+        _io.print("] ");
+        
+        // This triggers the visitor pattern
+        std::string output = printer.print(lineData.statement);
+        _io.print(output);
+    }
+    _io.print("------------------------\n");
+
+    _io.print("Size: ");
+    _io.print(std::to_string(reportProgramSize()));
+    _io.print("\nTotal space: ");
+    _io.print(std::to_string(PROGRAM_SIZE));
+    _io.print("\n");
 }

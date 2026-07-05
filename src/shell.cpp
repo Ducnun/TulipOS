@@ -47,8 +47,8 @@ void Shell::printWelcome(){
     _io.print("**** TULIP BASIC V1 ****\n");
     
     #ifdef ESP32
-        size_t freeHeap = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-        size_t used = 296636 - freeHeap;
+        size_t freeHeap = 32768;
+        size_t used = _engine.reportProgramSize();
         std::string memLine = std::to_string(freeHeap / 1000) + "K BYTES FREE (" +
                             std::to_string(used) + "B USED)\n";      
         _io.print(memLine);
@@ -85,6 +85,10 @@ bool Shell::handleREPLDirective(const std::string& line){
     }
     if (line == "NEW") {
         _engine.clear();
+        return true;
+    }
+    if (line == "DUMP"){
+        _engine.DumpProgram();
         return true;
     }
     if (line == "BENCHPI"){

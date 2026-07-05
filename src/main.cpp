@@ -1,7 +1,7 @@
 // Compiled only if esp32 env is chosen
 #ifdef ESP32
   #include "io/esp32_io.h"
-  #include "shell.h"
+  #include "system/shell.h"
 
   PS2Keyboard keyboard(13,14);
   UARTTerminal terminal(1000000);

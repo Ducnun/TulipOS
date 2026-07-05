@@ -4,8 +4,9 @@
 #include "Arduino.h"
 #endif
 
+#include <stdexcept>
 #include "ast/statement.h"
-#include "value.h"
+#include "runtime/core/value.h"
 
 namespace gpio{
     Value call(const std::string& func, const std::vector<Value>& args);

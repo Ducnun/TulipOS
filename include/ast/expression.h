@@ -4,7 +4,8 @@
 #include <memory>
 #include <vector>
 #include "tokenizer/token.h"
-#include "interpreter/value.h"
+#include "runtime/core/value.h"
+#include "runtime/core/string_registry.h"
 
 // Forward declaration
 class ExprVisitor;
@@ -14,43 +15,43 @@ struct Expr{
     virtual void accept(ExprVisitor& visitor) const = 0;
 };
 
-using ExprPtr = std::unique_ptr<Expr>;
+using ExprPtr = Expr*;
 
 struct LiteralExpr : Expr{
     Value value;
 
     LiteralExpr(Value value) :
-        value(std::move(value)) {}
+        value(value) {}
     
     void accept(ExprVisitor&) const override;
 };
 
 struct VariableExpr : Expr{
-    Token name;
+    Symbol nameId;
 
-    VariableExpr(Token name) :
-        name(std::move(name)) {}
+    VariableExpr(Symbol nameId) :
+        nameId(nameId) {}
     
     void accept(ExprVisitor&) const override;
 };
 
 struct UnaryExpr : Expr{
-    Token op;
+    TokenType op;
     ExprPtr val;
 
-    UnaryExpr(Token op, ExprPtr val) :
-        op(std::move(op)), val(std::move(val)) {}
+    UnaryExpr(TokenType op, ExprPtr val) :
+        op(op), val(std::move(val)) {}
         
     void accept(ExprVisitor&) const override;
 };
 
 struct BinaryExpr : Expr{
     ExprPtr left;
-    Token op;
+    TokenType op;
     ExprPtr right;
 
-    BinaryExpr(ExprPtr left, Token op, ExprPtr right) :
-        left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
+    BinaryExpr(ExprPtr left, TokenType op, ExprPtr right) :
+        left(std::move(left)), op(op), right(std::move(right)) {}
     
     void accept(ExprVisitor&) const override;
 };
@@ -65,12 +66,12 @@ struct GroupingExpr : Expr{
 };
 
 struct CallExpr : Expr{
-    std::string module;
-    std::string function;
+    Symbol module;
+    Symbol function;
     std::vector<ExprPtr> args;
 
-    CallExpr(std::string module, std::string function, std::vector<ExprPtr> args) :
-        module(std::move(module)), function(std::move(function)), args(std::move(args)) {}
+    CallExpr(Symbol module, Symbol function, std::vector<ExprPtr> args) :
+        module(module), function(function), args(std::move(args)) {}
     
     void accept(ExprVisitor&) const override;
 };
