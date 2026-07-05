@@ -57,6 +57,9 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
             }
         }
 
+        // Clear all temporary results per line
+        _ctx.transientArena.reset();
+
         // Handle Control Flow
         if (_ctx.jumpRequested){
             _ctx.jumpRequested = false;
@@ -118,38 +121,26 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
 }
 
 void BasicEngine::DumpProgram() {
-    #ifdef ESP32
     _stringRegistry.DumpTable();
-    Serial.printf("--- PROGRAM AST DUMP ---\n");
+    _io.print("--- PROGRAM AST DUMP ---\n");
 
     PrettyPrinter printer(_stringRegistry);
 
     // Iterating through the map of program lines
     for (auto const& [lineNum, lineData] : _program) {
-        Serial.printf("[%d] ", lineNum);
+        _io.print("[");
+        _io.print(std::to_string(lineNum));
+        _io.print("] ");
         
         // This triggers the visitor pattern
         std::string output = printer.print(lineData.statement);
-        
-        Serial.printf("%s", output.c_str());
+        _io.print(output);
     }
-    Serial.printf("------------------------\n");
+    _io.print("------------------------\n");
 
-    #else
-    _stringRegistry.DumpTable();
-    printf("--- PROGRAM AST DUMP ---\n");
-
-    PrettyPrinter printer(_stringRegistry);
-
-    // Iterating through the map of program lines
-    for (auto const& [lineNum, lineData] : _program) {
-        printf("[%d] ", lineNum);
-        
-        // This triggers the visitor pattern
-        std::string output = printer.print(lineData.statement);
-        
-        printf("%s", output.c_str());
-    }
-    printf("------------------------\n");
-    #endif
+    _io.print("Size: ");
+    _io.print(std::to_string(reportProgramSize()));
+    _io.print("\nTotal space: ");
+    _io.print(std::to_string(PROGRAM_SIZE));
+    _io.print("\n");
 }

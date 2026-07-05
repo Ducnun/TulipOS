@@ -12,7 +12,8 @@ class Interpreter : public StmtVisitor, public ExprVisitor {
 public:
     ~Interpreter() = default;
     Interpreter(RuntimeContext& ctx, IOInterface& io, StringRegistry& registry, Arena& staticArena) 
-        : _ctx(ctx), _io(io), _registry(registry), _staticArena(staticArena) {}
+        : _ctx(ctx), _io(io), _registry(registry), _staticArena(staticArena) {
+        }
 
     void execute(const std::vector<StmtPtr>& statements) {
         for (const auto& stmt : statements) {
@@ -57,14 +58,14 @@ private:
         if (a.type != b.type) return false;
 
         if (a.type == ValueType::Number) return a.number == b.number;
-        if (a.type == ValueType::String) return a.stringId == b.stringId;
         if (a.type == ValueType::Boolean) return a.boolean == b.boolean;
+        if (a.type == ValueType::PermanentString) return a.stringId == b.stringId;
         return false;
     }
 
     bool checkGreater(const Value& a, const Value& b) {
         // String comparison (lexicographical)
-        if (a.type == ValueType::String && b.type == ValueType::String) {
+        if (a.type == ValueType::PermanentString && b.type == ValueType::PermanentString) {
             return _registry.getString(a.stringId) > _registry.getString(b.stringId);
         }
         // Numeric comparison
@@ -77,4 +78,18 @@ private:
     }
 
     Value handleCall(Symbol mod, Symbol func, const std::vector<Value>& args);
+
+    const char* getString(const Value& val) const {
+        if (val.type == ValueType::PermanentString) return _registry.getString(val.stringId);
+        else if (val.type == ValueType::PersistentString || val.type == ValueType::TransientString){
+            return val.rawPtr ? val.rawPtr : "";
+        }
+        return "";
+    }
+
+    bool isAnyString(const Value& val) const {
+        return  val.type == ValueType::PermanentString  ||
+                val.type == ValueType::PersistentString ||
+                val.type == ValueType::TransientString;
+    }
 };

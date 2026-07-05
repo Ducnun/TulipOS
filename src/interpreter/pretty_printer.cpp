@@ -11,7 +11,7 @@ std::string PrettyPrinter::valStr(const Value& v) const {
     switch (v.type) {
         case ValueType::Number:  return std::to_string(v.number);
         case ValueType::Boolean: return v.boolean ? "true" : "false";
-        case ValueType::String:  return "\"" + sym(v.stringId) + "\"";
+        case ValueType::PermanentString:  return "\"" + sym(v.stringId) + "\"";
         default: return "unknown";
     }
 }

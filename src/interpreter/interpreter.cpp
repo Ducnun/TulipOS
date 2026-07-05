@@ -9,8 +9,6 @@ void Interpreter::visit(const VariableExpr& expr){
     if (it != _ctx.variables.end()) {
         _lastValue = it->second;
     } else {
-        // DEBUG: This should not happen for 'I' in your loop!
-        printf("DEBUG: Variable ID %d was undefined, defaulting to 0\n", expr.nameId);
         _lastValue = Value::Float(0.0f);
     }
 }
@@ -21,18 +19,20 @@ void Interpreter::visit(const BinaryExpr& expr){
 
     switch (expr.op){
         case TokenType::Plus:
-            if (left.type == ValueType::String || right.type == ValueType::String) {
-                // String Concatenation logic
-                const char* s1 = (left.type == ValueType::String) ? _registry.getString(left.stringId) : "";
-                const char* s2 = (right.type == ValueType::String) ? _registry.getString(right.stringId) : "";
-                
-                // For now, using a temporary buffer. 
-                // TODO: Replace later with runtime arena
-                char buf[256]; 
-                snprintf(buf, sizeof(buf), "%s%s", s1, s2);
-                
-                // Intern the result back into the registry
-                _lastValue = Value::Str(_registry.getOrCreate(util::StringView(buf)));
+            if (isAnyString(left) && isAnyString(right)){
+                // Fetch copies of strings, regardless of current allocated arena
+                const char* s1 = getString(left);
+                const char* s2 = getString(right);
+                size_t len1 = strlen(s1);
+                size_t len2 = strlen(s2);
+
+                // Write into transient arena
+                char* buf = (char*)_ctx.transientArena.alloc(len1 + len2 + 1);
+                if (buf){
+                    memcpy(buf, s1, len1);
+                    memcpy(buf + len1, s2, len2 + 1);
+                    _lastValue = Value::TransientStr(buf);
+                }
             } else {
                 _lastValue = Value::Float(left.number + right.number);
             }
@@ -40,12 +40,7 @@ void Interpreter::visit(const BinaryExpr& expr){
 
         case TokenType::Minus: _lastValue = Value::Float(left.number - right.number); break;
         case TokenType::Star:  _lastValue = Value::Float(left.number * right.number); break;
-        case TokenType::Slash: 
-            _lastValue = Value::Float(left.number / right.number);
-            if (expr.op == TokenType::Slash) {
-                // printf("DIV: %f / %f = %f\n", left.number, right.number, _lastValue.number);
-            }
-            break;
+        case TokenType::Slash: _lastValue = Value::Float(left.number / right.number); break;
 
         case TokenType::Greater:      _lastValue = Value::Bool(checkGreater(left, right)); break;
         case TokenType::GreaterEqual: _lastValue = Value::Bool(checkGreater(left, right) || checkEqual(left, right)); break;
@@ -71,8 +66,8 @@ void Interpreter::visit(const PrintStmt& stmt){
     for (const auto& item : stmt.items) {
         Value val = evaluate(item.expression);
         
-        if (val.type == ValueType::String) {
-            _io.print(_registry.getString(val.stringId));
+        if (isAnyString(val)){
+            _io.print(getString(val));
         } else if (val.type == ValueType::Number) {
             _io.print(std::to_string(val.number));
         } else if (val.type == ValueType::Boolean) {
@@ -85,11 +80,11 @@ void Interpreter::visit(const PrintStmt& stmt){
 }
 
 void Interpreter::visit(const LetStmt& stmt){
-    _ctx.variables[stmt.variable] = evaluate(stmt.value);
+    _ctx.variables[stmt.variable] = _ctx.promoteValue(evaluate(stmt.value));
 }
 
 void Interpreter::visit(const AssignmentStmt& stmt){
-    _ctx.variables[stmt.variable] = evaluate(stmt.value);
+    _ctx.variables[stmt.variable] = _ctx.promoteValue(evaluate(stmt.value));
 }
 
 void Interpreter::visit(const InputStmt& stmt){
@@ -100,9 +95,12 @@ void Interpreter::visit(const InputStmt& stmt){
     
     std::string input = _io.readLine();
     if (!stmt.variables.empty()) {
-        // Intern the user input so it gets a Symbol ID
-        Symbol inputSym = _registry.getOrCreate(util::StringView(input.c_str(), input.length()));
-        _ctx.variables[stmt.variables[0]] = Value::Str(inputSym);
+        // Store input string in persistent memory directly (mimmicks assign without additional calls)
+        char* buf = (char*)_ctx.persistentArena.alloc(input.length() + 1);
+        if (buf){
+            memcpy(buf, input.c_str(), input.length() + 1);
+            _ctx.variables[stmt.variables[0]] = Value::PersistentStr(buf);
+        }
     }
 }
 
