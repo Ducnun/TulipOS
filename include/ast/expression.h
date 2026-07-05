@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 #include "tokenizer/token.h"
-#include "interpreter/value.h"
-#include "engine/symboltable.h"
+#include "runtime/core/value.h"
+#include "runtime/core/string_registry.h"
 
 // Forward declaration
 class ExprVisitor;

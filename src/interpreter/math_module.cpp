@@ -1,4 +1,4 @@
-#include "interpreter/math_module.h"
+#include "runtime/modules/math_module.h"
 
 Value math::call(const std::string& func, const std::vector<Value>& args){
     if (func == "INT"){

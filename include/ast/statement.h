@@ -6,7 +6,7 @@
 #include <optional>
 
 #include "ast/expression.h"
-#include "engine/symboltable.h"
+#include "runtime/core/string_registry.h"
 
 enum class PrintSeparator{
     None, Comma, Semicolon

@@ -4,7 +4,7 @@
 
 #include "ast/expression.h"
 #include "ast/statement.h"
-#include "engine/symboltable.h"
+#include "runtime/core/string_registry.h"
 
 class Parser{
 public:

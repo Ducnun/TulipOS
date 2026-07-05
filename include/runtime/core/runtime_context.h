@@ -45,7 +45,7 @@ struct RuntimeContext {
     Value promoteValue(Value val){
         if (val.type == ValueType::TransientString && val.rawPtr){
             const char* dest = persistentArena.dupString(val.rawPtr);
-            return Value::PersistentStr(dest);
+            return Value::PersistentStr(dest, val.length);
         }
         return val;
     }

@@ -23,15 +23,14 @@ void Interpreter::visit(const BinaryExpr& expr){
                 // Fetch copies of strings, regardless of current allocated arena
                 const char* s1 = getString(left);
                 const char* s2 = getString(right);
-                size_t len1 = strlen(s1);
-                size_t len2 = strlen(s2);
+                size_t len = left.length + right.length + 1;
 
                 // Write into transient arena
-                char* buf = (char*)_ctx.transientArena.alloc(len1 + len2 + 1);
+                char* buf = (char*)_ctx.transientArena.alloc(len);
                 if (buf){
-                    memcpy(buf, s1, len1);
-                    memcpy(buf + len1, s2, len2 + 1);
-                    _lastValue = Value::TransientStr(buf);
+                    memcpy(buf, s1, left.length);
+                    memcpy(buf + left.length, s2, right.length + 1);
+                    _lastValue = Value::TransientStr(buf, len);
                 }
             } else {
                 _lastValue = Value::Float(left.number + right.number);
@@ -99,7 +98,7 @@ void Interpreter::visit(const InputStmt& stmt){
         char* buf = (char*)_ctx.persistentArena.alloc(input.length() + 1);
         if (buf){
             memcpy(buf, input.c_str(), input.length() + 1);
-            _ctx.variables[stmt.variables[0]] = Value::PersistentStr(buf);
+            _ctx.variables[stmt.variables[0]] = Value::PersistentStr(buf, input.length() + 1);
         }
     }
 }

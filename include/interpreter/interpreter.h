@@ -3,9 +3,9 @@
 #include "ast/expression_visitor.h"
 #include "ast/statement_visitor.h"
 #include "io/io_interface.h"
-#include "runtime_context.h"
-#include "gpio_module.h"
-#include "math_module.h"
+#include "runtime/core/runtime_context.h"
+#include "runtime/modules/gpio_module.h"
+#include "runtime/modules/math_module.h"
 #include "signals.h"
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
@@ -22,7 +22,7 @@ public:
     }
     
 private:
-    RuntimeContext& _ctx;
+RuntimeContext& _ctx;
     IOInterface& _io;
     StringRegistry& _registry;
     Arena& _staticArena;

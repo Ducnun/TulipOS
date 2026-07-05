@@ -1,4 +1,4 @@
-#include "interpreter/gpio_module.h"
+#include "runtime/modules/gpio_module.h"
 
 Value gpio::call(const std::string& func, const std::vector<Value>& args) {
     #ifndef ESP32

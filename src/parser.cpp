@@ -258,7 +258,7 @@ ExprPtr Parser::primary(){
 
     if (match({TokenType::String})) {
         Symbol id = _registry.getOrCreate(previous().value);
-        return allocate<LiteralExpr>(Value::PermanentStr(id));
+        return allocate<LiteralExpr>(Value::PermanentStr(id, previous().value.length()));
     }
 
     if (match({TokenType::Identifier})) {
