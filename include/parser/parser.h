@@ -4,11 +4,11 @@
 
 #include "ast/expression.h"
 #include "ast/statement.h"
-#include "runtime/core/string_registry.h"
+#include "runtime/core/symbol_table.h"
 
 class Parser{
 public:
-    Parser(StringRegistry& registry, Arena& arena) : _registry(registry), _arena(arena) {}
+    Parser(SymbolTable& symTable, Arena& arena) : _symTable(symTable), _arena(arena) {}
     ~Parser() = default;
 
     std::vector<StmtPtr> parse(const std::vector<Token>& tokens);
@@ -16,7 +16,7 @@ public:
 private:
     std::vector<Token> _tokens;
     size_t _current = 0;
-    StringRegistry& _registry;
+    SymbolTable& _symTable;
     Arena& _arena;
 
     // Helper functions

@@ -5,7 +5,7 @@
 
 class PrettyPrinter : public ExprVisitor, public StmtVisitor{
 public:
-    PrettyPrinter(StringRegistry& registry) : _registry(registry) {}
+    PrettyPrinter(SymbolTable& symbolTable) : _symTable(symbolTable) {}
 
     std::string result;
 
@@ -53,7 +53,7 @@ public:
 
 private:
     int indent = 0;
-    StringRegistry& _registry;
+    SymbolTable& _symTable;
 
     std::string pad(){
         return std::string(indent * 2, ' ');

@@ -68,7 +68,7 @@ StmtPtr Parser::letStatement(){
     Token var = consume(TokenType::Identifier, "Expected variable after LET");
     consume(TokenType::Equal, "Expected '=' after variable");
     ExprPtr value = expression();
-    Symbol varId = _registry.getOrCreate(var.value);
+    Symbol varId = _symTable.getOrCreate(var.value);
     return allocate<LetStmt>(varId, value);
 }
 
@@ -85,11 +85,11 @@ StmtPtr Parser::inputStatement(){
     }
 
     do{
-        varIds.push_back(_registry.getOrCreate(consume(TokenType::Identifier, "Expected variable after ','").value));
+        varIds.push_back(_symTable.getOrCreate(consume(TokenType::Identifier, "Expected variable after ','").value));
 
     }while (match({TokenType::Comma}));
 
-    Symbol promptId = _registry.getOrCreate(prompt);
+    Symbol promptId = _symTable.getOrCreate(prompt);
     return allocate<InputStmt>(promptId, hasPrompt, varIds);
 }
 
@@ -127,17 +127,18 @@ StmtPtr Parser::forStatement(){
     if (match({TokenType::Step})) step = expression();
     else step = allocate<LiteralExpr>(Value::Float(1.0f));
 
-    Symbol varId = _registry.getOrCreate(variable);
+    Symbol varId = _symTable.getOrCreate(variable);
     return allocate<ForStmt>(varId, start, end, step);
 }
 
 StmtPtr Parser::nextStatement(){
     consume(TokenType::Next, "Expected NEXT (Parser misaligned)");
-    std::string var = "";
+
+    Symbol varId = INVALID_SYMBOL; // Default to no var
     if (check(TokenType::Identifier)) {
-        var = advance().value;
+        std::string varName = advance().value;
+        varId = _symTable.getOrCreate(varName);
     }
-    Symbol varId = _registry.getOrCreate(var);
     return allocate<NextStmt>(varId);
 }
 
@@ -146,7 +147,7 @@ StmtPtr Parser::assignmentStatement() {
     Token var = consume(TokenType::Identifier, "Expected variable name");
     consume(TokenType::Equal, "Expected '=' after variable");
     ExprPtr value = expression();
-    Symbol varId = _registry.getOrCreate(var.value);
+    Symbol varId = _symTable.getOrCreate(var.value);
     return allocate<AssignmentStmt>(varId, value);
 }
 
@@ -169,8 +170,8 @@ StmtPtr Parser::callStatement() {
     }
     consume(TokenType::RightParen, "Expected ')' after arguments");
 
-    Symbol moduleId = _registry.getOrCreate(moduleName);
-    Symbol functionId = _registry.getOrCreate(functionName);
+    Symbol moduleId = _symTable.getOrCreate(moduleName);
+    Symbol functionId = _symTable.getOrCreate(functionName);
     return allocate<CallStmt>(moduleId, functionId, std::move(args));
 }
 
@@ -257,7 +258,7 @@ ExprPtr Parser::primary(){
     }
 
     if (match({TokenType::String})) {
-        Symbol id = _registry.getOrCreate(previous().value);
+        Symbol id = _symTable.getOrCreate(previous().value);
         return allocate<LiteralExpr>(Value::PermanentStr(id, previous().value.length()));
     }
 
@@ -281,12 +282,12 @@ ExprPtr Parser::primary(){
             }
             consume(TokenType::RightParen, "Expected ')' after arguments");
 
-            Symbol moduleId = _registry.getOrCreate(module);
-            Symbol functionId = _registry.getOrCreate(function);
+            Symbol moduleId = _symTable.getOrCreate(module);
+            Symbol functionId = _symTable.getOrCreate(function);
             return allocate<CallExpr>(moduleId, functionId, std::move(args));
         }
 
-        return allocate<VariableExpr>(_registry.getOrCreate(previous().value)); 
+        return allocate<VariableExpr>(_symTable.getOrCreate(previous().value)); 
     }
 
     if (match({TokenType::LeftParen})) {

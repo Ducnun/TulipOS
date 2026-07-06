@@ -8,9 +8,9 @@
 using Symbol = uint16_t;
 const Symbol INVALID_SYMBOL = 0xFFFF;
 
-class StringRegistry{
+class SymbolTable{
 public:
-    StringRegistry(Arena& arena) : _arena(arena) {}
+    SymbolTable(Arena& arena) : _arena(arena) {}
 
     Symbol getOrCreate(util::StringView sv) {
         auto it = _lookup.find(sv);
@@ -36,6 +36,7 @@ public:
     void clear() {
         _lookup.clear();
         _names.clear();
+        _arena.reset();
     }
 
     void DumpTable(){
