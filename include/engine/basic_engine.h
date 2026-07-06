@@ -8,16 +8,17 @@
 #define PROGRAM_SIZE    65536
 #define PERSISTANT_SIZE 8192
 #define SCRATCHPAD_SIZE 4096
+#define TOTAL_VARIABLES 512
 
 class BasicEngine {
 public:
     BasicEngine(IOInterface& io) 
         : _io(io),
           _staticArena(PROGRAM_SIZE),
-          _stringRegistry(_staticArena),
-          _parser(_stringRegistry, _staticArena),
-          _ctx(PERSISTANT_SIZE, SCRATCHPAD_SIZE),
-          _interpreter(_ctx, _io, _stringRegistry, _staticArena)
+          _symTable(_staticArena),
+          _parser(_symTable, _staticArena),
+          _ctx(TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
+          _interpreter(_ctx, _io, _symTable, _staticArena)
     {
         // Constructor body
     }
@@ -35,7 +36,7 @@ public:
 private:
     IOInterface& _io;
     Arena _staticArena;
-    StringRegistry _stringRegistry;
+    SymbolTable _symTable;
     RuntimeContext _ctx;
     Program _program;
     Tokenizer _tokenizer;

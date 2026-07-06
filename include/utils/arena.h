@@ -19,9 +19,9 @@ public:
         size = (size + 7) & ~7;
         #endif
 
+        // Not necessarily an issue if triggered in a managed environment
+        // (e.g. triggering a swap in managed_arena.h)
         if (_offset + size > _capacity){
-            printf("!!! ARENA OUT OF MEMORY: Requested %d, Left %d\n", 
-                (int)size, (int)(_capacity - _offset));
             return nullptr;
         }
 
@@ -44,6 +44,7 @@ public:
 
     uint32_t getOffset() const { return (uint32_t)_offset; }
     void* getPointer(uint32_t offset) const { return (void*)(_buffer + offset) ;}
+    bool contains(void* ptr) { return (ptr >= _buffer && ptr < (_buffer + _capacity)); }
 
 private:
     uint8_t* _buffer;

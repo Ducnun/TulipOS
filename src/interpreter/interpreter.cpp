@@ -5,12 +5,9 @@ void Interpreter::visit(const LiteralExpr& expr){
 }
 
 void Interpreter::visit(const VariableExpr& expr){
-    auto it = _ctx.variables.find(expr.nameId);
-    if (it != _ctx.variables.end()) {
-        _lastValue = it->second;
-    } else {
-        _lastValue = Value::Float(0.0f);
-    }
+    Value* val = _ctx.get(expr.nameId);
+    if (val) _lastValue = *val;
+    else _lastValue = Value::Float(0.0f);
 }
 
 void Interpreter::visit(const BinaryExpr& expr){
@@ -79,28 +76,24 @@ void Interpreter::visit(const PrintStmt& stmt){
 }
 
 void Interpreter::visit(const LetStmt& stmt){
-    _ctx.variables[stmt.variable] = _ctx.promoteValue(evaluate(stmt.value));
+    Value val = evaluate(stmt.value);
+    _ctx.assign(stmt.variable, val);
 }
 
 void Interpreter::visit(const AssignmentStmt& stmt){
-    _ctx.variables[stmt.variable] = _ctx.promoteValue(evaluate(stmt.value));
+    Value val = evaluate(stmt.value);
+    _ctx.assign(stmt.variable, val);
 }
 
 void Interpreter::visit(const InputStmt& stmt){
     if (stmt.hasPrompt) {
-        _io.print(_registry.getString(stmt.promptId));
+        _io.print(_symTable.getString(stmt.promptId));
         _io.print("\n");
     }
     
     std::string input = _io.readLine();
-    if (!stmt.variables.empty()) {
-        // Store input string in persistent memory directly (mimmicks assign without additional calls)
-        char* buf = (char*)_ctx.persistentArena.alloc(input.length() + 1);
-        if (buf){
-            memcpy(buf, input.c_str(), input.length() + 1);
-            _ctx.variables[stmt.variables[0]] = Value::PersistentStr(buf, input.length() + 1);
-        }
-    }
+    const char* persistentBuf = _ctx.persistentArena.dupString(input.c_str(), input.length(), _ctx.variables);
+    _ctx.assign(stmt.variables[0], Value::PersistentStr(persistentBuf, input.length()));
 }
 
 void Interpreter::visit(const GotoStmt& stmt){
@@ -125,39 +118,53 @@ void Interpreter::visit(const ForStmt& stmt) {
         float endVal = evaluate(stmt.end).number;
         float stepVal = stmt.step ? evaluate(stmt.step).number : 1.0f;
         
-        _ctx.variables[stmt.variable] = Value::Float(startVal);
+        _ctx.assign(stmt.variable, Value::Float(startVal));
         _ctx.forLoopStack.push_back({stmt.variable, endVal, stepVal, _ctx.currentLine});
     }
 }
 
-void Interpreter::visit(const NextStmt& stmt){
-    if (_ctx.forLoopStack.empty()) return; // Error handling
+void Interpreter::visit(const NextStmt& stmt) {
+    if (_ctx.forLoopStack.empty()) {
+        printf("Error: NEXT without FOR\n");
+        return;
+    }
 
     ForLoopFrame& frame = _ctx.forLoopStack.back();
     
-    // Pointer comparison (Symbol) is enough here!
-    if (stmt.variable != INVALID_SYMBOL && stmt.variable != frame.variable){ 
+    // If a variable was provided (e.g., NEXT I), it MUST match.
+    // If stmt.variable is INVALID_SYMBOL, we skip this check and match any loop.
+    if (stmt.variable != INVALID_SYMBOL && stmt.variable != frame.variable) { 
+        printf("NEXT Error: Variable mismatch. Expected ID %d, got %d\n", 
+            frame.variable, stmt.variable);
         return; 
     }
 
-    float current = _ctx.variables[frame.variable].number;
-    current += frame.stepValue;
-    _ctx.variables[frame.variable] = Value::Float(current);
+    // Verify var exists or kill loop
+    Value* var = _ctx.get(frame.variable);
+    if (!var || var->type != ValueType::Number) {
+        printf("NEXT Error: Variable didnt exist or was not of right type. Type: %d, Ptr: %d\n", 
+        _ctx.get(frame.variable)->type, _ctx.get(stmt.variable)->number);
+        _ctx.forLoopStack.pop_back();
+        return; 
+    }
 
-    bool loopAgain = (frame.stepValue >= 0) ? (current <= frame.endValue) : (current >= frame.endValue);
-    
-    if (loopAgain){
+    // Use ptr directly to modify loop var
+    var->number += frame.stepValue;
+    float current = var->number;
+
+    bool loopAgain = (frame.stepValue >= 0) ? (current <= frame.endValue) : (current >= frame.endValue);    
+    if (loopAgain) {
         _ctx.jumpTarget = frame.bodyStartLine;
         _ctx.jumpRequested = true;
-    } else{
+    } else {
         _ctx.forLoopStack.pop_back();
     }
 }
 
 Value Interpreter::handleCall(Symbol mod, Symbol func, const std::vector<Value>& args) {
     // Convert IDs back to strings only when calling native modules
-    const char* modName = _registry.getString(mod);
-    const char* funcName = _registry.getString(func);
+    const char* modName = _symTable.getString(mod);
+    const char* funcName = _symTable.getString(func);
 
     if (strcmp(modName, "MATH") == 0) return math::call(funcName, args);
     if (strcmp(modName, "GPIO") == 0) return gpio::call(funcName, args);

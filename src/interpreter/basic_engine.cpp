@@ -81,13 +81,13 @@ void BasicEngine::list(){
 void BasicEngine::clear(){
     _program.clear();
     _ctx.reset();
-    _stringRegistry.clear();
+    _symTable.clear();
     _staticArena.reset();
 }
 
 void BasicEngine::loadProgram(const std::string& script){
     _program.clear(); // Optional: clear existing program first
-    _stringRegistry.clear();
+    _symTable.clear();
     _staticArena.reset();
     
     std::stringstream ss(script);
@@ -121,10 +121,10 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
 }
 
 void BasicEngine::DumpProgram() {
-    _stringRegistry.DumpTable();
+    _io.print(_symTable.DumpTable().c_str());
     _io.print("--- PROGRAM AST DUMP ---\n");
 
-    PrettyPrinter printer(_stringRegistry);
+    PrettyPrinter printer(_symTable);
 
     // Iterating through the map of program lines
     for (auto const& [lineNum, lineData] : _program) {

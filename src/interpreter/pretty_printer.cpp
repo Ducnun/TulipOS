@@ -3,7 +3,7 @@
 // Helper to get string from registry
 std::string PrettyPrinter::sym(Symbol id) const {
     if (id == INVALID_SYMBOL) return "INVALID";
-    return _registry.getString(id);
+    return _symTable.getString(id);
 }
 
 // Helper to convert Value to string for display

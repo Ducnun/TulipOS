@@ -3,7 +3,7 @@
 #include <string>
 #include <memory> // For shared_ptr
 
-#include "string_registry.h"
+#include "symbol_table.h"
 
 enum class ValueType { Number, Boolean, PermanentString, TransientString, PersistentString };
 

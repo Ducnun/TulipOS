@@ -5,7 +5,7 @@
 #include <vector>
 #include "tokenizer/token.h"
 #include "runtime/core/value.h"
-#include "runtime/core/string_registry.h"
+#include "runtime/core/symbol_table.h"
 
 // Forward declaration
 class ExprVisitor;
