@@ -47,9 +47,9 @@ void Shell::printWelcome(){
     _io.print("**** TULIP BASIC V1 ****\n");
     
     #ifdef ESP32
-        size_t freeHeap = 32768;
+        size_t freeHeap = PROGRAM_SIZE;
         size_t used = _engine.reportProgramSize();
-        std::string memLine = std::to_string(freeHeap / 1000) + "K BYTES FREE (" +
+        std::string memLine = std::to_string(freeHeap / 1024) + "K BYTES FREE (" +
                             std::to_string(used) + "B USED)\n";      
         _io.print(memLine);
     #endif

@@ -10,33 +10,85 @@ public:
         : arenaA(size), arenaB(size), activeArena(&arenaA) {}
 
     void* alloc(size_t size, std::vector<Value>& roots) {
-        void* ptr = activeArena->alloc(size);
+        size_t total = size + sizeof(StringHeader);
+        void* block = activeArena->alloc(total);
         
-        if (!ptr) {
-            // Out of memory! Trigger GC
-            collect(roots);
-            
-            // Try again in the new arena
-            ptr = activeArena->alloc(size);
-            
-            if (!ptr) {
-                // Still no room? We are truly out of memory
-                return nullptr;
-            }
+        if (!block) {
+            collect(roots); 
+            block = activeArena->alloc(total);
+            if (!block) return nullptr;
         }
-        return ptr;
+
+        StringHeader* header = (StringHeader*)block;
+        header->forwardingAddr = nullptr;
+
+        return (char*)block + sizeof(StringHeader);
     }
 
+    // THE IMPROVED dupString
     char* dupString(const char* src, size_t len, std::vector<Value>& roots) {
-        // 1. alloc() might trigger a GC! 
-        // If it does, all pointers in 'roots' are updated.
-        char* dest = (char*)alloc(len + 1, roots);
+        // TRAP: If src is already in the activeArena, a GC trigger in alloc() 
+        // will move src, making our pointer invalid before we can memcpy it!
         
-        if (dest) {
-            memcpy(dest, src, len);
-            dest[len] = '\0';
+        bool srcIsManaged = activeArena->contains((void*)src);
+        
+        // If it's managed, we need to know its offset so we can find it after GC
+        uint32_t srcOffset = 0;
+        if (srcIsManaged) {
+            // This is a rare case in your BASIC (usually src is Transient), 
+            // but we handle it for safety.
+            srcOffset = (uint32_t)((uint8_t*)src - (uint8_t*)activeArena->getPointer(0));
         }
+
+        char* dest = (char*)alloc(len + 1, roots); // <--- GC might happen here
+        
+        if (!dest) return nullptr;
+
+        // If GC happened, and src was managed, we must find its NEW location
+        const char* finalSrc = src;
+        if (srcIsManaged) {
+            // We find the new pointer by looking at the "old" arena which is now the inactive one
+            Arena* oldArena = (activeArena == &arenaA) ? &arenaB : &arenaA;
+            void* oldHeaderLoc = (uint8_t*)oldArena->getPointer(srcOffset) - sizeof(StringHeader);
+            finalSrc = ((StringHeader*)oldHeaderLoc)->forwardingAddr;
+        }
+
+        memcpy(dest, finalSrc, len);
+        dest[len] = '\0';
         return dest;
+    }
+
+    void collect(std::vector<Value>& roots) {
+        Arena* targetArena = (activeArena == &arenaA) ? &arenaB : &arenaA;
+        targetArena->reset();
+
+        for (Value& val : roots) {
+            if (val.type != ValueType::PersistentString || !val.rawPtr) continue;
+            
+            // Only move strings that belong to the arena we are about to clear
+            if (!activeArena->contains((void*)val.rawPtr)) continue; 
+
+            StringHeader* oldHeader = (StringHeader*)(val.rawPtr - sizeof(StringHeader));
+
+            if (oldHeader->forwardingAddr) {
+                // Shared string: already moved
+                val.rawPtr = oldHeader->forwardingAddr;
+            } else {
+                // New string: move it
+                size_t dataSize = val.length + 1;
+                void* newBlock = targetArena->alloc(dataSize + sizeof(StringHeader));
+                
+                if (newBlock) {
+                    char* newData = (char*)newBlock + sizeof(StringHeader);
+                    ((StringHeader*)newBlock)->forwardingAddr = nullptr;
+                    
+                    memcpy(newData, val.rawPtr, dataSize);
+                    oldHeader->forwardingAddr = newData;
+                    val.rawPtr = newData;
+                }
+            }
+        }
+        activeArena = targetArena;
     }
 
     void reset() {
@@ -46,31 +98,11 @@ public:
     }
 
 private:
+    struct StringHeader {
+        char* forwardingAddr; 
+    };
+
     Arena arenaA;
     Arena arenaB;
     Arena* activeArena;
-
-    void collect(std::vector<Value>& roots) {
-        // 1. Pick the "other" arena as the destination
-        Arena* targetArena = (activeArena == &arenaA) ? &arenaB : &arenaA;
-        targetArena->reset();
-
-        // 2. Iterate through all variables (the "Roots")
-        for (Value& val : roots) {
-            // Only move strings that are in the persistent storage
-            if (val.type == ValueType::PersistentString && val.rawPtr) {
-                char* newLoc = (char*)targetArena->alloc(val.length + 1);
-                if (newLoc) {
-                    memcpy(newLoc, val.rawPtr, val.length + 1);
-                    val.rawPtr = newLoc; // The "Magic": Update the pointer to new home
-                }
-            }
-        }
-
-        // 3. Swap which arena we use for future allocations
-        activeArena = targetArena;
-        
-        // Note: The "old" arena isn't reset here (to be safe), 
-        // but it will be reset next time it becomes the target.
-    }
 };

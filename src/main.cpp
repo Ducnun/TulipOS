@@ -23,7 +23,7 @@
 // Compiled only when native env is chosen
 #else
   #include "io/console_io.h"
-  #include "shell.h"
+  #include "system/shell.h"
   ConsoleIO io;
 
   // Start IO and shell
