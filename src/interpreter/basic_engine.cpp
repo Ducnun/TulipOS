@@ -121,7 +121,7 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
 }
 
 void BasicEngine::DumpProgram() {
-    _symTable.DumpTable();
+    _io.print(_symTable.DumpTable().c_str());
     _io.print("--- PROGRAM AST DUMP ---\n");
 
     PrettyPrinter printer(_symTable);

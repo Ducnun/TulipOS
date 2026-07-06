@@ -44,7 +44,7 @@ void Shell::runREPL() {
 void Shell::printWelcome(){
     _io.reset();
     _io.clearScreen();
-    _io.print("**** TULIP BASIC V1 ****\n");
+    _io.print("**** TULIP BASIC V2 ****\n");
     
     #ifdef ESP32
         size_t freeHeap = PROGRAM_SIZE;

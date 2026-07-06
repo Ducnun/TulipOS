@@ -39,12 +39,14 @@ public:
         _arena.reset();
     }
 
-    void DumpTable(){
-        printf("--- SYMBOL TABLE DUMP ---\n");
+    std::string DumpTable(){
+        std::string result;
+        result += "--- SYMBOL TABLE DUMP ---\n";
         for (size_t i = 0; i < _names.size(); i++) {
-            printf("ID %d: %s\n", (int)i, _names[i]);
+            result += "ID " + std::to_string((int)i) + " : " + _names[i] + "\n"; 
         }
-        printf("-------------------------\n");
+        result += "-------------------------\n";
+        return result;
     }
 
 private:
