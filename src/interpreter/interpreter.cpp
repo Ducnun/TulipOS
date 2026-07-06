@@ -92,7 +92,7 @@ void Interpreter::visit(const InputStmt& stmt){
     }
     
     std::string input = _io.readLine();
-    const char* persistentBuf = _ctx.persistentArena.dupString(input.c_str());
+    const char* persistentBuf = _ctx.persistentArena.dupString(input.c_str(), input.length(), _ctx.variables);
     _ctx.assign(stmt.variables[0], Value::PersistentStr(persistentBuf, input.length()));
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "value.h"
+#include "utils/managed_arena.h"
 #include <vector>
 
 struct ForLoopFrame {
@@ -18,7 +19,7 @@ struct RuntimeContext {
 
     // Stack/Heap emulation
     Arena transientArena;
-    Arena persistentArena;
+    ManagedArena persistentArena;
 
     RuntimeContext(size_t variableCount, size_t persistent, size_t transient) : 
         variableCount(variableCount),
@@ -46,19 +47,20 @@ struct RuntimeContext {
         for (size_t i = 0; i < variableCount; i++) variables[i] = Value::Float(0.0f);
     }
 
-    Value promoteValue(Value val){
-        // If the string is transient, the actual string values are stored in the scratchpad
-        // They need to move to the persistent arena so its not wiped after this line
-        if (val.type == ValueType::TransientString && val.rawPtr){
-            char* dest = (char*)persistentArena.alloc(val.length + 1);
+    Value promoteValue(Value val) {
+        // Only strings in the Transient Arena need to be moved to Persistent
+        if (val.type == ValueType::TransientString && val.rawPtr) {
+            
+            char* newStorage = persistentArena.dupString(
+                val.rawPtr, 
+                val.length, 
+                variables // Pass the roots so they stay valid if GC hits
+            );
 
-            // Copy over to persistent arena and return Value with adjusted ptr location for string data
-            if (dest){
-                memcpy(dest, val.rawPtr, val.length + 1);
-                return Value::PersistentStr(dest, val.length);
+            if (newStorage) {
+                return Value::PersistentStr(newStorage, val.length);
             }
         }
-        // If simple type or already persistent/permanent string, nothing has to be done
         return val;
     }
 

@@ -27,6 +27,18 @@ public:
         return ptr;
     }
 
+    char* dupString(const char* src, size_t len, std::vector<Value>& roots) {
+        // 1. alloc() might trigger a GC! 
+        // If it does, all pointers in 'roots' are updated.
+        char* dest = (char*)alloc(len + 1, roots);
+        
+        if (dest) {
+            memcpy(dest, src, len);
+            dest[len] = '\0';
+        }
+        return dest;
+    }
+
     void reset() {
         arenaA.reset();
         arenaB.reset();
