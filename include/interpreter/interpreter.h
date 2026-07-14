@@ -2,18 +2,23 @@
 
 #include "ast/expression_visitor.h"
 #include "ast/statement_visitor.h"
-#include "io/io_interface.h"
+#include "host/ihost.h"
 #include "runtime/core/runtime_context.h"
 #include "runtime/modules/gpio_module.h"
 #include "runtime/modules/math_module.h"
+#include "runtime/modules/system_module.h"
 #include "signals.h"
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
 public:
     ~Interpreter() = default;
-    Interpreter(RuntimeContext& ctx, IOInterface& io, SymbolTable& symTable, Arena& staticArena) 
-        : _ctx(ctx), _io(io), _symTable(symTable), _staticArena(staticArena) {
-        }
+    Interpreter(RuntimeContext& ctx, SymbolTable& symTable, Arena& staticArena) : 
+        _ctx(ctx), 
+        _symTable(symTable), 
+        _staticArena(staticArena),
+        _gpio(_ctx),
+        _sys(_ctx)
+        {}
 
     void execute(const std::vector<StmtPtr>& statements) {
         for (const auto& stmt : statements) {
@@ -22,11 +27,13 @@ public:
     }
     
 private:
-RuntimeContext& _ctx;
-    IOInterface& _io;
+    RuntimeContext& _ctx;
     SymbolTable& _symTable;
     Arena& _staticArena;
     Value _lastValue;
+    GpioModule _gpio;
+    MathModule _math;
+    SystemModule _sys;
 
     Value evaluate(const ExprPtr& expr) {
         expr->accept(*this);
@@ -77,7 +84,7 @@ RuntimeContext& _ctx;
         }
     }
 
-    Value handleCall(Symbol mod, Symbol func, const std::vector<Value>& args);
+    Value handleCall(Symbol mod, Symbol func, const std::vector<Value>& args, RuntimeContext& ctx);
 
     const char* getString(const Value& val) const {
         if (val.type == ValueType::PermanentString) return _symTable.getString(val.stringId);

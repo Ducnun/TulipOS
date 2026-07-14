@@ -1,22 +1,22 @@
 #include "runtime/modules/gpio_module.h"
 
-Value gpio::call(const std::string& func, const std::vector<Value>& args) {
+ModuleResult GpioModule::call(const std::string& func, const std::vector<Value>& args){
     #ifndef ESP32
         throw std::runtime_error("GPIO Module not supported on native interpreter");
     #endif
 
     if (func == "WRITE") {
-        return gpio::write(args);
+        return {CallResult::Success, GpioModule::write(args)};
     } 
     else if (func == "READ") {
-        return gpio::read(args);
+        return {CallResult::Success, GpioModule::read(args)};
     }
 
     // ALWAYS return something, even for unknown functions
-    return Value::Bool(false); 
+    return {CallResult::NotHandled, Value::Bool(false)}; 
 }
 
-Value gpio::write(const std::vector<Value>& args){
+Value GpioModule::write(const std::vector<Value>& args){
     #ifdef ESP32
     // Safety check: ensure we have 2 arguments
     if (args.size() < 2) return Value::Bool(false);
@@ -32,7 +32,7 @@ Value gpio::write(const std::vector<Value>& args){
     return Value::Bool(true); // Return success
 }
 
-Value gpio::read(const std::vector<Value>& args) {
+Value GpioModule::read(const std::vector<Value>& args) {
     #ifdef ESP32
     if (args.empty()) return Value::Float(0.0f);
 

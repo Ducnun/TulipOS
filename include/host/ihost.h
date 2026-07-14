@@ -1,13 +1,19 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 
-class IOInterface {
+class IHost {
 public: 
     /**
-     * @brief Destroy the IOInterface object
+     * @brief Destroy the IHost object
      */
-    virtual ~IOInterface() = default;
+    virtual ~IHost() = default;
+
+    /**
+     * @brief Services any background tasks during busy waiting
+     */
+    virtual void service() = 0;
 
     /**
      * @brief Prints to IO
@@ -45,8 +51,6 @@ public:
      */
     virtual bool checkBreakRequested() {return false;}
 
-    /**
-     * @brief Polls whether an interrupt is needed
-     */
-    virtual void pollKeyboard(){}
+    virtual void delay(uint32_t ms) = 0;
+    virtual uint32_t millis() = 0;
 };

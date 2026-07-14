@@ -1,13 +1,13 @@
 #include "system/shell.h"
 
-Shell::Shell(IOInterface &io) : _io(io), _engine(_io) {}
+Shell::Shell(IHost &host) : _host(host), _engine(_host) {}
 
 void Shell::runREPL() {
     printWelcome();
 
     while (true) {
-        _io.print("> ");
-        std::string line = _io.readLine();
+        _host.print("> ");
+        std::string line = _host.readLine();
         if (line.empty()) continue;
 
         // 1. Handle Built-in Shell Commands
@@ -34,26 +34,26 @@ void Shell::runREPL() {
                 _engine.executeImmediate(line);
             }
         } catch (const std::exception& e) {
-            _io.print("? ERROR: ");
-            _io.print(e.what());
-            _io.print("\n");
+            _host.print("? ERROR: ");
+            _host.print(e.what());
+            _host.print("\n");
         }
     }
 }
 
 void Shell::printWelcome(){
-    _io.reset();
-    _io.clearScreen();
-    _io.print("**** TULIP BASIC V2 ****\n");
+    _host.reset();
+    _host.clearScreen();
+    _host.print("**** TULIP BASIC V2 ****\n");
     
     #ifdef ESP32
         size_t freeHeap = PROGRAM_SIZE;
         size_t used = _engine.reportProgramSize();
         std::string memLine = std::to_string(freeHeap / 1024) + "K BYTES FREE (" +
                             std::to_string(used) + "B USED)\n";      
-        _io.print(memLine);
+        _host.print(memLine);
     #endif
-    _io.print("READY.\n");
+    _host.print("READY.\n");
 }
 
 std::string Shell::toUpper(const std::string& line){
@@ -71,12 +71,14 @@ std::string Shell::toUpper(const std::string& line){
 
 bool Shell::handleREPLDirective(const std::string& line){    
     if (line == "RUN") {
-        uint32_t start = millis();
+        uint32_t start = _host.millis();
         _engine.run();
-        uint32_t duration = millis() - start;
-        Serial.printf("\nExecution time: %u ms\n", duration);
+        uint32_t duration = _host.millis() - start;
+        _host.print("\nExecution time: ");
+        _host.print(std::to_string(duration));
+        _host.print(" ms\n");
         
-        _io.print("READY.\n");
+        _host.print("READY.\n");
         return true;
     }
     if (line == "LIST") {
@@ -149,12 +151,12 @@ bool Shell::handleREPLDirective(const std::string& line){
     }
 
     if (line == "EXIT" || line == "QUIT"){
-        _io.print("OK");
+        _host.print("OK");
         return true;
     }
 
     if (line == "CLS"){
-        _io.clearScreen();
+        _host.clearScreen();
         return true;
     }
 

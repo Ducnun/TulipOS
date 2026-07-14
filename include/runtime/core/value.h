@@ -5,12 +5,14 @@
 
 #include "symbol_table.h"
 
-enum class ValueType { Number, Boolean, PermanentString, TransientString, PersistentString };
+enum class ValueType : uint8_t { Number, Boolean, PermanentString, TransientString, PersistentString };
 
 struct Value {
-    ValueType type;
-    uint16_t length;
-    union{
+    ValueType type;         // 1 byte explicitly
+    uint16_t length;        // 2 bytes
+    uint8_t flags;          // 1 byte reserved for future
+
+    union{                  // Ensures that the 4 byte union is not split over registers
         float number;
         bool boolean;
         Symbol stringId;

@@ -42,17 +42,27 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
 
     _ctx.halted = false;
     _ctx.jumpRequested = false;
-
+    
     auto pc = _program.lower_bound(startLine);
     
+    _host.service();
     while (pc != _program.end() && !_ctx.halted){
         _ctx.currentLine = pc->first;
+
+        // Handle break requests
+        if (_host.checkBreakRequested()){
+            _host.print("! BREAK TRIG'D ON ");
+            _host.print(std::to_string(_ctx.currentLine));
+            _host.print("\n");
+            return;
+        }
+        _host.service();
         
         if (pc->second.statement){
             try{
                 pc->second.statement->accept(_interpreter);
             } catch (const std::exception& e){
-                _io.print("? RUNTIME ERROR: " + std::string(e.what()) + "\n");
+                _host.print("? RUNTIME ERROR: " + std::string(e.what()) + "\n");
                 break;
             }
         }
@@ -74,7 +84,7 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
 
 void BasicEngine::list(){
     for (auto const& line : _program) {
-        _io.print(std::to_string(line.first) + " " + line.second.source + "\n");
+        _host.print(std::to_string(line.first) + " " + line.second.source + "\n");
     }
 }
 
@@ -121,26 +131,26 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
 }
 
 void BasicEngine::DumpProgram() {
-    _io.print(_symTable.DumpTable().c_str());
-    _io.print("--- PROGRAM AST DUMP ---\n");
+    _host.print(_symTable.DumpTable().c_str());
+    _host.print("--- PROGRAM AST DUMP ---\n");
 
     PrettyPrinter printer(_symTable);
 
     // Iterating through the map of program lines
     for (auto const& [lineNum, lineData] : _program) {
-        _io.print("[");
-        _io.print(std::to_string(lineNum));
-        _io.print("] ");
+        _host.print("[");
+        _host.print(std::to_string(lineNum));
+        _host.print("] ");
         
         // This triggers the visitor pattern
         std::string output = printer.print(lineData.statement);
-        _io.print(output);
+        _host.print(output);
     }
-    _io.print("------------------------\n");
+    _host.print("------------------------\n");
 
-    _io.print("Size: ");
-    _io.print(std::to_string(reportProgramSize()));
-    _io.print("\nTotal space: ");
-    _io.print(std::to_string(PROGRAM_SIZE));
-    _io.print("\n");
+    _host.print("Size: ");
+    _host.print(std::to_string(reportProgramSize()));
+    _host.print("\nTotal space: ");
+    _host.print(std::to_string(PROGRAM_SIZE));
+    _host.print("\n");
 }

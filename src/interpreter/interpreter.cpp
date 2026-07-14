@@ -63,16 +63,16 @@ void Interpreter::visit(const PrintStmt& stmt){
         Value val = evaluate(item.expression);
         
         if (isAnyString(val)){
-            _io.print(getString(val));
+            _ctx.host.print(getString(val));
         } else if (val.type == ValueType::Number) {
-            _io.print(std::to_string(val.number));
+            _ctx.host.print(std::to_string(val.number));
         } else if (val.type == ValueType::Boolean) {
-            _io.print(val.boolean ? "true" : "false");
+            _ctx.host.print(val.boolean ? "true" : "false");
         }
 
-        if (item.separator == PrintSeparator::Comma) _io.print("\t");
+        if (item.separator == PrintSeparator::Comma) _ctx.host.print("\t");
     }
-    _io.print("\n");
+    _ctx.host.print("\n");
 }
 
 void Interpreter::visit(const LetStmt& stmt){
@@ -87,11 +87,11 @@ void Interpreter::visit(const AssignmentStmt& stmt){
 
 void Interpreter::visit(const InputStmt& stmt){
     if (stmt.hasPrompt) {
-        _io.print(_symTable.getString(stmt.promptId));
-        _io.print("\n");
+        _ctx.host.print(_symTable.getString(stmt.promptId));
+        _ctx.host.print("\n");
     }
     
-    std::string input = _io.readLine();
+    std::string input = _ctx.host.readLine();
     const char* persistentBuf = _ctx.persistentArena.dupString(input.c_str(), input.length(), _ctx.variables);
     _ctx.assign(stmt.variables[0], Value::PersistentStr(persistentBuf, input.length()));
 }
@@ -161,27 +161,31 @@ void Interpreter::visit(const NextStmt& stmt) {
     }
 }
 
-Value Interpreter::handleCall(Symbol mod, Symbol func, const std::vector<Value>& args) {
+Value Interpreter::handleCall(Symbol mod, Symbol func, const std::vector<Value>& args, RuntimeContext& ctx) {
     // Convert IDs back to strings only when calling native modules
     const char* modName = _symTable.getString(mod);
     const char* funcName = _symTable.getString(func);
 
-    if (strcmp(modName, "MATH") == 0) return math::call(funcName, args);
-    if (strcmp(modName, "GPIO") == 0) return gpio::call(funcName, args);
+    ModuleResult res;
 
-    return Value::Float(0.0f);
+    if (strcmp(modName, "MATH") == 0) res = _math.call(funcName, args);
+    if (strcmp(modName, "GPIO") == 0) res = _gpio.call(funcName, args);
+    if (strcmp(modName, "SYS") == 0) res = _sys.call(funcName, args);
+
+    if (res.result != CallResult::Success) return Value::Float(0.0f);
+    else return res.val;
 }
 
 void Interpreter::visit(const CallStmt& stmt) {
     std::vector<Value> argValues;
     for (const auto& a : stmt.args) argValues.push_back(evaluate(a));
-    handleCall(stmt.module, stmt.function, argValues);
+    handleCall(stmt.module, stmt.function, argValues, _ctx);
 }
 
 void Interpreter::visit(const CallExpr& expr) {
     std::vector<Value> argValues;
     for (const auto& a : expr.args) argValues.push_back(evaluate(a));
-    _lastValue = handleCall(expr.module, expr.function, argValues);
+    _lastValue = handleCall(expr.module, expr.function, argValues, _ctx);
 }
 
 void Interpreter::visit(const GroupingExpr& expr){

@@ -1,4 +1,4 @@
-#include "io/ps2_keyboard.h"
+#include "devices/ps2_keyboard.h"
 
 PS2Keyboard* instancePtr = nullptr;
 

@@ -1,17 +1,24 @@
-#include "io/esp32_io.h"
+#include "host/esp32_host.h"
 
-void ESP32IO::begin(){
+void ESP32Host::begin(){
     Serial.begin(115200);
     _terminal.begin();
     _keyboard.begin();
 } 
 
-void ESP32IO::print(const std::string& txt){
+void ESP32Host::service(){
+    while (_keyboard.available()){
+        auto event = _keyboard.readEvent();
+        if (event.action == KeyAction::Pause) _breakRequested = true;
+    }
+}
+
+void ESP32Host::print(const std::string& txt){
     Serial.print(txt.c_str());
     _terminal.sendString(txt.c_str());
 }
 
-std::string ESP32IO::readLine(){
+std::string ESP32Host::readLine(){
     std::string line;
     while (true) {
         if (_keyboard.available()) {
@@ -79,7 +86,7 @@ std::string ESP32IO::readLine(){
 }
 
 // Dumb implementation for now
-void ESP32IO::redrawLine(std::string& line){
+void ESP32Host::redrawLine(std::string& line){
     Serial.print("\r");
     Serial.print("                                                  ");
     Serial.print("\r> ");
@@ -87,20 +94,20 @@ void ESP32IO::redrawLine(std::string& line){
     _terminal.redrawLine("> " + line);
 }
 
-void ESP32IO::clearScreen(){
+void ESP32Host::clearScreen(){
     Serial.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
     _terminal.clearScreen();
 }
 
-void ESP32IO::reset(){
+void ESP32Host::reset(){
     _terminal.resync();
 }
 
-void ESP32IO::setCursor(int x, int y){
+void ESP32Host::setCursor(int x, int y){
     _terminal.setCursor(x, y);
 }
 
-bool ESP32IO::checkBreakRequested(){
+bool ESP32Host::checkBreakRequested(){
     if (_breakRequested){
         _breakRequested = false;
         return true;
@@ -108,11 +115,15 @@ bool ESP32IO::checkBreakRequested(){
     return false;
 }
 
-void ESP32IO::pollKeyboard(){
-    if (_keyboard.available()){
-        KeyEvent key = _keyboard.readEvent();
-        if (key.action == KeyAction::Pause){
-            _breakRequested = true;
-        }
+void ESP32Host::delay(uint32_t ms){
+    uint32_t start = millis();
+
+    while (::millis() - start < ms){
+        service();
+        if (_breakRequested) break;
     }
+}
+
+uint32_t ESP32Host::millis(){
+    return ::millis();
 }

@@ -1,22 +1,26 @@
 #pragma once
 
-#include "Arduino.h"
-#include "io_interface.h"
-#include "ps2_keyboard.h"
-#include "uart_terminal.h"
+#include "ihost.h"
+#include "devices/ps2_keyboard.h"
+#include "devices/uart_terminal.h"
 
-class ESP32IO : public IOInterface{
+class ESP32Host : public IHost{
 public: 
     /**
-     * @brief Construct a new ESP32IO object
+     * @brief Construct a new ESP32Host object
      * @param PS2Keyboard
      */
-    ESP32IO(PS2Keyboard& keyboard, UARTTerminal& terminal): _keyboard(keyboard), _terminal(terminal){}
+    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal): _keyboard(keyboard), _terminal(terminal){}
 
     /**
      * @brief Starts the IO class, reading out inputs and setting up outputs
      */
     void begin();
+
+    /**
+     * @brief Checks up on hardware modules/devices
+     */
+    void service();
 
     /**
      * @brief Overrides the standard io_interface print statement to output to the terminal/monitor
@@ -60,10 +64,8 @@ public:
      */
     bool checkBreakRequested();
 
-    /**
-     * @brief Manual polling (needed for checkBreakRequested)
-     */
-    void pollKeyboard();
+    void delay(uint32_t ms);
+    uint32_t millis();
 
 private: 
     PS2Keyboard& _keyboard; ///< Keyboard object used for inputs

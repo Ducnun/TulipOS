@@ -12,13 +12,13 @@
 
 class BasicEngine {
 public:
-    BasicEngine(IOInterface& io) 
-        : _io(io),
+    BasicEngine(IHost& host) 
+        : _host(host),
           _staticArena(PROGRAM_SIZE),
           _symTable(_staticArena),
           _parser(_symTable, _staticArena),
-          _ctx(TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
-          _interpreter(_ctx, _io, _symTable, _staticArena)
+          _ctx(_host, TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
+          _interpreter(_ctx, _symTable, _staticArena)
     {
         // Constructor body
     }
@@ -34,7 +34,7 @@ public:
     const uint32_t reportProgramSize(){ return _staticArena.getOffset(); }
 
 private:
-    IOInterface& _io;
+    IHost& _host;
     Arena _staticArena;
     SymbolTable _symTable;
     RuntimeContext _ctx;

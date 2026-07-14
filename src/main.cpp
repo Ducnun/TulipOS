@@ -1,18 +1,18 @@
 // Compiled only if esp32 env is chosen
 #ifdef ESP32
-  #include "io/esp32_io.h"
+  #include "host/esp32_host.h"
   #include "system/shell.h"
 
   PS2Keyboard keyboard(13,14);
   UARTTerminal terminal(1000000);
-  ESP32IO io(keyboard, terminal);
-  Shell shell(io);
+  ESP32Host host(keyboard, terminal);
+  Shell shell(host);
 
   void setup(){
     // Start IO and shell
     Serial.begin(115200);
     keyboard.begin();
-    io.begin();
+    host.begin();
     shell.runREPL();
   }
 
@@ -22,13 +22,13 @@
 
 // Compiled only when native env is chosen
 #else
-  #include "io/console_io.h"
+  #include "host/console_host.h"
   #include "system/shell.h"
-  ConsoleIO io;
+  ConsoleHost host;
 
   // Start IO and shell
   int main(){
-    Shell shell(io);
+    Shell shell(host);
     shell.runREPL();
   }
 #endif

@@ -7,7 +7,7 @@
 #ifdef ESP32    // Heap cap not available for native builds
 #include "esp_heap_caps.h"
 #endif
-#include "io/io_interface.h"
+#include "host/ihost.h"
 #include "engine/basic_engine.h"
 
 // Debug
@@ -17,9 +17,9 @@ class Shell{
 public: 
     /**
      * @brief Construct a new Basic Interpreter object
-     * @param io A reference to an IOInterface (console or ESP32 based)
+     * @param io A reference to an IHost (console or ESP32 based)
      */
-    Shell(IOInterface& io);
+    Shell(IHost& host);
     /**
      * @brief Destroy the Basic Interpreter object
      */
@@ -30,7 +30,7 @@ public:
     void runREPL();
     
 private:
-    IOInterface& _io;   ///< Reference to IO system for input/output
+    IHost& _host;   ///< Reference to IO system for input/output
     BasicEngine _engine;
 
     void printWelcome();
