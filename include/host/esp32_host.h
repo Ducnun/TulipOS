@@ -11,7 +11,7 @@ public:
      * @brief Construct a new ESP32Host object
      * @param PS2Keyboard
      */
-    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal, IFileSystem& fs) : _keyboard(keyboard), _terminal(terminal), _fs(fs) {}
+    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal) : _keyboard(keyboard), _terminal(terminal){}
 
     /**
      * @brief Starts the IO class, reading out inputs and setting up outputs
@@ -71,7 +71,7 @@ public:
 private: 
     PS2Keyboard& _keyboard; ///< Keyboard object used for inputs
     UARTTerminal& _terminal;    ///< Terminal object used for outputting to a display in terminal mode
-    IFileSystem& _fs;   ///< Filesystem to read and write programs to
+    // IFileSystem& _fs;   ///< Filesystem to read and write programs to
 
     bool _breakRequested = false;   ///< Buffers the break key
     std::vector<std::string> _history;  ///< Stores command history

@@ -10,13 +10,14 @@
   UARTTerminal terminal(UARTTERMINAL_SPEED);
   SDCardSPI sdDriver(SD_MOSI, SD_MISO, SD_SCK, SD_CS);
   FAT32Manager fs(sdDriver);
-  ESP32Host host(keyboard, terminal, fs);
+  ESP32Host host(keyboard, terminal);
   Shell shell(host);
 
   void setup(){
     // Start IO and shell
     Serial.begin(115200);
     keyboard.begin();
+    sdDriver.begin();
     host.begin();
     shell.runREPL();
   }
