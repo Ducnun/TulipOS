@@ -15,6 +15,7 @@
 #define SD_SPI_WRITE_BLOCK          24
 #define SD_SPI_WRITE_MULTIPLE_BLOCK 25
 #define SD_SPI_READ_OCR             58
+#define SD_SPI_REQUEST_BYTE         0xFF
 
 // Appended commands
 #define SD_SPI_APP_CMD                          55

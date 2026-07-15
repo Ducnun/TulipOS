@@ -42,7 +42,7 @@ bool SDCardSPI::begin(){
     do {
         sendCommand(SD_SPI_APP_CMD, 0, 0xFF);   // Preamble of extended codes
         r1 = sendCommand(SD_SPI_APP_SEND_OP_COND, 0xFF);
-    } while ( r1 == SD_SPI_R1_IN_IDLE_STATE && millis() - timeout > 1000 );
+    } while ( r1 == SD_SPI_R1_IN_IDLE_STATE && millis() - timeout < 1000 );
     if (millis() - timeout > 1000) Serial.println("SD init timeout reached");
 
     // Speed up to data rates
@@ -53,7 +53,44 @@ bool SDCardSPI::begin(){
 }
 
 bool SDCardSPI::readBlock(uint32_t addr, uint8_t* buf){
+    // 1. Send the Read Command 
+    uint8_t r1 = sendCommand(SD_SPI_READ_SINGLE_BLOCK, addr, 0xFF);
+    
+    if (r1 != 0x00) {
+        Serial.printf("Read Command Failed: 0x%02X\n", r1);
+        deselect(); // Ensure we close the transaction on failure
+        return false;
+    }
 
+    // 2. Wait for the Data Token (0xFE)
+    uint32_t timeout = millis();
+    uint8_t token = 0xFF;
+    while ((token = SPI.transfer(0xFF)) == 0xFF) {
+        if (millis() - timeout > 500) {
+            Serial.println("Read timeout waiting for 0xFE");
+            deselect();
+            return false;
+        }
+    }
+
+    if (token != 0xFE) {
+        Serial.printf("Unexpected Data Token: 0x%02X\n", token);
+        deselect();
+        return false;
+    }
+
+    // 3. Read the 512 bytes
+    for (uint16_t i = 0; i < 512; i++) {
+        buf[i] = SPI.transfer(0xFF);
+    }
+
+    // 4. Read the 2-byte CRC (even if ignoring it)
+    SPI.transfer(0xFF);
+    SPI.transfer(0xFF);
+
+    // 5. Cleanup
+    deselect();
+    return true;
 }
 
 bool SDCardSPI::writeBlock(uint32_t addr, const uint8_t* buf){

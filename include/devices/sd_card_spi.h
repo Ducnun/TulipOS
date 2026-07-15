@@ -3,7 +3,7 @@
 #include "storage/iblock_device.h"
 #include "utils/sd_spi_commands.h"
 
-#define SPI_INIT_SPEED 400000
+#define SPI_INIT_SPEED 100000
 #define SPI_DATA_SPEED 20000000
 
 class SDCardSPI : public IBlockDevice{

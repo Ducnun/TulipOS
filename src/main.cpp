@@ -17,7 +17,13 @@
     // Start IO and shell
     Serial.begin(115200);
     keyboard.begin();
+
     sdDriver.begin();
+    uint8_t buf[512];
+    sdDriver.readBlock(0x00, buf);
+    Serial.println("Hexdump:");
+    for (int i = 0; i < 512; i++) Serial.printf("%02x", buf[i]);
+    
     host.begin();
     shell.runREPL();
   }
