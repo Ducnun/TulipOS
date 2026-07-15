@@ -3,6 +3,7 @@
 #include "ihost.h"
 #include "devices/ps2_keyboard.h"
 #include "devices/uart_terminal.h"
+#include "storage/ifile_system.h"
 
 class ESP32Host : public IHost{
 public: 
@@ -10,7 +11,7 @@ public:
      * @brief Construct a new ESP32Host object
      * @param PS2Keyboard
      */
-    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal): _keyboard(keyboard), _terminal(terminal){}
+    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal, IFileSystem& fs) : _keyboard(keyboard), _terminal(terminal), _fs(fs) {}
 
     /**
      * @brief Starts the IO class, reading out inputs and setting up outputs
@@ -69,7 +70,9 @@ public:
 
 private: 
     PS2Keyboard& _keyboard; ///< Keyboard object used for inputs
-    UARTTerminal& _terminal;
+    UARTTerminal& _terminal;    ///< Terminal object used for outputting to a display in terminal mode
+    IFileSystem& _fs;   ///< Filesystem to read and write programs to
+
     bool _breakRequested = false;   ///< Buffers the break key
     std::vector<std::string> _history;  ///< Stores command history
     int _historyIndex = -1; ///< Tracks currently selected index in history
