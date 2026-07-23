@@ -10,6 +10,7 @@
             "includePath": [
                 "/home/duncan/Documents/ESPBASIC/include",
                 "/home/duncan/Documents/ESPBASIC/src",
+                "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -228,7 +229,6 @@
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/RainMaker/src",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SD/src",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SD_MMC/src",
-                "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SimpleBLE/src",
                 "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/Ticker/src",
@@ -246,6 +246,7 @@
                 "path": [
                     "/home/duncan/Documents/ESPBASIC/include",
                     "/home/duncan/Documents/ESPBASIC/src",
+                    "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -464,7 +465,6 @@
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/RainMaker/src",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SD/src",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SD_MMC/src",
-                    "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SPI/src",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SPIFFS/src",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/SimpleBLE/src",
                     "/home/duncan/.platformio/packages/framework-arduinoespressif32/libraries/Ticker/src",

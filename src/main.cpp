@@ -23,7 +23,11 @@
     sdDriver.readBlock(0x00, buf);
     Serial.println("Hexdump:");
     for (int i = 0; i < 512; i++) Serial.printf("%02x", buf[i]);
-    
+
+    sdDriver.readBlock(0x8000, buf);
+    Serial.println("Hexdump at 0x8000:");
+    for (int i = 0; i < 512; i++) Serial.printf("%02x", buf[i]);
+
     host.begin();
     shell.runREPL();
   }
