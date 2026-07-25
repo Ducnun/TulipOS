@@ -3,7 +3,6 @@
 #include "ihost.h"
 #include "devices/ps2_keyboard.h"
 #include "devices/uart_terminal.h"
-#include "storage/ifile_system.h"
 
 class ESP32Host : public IHost{
 public: 
@@ -71,7 +70,6 @@ public:
 private: 
     PS2Keyboard& _keyboard; ///< Keyboard object used for inputs
     UARTTerminal& _terminal;    ///< Terminal object used for outputting to a display in terminal mode
-    // IFileSystem& _fs;   ///< Filesystem to read and write programs to
 
     bool _breakRequested = false;   ///< Buffers the break key
     std::vector<std::string> _history;  ///< Stores command history

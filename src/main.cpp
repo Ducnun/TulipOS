@@ -4,13 +4,14 @@
   #include "host/esp32_host.h"
   #include "system/shell.h"
   #include "devices/sd_card_spi.h"
-  #include "storage/fat32_manager.h"
+  #include "storage/mbr/mbr.h"
+  #include "storage/block/volume.h"
 
   PS2Keyboard keyboard(KB_DATA, KB_CLK);
   UARTTerminal terminal(UARTTERMINAL_SPEED);
   SDCardSPI sdDriver(SD_MOSI, SD_MISO, SD_SCK, SD_CS);
-  FAT32Manager fs(sdDriver);
   ESP32Host host(keyboard, terminal);
+  MBR mbr;
   Shell shell(host);
 
   void setup(){
@@ -19,14 +20,12 @@
     keyboard.begin();
 
     sdDriver.begin();
-    uint8_t buf[512];
-    sdDriver.readBlock(0x00, buf);
-    Serial.println("Hexdump:");
-    for (int i = 0; i < 512; i++) Serial.printf("%02x", buf[i]);
-
-    sdDriver.readBlock(0x8000, buf);
-    Serial.println("Hexdump at 0x8000:");
-    for (int i = 0; i < 512; i++) Serial.printf("%02x", buf[i]);
+    mbr.read(sdDriver);
+    auto partition = mbr.partition(0);
+    Serial.println(partition.startLBA());
+    Volume volume(sdDriver, partition);
+    uint8_t boot[512];
+    volume.readBlock(0, boot);
 
     host.begin();
     shell.runREPL();

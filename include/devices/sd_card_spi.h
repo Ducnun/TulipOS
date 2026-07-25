@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/iblock_device.h"
+#include "storage/block/iblock_device.h"
 #include "utils/sd_spi_commands.h"
 
 #define SPI_INIT_SPEED 100000
