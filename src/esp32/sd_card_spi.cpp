@@ -13,9 +13,9 @@ bool SDCardSPI::begin(){
     digitalWrite(_cs, HIGH);
     SPI.begin(_sck, _miso, _mosi, _cs);
 
-    Serial.println("Starting transaction at 400KHz");
+    Serial.println("Starting transaction at 100KHz");
     // Start slow transaction
-    SPI.beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE0));
+    SPI.beginTransaction(SPISettings(100000, MSBFIRST, SPI_MODE0));
     for(int i = 0; i < 10; i++) SPI.transfer(0xFF); // First send at least 74 clock cycles with CS high to boot SD
     SPI.endTransaction();
 

@@ -9,4 +9,5 @@ struct PartitionEntry{
     uint8_t     chsEnd[3];
     uint32_t    firstLBA;
     uint32_t    sectorCount;
-};
+}; 
+#pragma pack(push, 1)
