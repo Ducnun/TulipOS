@@ -6,6 +6,11 @@
 #define SPI_INIT_SPEED 100000
 #define SPI_DATA_SPEED 20000000
 
+enum SD_CARD_TYPE{
+    SDSC,
+    SDHC,
+};
+
 class SDCardSPI : public IBlockDevice{
 public:
     SDCardSPI(uint8_t mosi, uint8_t miso, uint8_t sck, uint8_t cs);
@@ -22,6 +27,7 @@ private:
     uint8_t _cs;
     uint32_t _spiSpeed;
     uint8_t _is_initialized;
+    SD_CARD_TYPE _cardType;
 
     // Protocol helpers
     uint8_t sendCommand(uint8_t cmd, uint32_t arg, uint8_t crc = 0x01);

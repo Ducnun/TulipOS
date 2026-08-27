@@ -29,9 +29,13 @@ bool SDCardSPI::begin(){
 
     // Check voltage (differ per card version e.g. SDHC/SDXC)
     r1 = sendCommand(SD_SPI_SEND_IF_COND, 0x1AA, 0x87);
-    if (r1 & SD_SPI_R1_ILLEGAL_COMMAND) Serial.println("Legacy card detected (Ver 1.x)");
+    if (r1 & SD_SPI_R1_ILLEGAL_COMMAND) {
+        Serial.println("Legacy card detected (Ver 1.x)");
+        _cardType = SD_CARD_TYPE::SDSC;
+    }
     else {
         Serial.println("Ver 2.0+ detected, reading 4 more bytes");
+        _cardType = SD_CARD_TYPE::SDHC;
         select();
         for (int i = 0; i < 4; i++) SPI.transfer(0xFF);
         deselect();
@@ -53,8 +57,13 @@ bool SDCardSPI::begin(){
 }
 
 bool SDCardSPI::readBlock(uint32_t addr, uint8_t* buf){
+    uint32_t byteAddr = addr;
+    if (_cardType == SD_CARD_TYPE::SDHC) {
+        byteAddr *= 512;  // SDHC uses sector addressing
+    }
+
     // 1. Send the Read Command 
-    uint8_t r1 = sendCommand(SD_SPI_READ_SINGLE_BLOCK, addr, 0xFF);
+    uint8_t r1 = sendCommand(SD_SPI_READ_SINGLE_BLOCK, byteAddr, 0xFF);
     
     if (r1 != 0x00) {
         Serial.printf("Read Command Failed: 0x%02X\n", r1);
