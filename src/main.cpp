@@ -8,6 +8,7 @@
   #include "storage/block/volume.h"
   #include "storage/filesystems/fat32/fat32_bpb.h"
   #include "storage/filesystems/fat32/fat32_clustertable.h"
+  #include "storage/filesystems/fat32/fat32_directory.h"
 
   PS2Keyboard keyboard(KB_DATA, KB_CLK);
   UARTTerminal terminal(UARTTERMINAL_SPEED);
@@ -141,6 +142,47 @@
 
             cluster = next;
         }
+
+        Serial.println("\n=== DEBUG: Directory Listing (Root) ===");
+
+        // 1. Initialize the Directory iterator
+        FAT32Directory rootDir(volume, clusters, bpb.rootCluster());
+        FAT32DirectoryEntry entry;
+
+        int count = 0;
+        while (rootDir.next(entry)) {
+            count++;
+            
+            // 2. Determine if it's a directory or a file
+            bool isDir = (entry.attributes & FAT_ATTR_DIRECTORY);
+            
+            // 3. Print the name and extension
+            // Note: FAT pads with spaces, so we'll see things like "MYFILE  TXT"
+            Serial.print(isDir ? "[DIR] " : "      ");
+            Serial.print(entry.name);
+            Serial.print(".");
+            Serial.print(entry.extension);
+
+            // 4. Print file size (directories usually show 0)
+            if (!isDir) {
+                Serial.print("  Size: ");
+                Serial.print(entry.fileSize);
+                Serial.println(" bytes");
+            } else {
+                Serial.println();
+            }
+
+            // 5. Print the starting cluster (useful for verifying your ClusterTable)
+            Serial.print("        Start Cluster: ");
+            Serial.println(entry.firstCluster);
+        }
+
+        if (count == 0) {
+            Serial.println("No files found in root directory.");
+        } else {
+            Serial.printf("\nTotal entries found: %d\n", count);
+        }
+
     }
 
     host.begin();

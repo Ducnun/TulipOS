@@ -24,6 +24,8 @@ public:
         return (value >= FAT32_CLUSTER_EOC);
     }
 
+    const FAT32BPB bpb() const { return _bpb; };
+
 private:
     IBlockDevice& _device;
     const FAT32BPB& _bpb;

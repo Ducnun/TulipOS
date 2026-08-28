@@ -15,6 +15,8 @@ bool FAT32BPB::parse(uint8_t* sector){
     _fatSize        = util::readLE32(sector + 0x24);
     _rootCluster    = util::readLE32(sector + 0x2C);
 
+    // TODO: Add proper error codes and check sector size (strictly 512 bytes supported on our system)
+
     // Validate some fields (e.g. powers of 2)
     if (_sectorsPerCluster > 128) return false;     // Max cluster size
     if (_numberOfFats == 0) return false;           // Can't have 0 FATs
