@@ -140,7 +140,6 @@
             }
 
             cluster = next;
-
         }
     }
 
