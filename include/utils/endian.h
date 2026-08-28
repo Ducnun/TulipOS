@@ -11,7 +11,7 @@ namespace util{
     inline uint32_t readLE32(const uint8_t* ptr){
         return  static_cast<uint32_t>(ptr[0]) | 
                 (static_cast<uint32_t>(ptr[1] << 8)) |
-                (static_cast<uint32_t>(ptr[1] << 16)) |
-                (static_cast<uint32_t>(ptr[1] << 24));
+                (static_cast<uint32_t>(ptr[2] << 16)) |
+                (static_cast<uint32_t>(ptr[3] << 24));
     }
 }

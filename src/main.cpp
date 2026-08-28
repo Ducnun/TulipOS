@@ -7,6 +7,7 @@
   #include "storage/mbr/mbr.h"
   #include "storage/block/volume.h"
   #include "storage/filesystems/fat32/fat32_bpb.h"
+  #include "storage/filesystems/fat32/fat32_cluster.h"
 
   PS2Keyboard keyboard(KB_DATA, KB_CLK);
   UARTTerminal terminal(UARTTERMINAL_SPEED);
@@ -110,6 +111,36 @@
             Serial.print("Signature: 0x");
             Serial.print(boot[510], HEX);
             Serial.println(boot[511], HEX);
+        }
+
+        // Test out root directory clusters
+        FAT32Cluster clusters(volume, bpb);
+
+        uint32_t cluster = bpb.rootCluster();
+
+        Serial.println("\n=== DEBUG: Root Directory Cluster Chain ===");
+
+        while (true) {
+            Serial.print("Cluster: ");
+            Serial.println(cluster);
+
+            uint32_t firstSector = clusters.firstSector(cluster);
+
+            Serial.print("  First sector: ");
+            Serial.println(firstSector);
+
+            uint32_t next = clusters.nextCluster(cluster);
+
+            Serial.print("  Next cluster: ");
+            Serial.println(next, HEX);
+
+            if (clusters.isEndOfChain(next)) {
+                Serial.println("  END OF CHAIN");
+                break;
+            }
+
+            cluster = next;
+
         }
     }
 
