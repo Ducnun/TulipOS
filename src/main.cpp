@@ -7,7 +7,7 @@
   #include "storage/mbr/mbr.h"
   #include "storage/block/volume.h"
   #include "storage/filesystems/fat32/fat32_bpb.h"
-  #include "storage/filesystems/fat32/fat32_cluster.h"
+  #include "storage/filesystems/fat32/fat32_clustertable.h"
 
   PS2Keyboard keyboard(KB_DATA, KB_CLK);
   UARTTerminal terminal(UARTTERMINAL_SPEED);
@@ -114,7 +114,7 @@
         }
 
         // Test out root directory clusters
-        FAT32Cluster clusters(volume, bpb);
+        FAT32ClusterTable clusters(volume, bpb);
 
         uint32_t cluster = bpb.rootCluster();
 

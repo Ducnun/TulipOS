@@ -5,18 +5,21 @@
 #include "storage/block/iblock_device.h"
 #include "storage/filesystems/fat32/fat32_bpb.h"
 
-#define FAT32_EOC 0x0FFFFFF8
+#define FAT32_CLUSTER_FREE       0x00000000
+#define FAT32_CLUSTER_BAD        0x0FFFFFF7
+#define FAT32_CLUSTER_EOC        0x0FFFFFF8
+#define FAT32_CLUSTER_INVALID    0xFFFFFFFF
 
-class FAT32Cluster {
+class FAT32ClusterTable {
 public:
-    FAT32Cluster(IBlockDevice& device, const FAT32BPB& bpb) : 
+    FAT32ClusterTable(IBlockDevice& device, const FAT32BPB& bpb) : 
         _device(device), _bpb(bpb) {
             _fatStartSector = _bpb.reservedSectors();
             _dataStartSector = _bpb.reservedSectors() + (_bpb.numberOfFats() * _bpb.fatSize());
         }
 
     uint32_t firstSector(uint32_t cluster) const {
-        return _dataStartSector + ((cluster - 2) * _bpb.sectorsPerCluster());       // First 2 sectors are reserved for FAT1 and FAT2
+        return _dataStartSector + ((cluster - 2) * _bpb.sectorsPerCluster());       // Cluster numbers 0 and 1 are reserved (FAT32 reasons)
     }
 
     uint32_t nextCluster(uint32_t cluster) {
@@ -28,14 +31,14 @@ public:
 
         // Retrieve sector that holds index of cluster
         uint8_t sector[512];
-        if (!_device.readBlock(fatSector, sector));
+        if (!_device.readBlock(fatSector, sector)) return FAT32_CLUSTER_INVALID;
 
         // Read out exact cluster index using offset inside of sector. Mask out upper nibble (FAT32 reasons)
         return util::readLE32(&sector[offsetInSector]) & 0x0FFFFFFF;
     }
 
     bool isEndOfChain(uint32_t value) {
-        return (value >= FAT32_EOC);
+        return (value >= FAT32_CLUSTER_EOC);
     }
 
 private:
