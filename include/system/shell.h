@@ -9,6 +9,7 @@
 #endif
 #include "host/ihost.h"
 #include "engine/basic_engine.h"
+#include "services/storage_service.h"
 
 // Debug
 #include "interpreter/pretty_printer.h" 
@@ -19,7 +20,7 @@ public:
      * @brief Construct a new Basic Interpreter object
      * @param io A reference to an IHost (console or ESP32 based)
      */
-    Shell(IHost& host);
+    Shell(IHost& host, StorageService& storage);
     /**
      * @brief Destroy the Basic Interpreter object
      */
@@ -31,7 +32,8 @@ public:
     
 private:
     IHost& _host;   ///< Reference to IO system for input/output
-    BasicEngine _engine;
+    StorageService& _storage;   ///< Reference to storage service
+    BasicEngine _engine;        ///< Runs BASIC interpreter
 
     void printWelcome();
 

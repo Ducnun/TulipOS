@@ -4,6 +4,7 @@ void ESP32Host::begin(){
     Serial.begin(115200);
     _terminal.begin();
     _keyboard.begin();
+    _sdCard.begin();
 } 
 
 void ESP32Host::service(){
@@ -113,6 +114,13 @@ bool ESP32Host::checkBreakRequested(){
         return true;
     }
     return false;
+}
+
+std::vector<StorageDescriptor> ESP32Host::getAvailableStorage(void){
+    std::vector<StorageDescriptor> devices;
+    // The host knows that on ESP32, we have an SD Card.
+    devices.push_back({"SD", &_sdCard});
+    return devices;
 }
 
 void ESP32Host::delay(uint32_t ms){

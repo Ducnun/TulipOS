@@ -2,6 +2,14 @@
 
 #include <string>
 #include <cstdint>
+#include <vector>
+#include "storage/block/iblock_device.h"
+
+struct StorageDescriptor {
+    const char* defaultPrefix; // e.g. "SD"
+    IBlockDevice* device;      // The actual hardware (SDCardSPI or PCDiskImage)
+};
+
 
 class IHost {
 public: 
@@ -50,6 +58,9 @@ public:
      * @return false Not pressed
      */
     virtual bool checkBreakRequested() {return false;}
+
+    // --- Hardware Discovery ---
+    virtual std::vector<StorageDescriptor> getAvailableStorage() = 0;
 
     virtual void delay(uint32_t ms) = 0;
     virtual uint32_t millis() = 0;

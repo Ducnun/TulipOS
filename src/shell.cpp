@@ -1,6 +1,6 @@
 #include "system/shell.h"
 
-Shell::Shell(IHost &host) : _host(host), _engine(_host) {}
+Shell::Shell(IHost& host, StorageService& storage) : _host(host), _storage(storage), _engine(_host) {}
 
 void Shell::runREPL() {
     printWelcome();
@@ -91,6 +91,10 @@ bool Shell::handleREPLDirective(const std::string& line){
     }
     if (line == "DUMP"){
         _engine.DumpProgram();
+        return true;
+    }
+    if (line == "LS"){
+        _storage.ls(nullptr);
         return true;
     }
     if (line == "BENCHPI"){

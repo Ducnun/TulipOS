@@ -3,6 +3,7 @@
 #include "ihost.h"
 #include "devices/ps2_keyboard.h"
 #include "devices/uart_terminal.h"
+#include "devices/sd_card_spi.h"
 
 class ESP32Host : public IHost{
 public: 
@@ -10,7 +11,7 @@ public:
      * @brief Construct a new ESP32Host object
      * @param PS2Keyboard
      */
-    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal) : _keyboard(keyboard), _terminal(terminal){}
+    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal, SDCardSPI sdCard) : _keyboard(keyboard), _terminal(terminal), _sdCard(sdCard) {}
 
     /**
      * @brief Starts the IO class, reading out inputs and setting up outputs
@@ -64,12 +65,16 @@ public:
      */
     bool checkBreakRequested();
 
+    // --- Hardware Discovery ---
+    std::vector<StorageDescriptor> getAvailableStorage();
+
     void delay(uint32_t ms);
     uint32_t millis();
 
 private: 
-    PS2Keyboard& _keyboard; ///< Keyboard object used for inputs
+    PS2Keyboard& _keyboard;     ///< Keyboard object used for inputs
     UARTTerminal& _terminal;    ///< Terminal object used for outputting to a display in terminal mode
+    SDCardSPI& _sdCard;         ///< Main storage solution provided through SPI SD driver
 
     bool _breakRequested = false;   ///< Buffers the break key
     std::vector<std::string> _history;  ///< Stores command history
