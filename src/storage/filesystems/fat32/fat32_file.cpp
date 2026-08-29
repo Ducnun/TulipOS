@@ -53,3 +53,12 @@ size_t FAT32File::read(uint8_t* buffer, size_t len) {
 
     return bytesRead;
 }
+
+// Stubs for compilation
+bool FAT32File::seek(uint32_t position){
+    return true;
+}
+
+void FAT32File::close(void){
+
+}

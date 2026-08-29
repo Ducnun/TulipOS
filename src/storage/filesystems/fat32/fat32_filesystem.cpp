@@ -111,3 +111,28 @@ IFile* FAT32FileSystem::openFile(const char* path) {
     }
     return nullptr;
 }
+
+// Factory for the Iterator
+IDirIterator* FAT32FileSystem::openDir(const char* path) {
+    uint32_t cluster;
+    
+    if (strcmp(path, "/") == 0) {
+        cluster = _bpb.rootCluster();
+    } else {
+        FAT32DirectoryEntry entry;
+        if (!resolvePath(path, entry)) return nullptr;
+        if (!(entry.attributes & 0x10)) return nullptr; // Not a directory
+        cluster = entry.firstCluster;
+        if (cluster == 0) cluster = _bpb.rootCluster();
+    }
+    
+    // Return a new concrete iterator cast to the interface
+    return new FAT32Iterator(_dev, *_clusters, cluster);
+}
+    
+// Check if a path exists
+bool FAT32FileSystem::exists(const char* path) {
+    if (strcmp(path, "/") == 0) return true; // Root always exists
+    FAT32DirectoryEntry entry;
+    return resolvePath(path, entry);
+}

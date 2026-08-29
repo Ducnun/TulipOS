@@ -4,9 +4,9 @@
 #include "storage/block/iblock_device.h"
 #include "fat32_directory.h"
 
-class FAT32DirectoryIterator : public IDirIterator {
+class FAT32Iterator : public IDirIterator {
 public:
-    FAT32DirectoryIterator(IBlockDevice& dev, FAT32ClusterTable& clusters, uint32_t firstCluster)
+    FAT32Iterator(IBlockDevice& dev, FAT32ClusterTable& clusters, uint32_t firstCluster)
         : _dir(dev, clusters, firstCluster) {}
 
     bool next(DirectoryEntry& entry) override {

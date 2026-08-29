@@ -12,8 +12,6 @@ public:
     // Reads 'len' bytes into 'buffer'. Returns actual bytes read.
     size_t read(uint8_t* buffer, size_t len);
 
-    size_t write(const uint8_t* buffer, size_t len);
-
     // Seek to a specific byte in the file
     bool seek(uint32_t position);
 

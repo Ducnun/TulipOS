@@ -8,31 +8,14 @@
 class FAT32FileSystem : public IFileSystem {
 public:
     FAT32FileSystem(IBlockDevice& dev) : _dev(dev), _clusters(nullptr) {}
-
+    
+    // Implement all interface methods
     bool mount() override;
-
-    IFile* openFile(const char* path) override {
-        FAT32DirectoryEntry entry;
-        if (resolvePath(path, entry) && !(entry.attributes & 0x10)) {
-            return new FAT32File(_dev, *_clusters, entry);
-        }
-        return nullptr;
-    }
-
-    IDirIterator* openDir(const char* path) override {
-        // Root directory special case
-        if (strcmp(path, "/") == 0) 
-            return new FAT32DirectoryIterator(_dev, *_clusters, _bpb.rootCluster());
-
-        FAT32DirectoryEntry entry;
-        if (resolvePath(path, entry) && (entry.attributes & 0x10)) {
-            return new FAT32DirectoryIterator(_dev, *_clusters, entry.firstCluster);
-        }
-        return nullptr;
-    }
+    IFile* openFile(const char* path) override;
+    IDirIterator* openDir(const char* path) override;
+    bool exists(const char* path) override;
 
 private:
-    // Helper that walks the directory tree for a given absolute path
     bool resolvePath(const char* path, FAT32DirectoryEntry& out);
 
     IBlockDevice& _dev;

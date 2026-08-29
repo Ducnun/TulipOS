@@ -1,222 +1,133 @@
 // Compiled only if esp32 env is chosen
 #ifdef ESP32
-  #include "host/esp32_definitions.h"
-  #include "host/esp32_host.h"
-  #include "system/shell.h"
-  #include "devices/sd_card_spi.h"
-  #include "storage/mbr/mbr.h"
-  #include "storage/block/volume.h"
-  #include "storage/filesystems/fat32/fat32_bpb.h"
-  #include "storage/filesystems/fat32/fat32_clustertable.h"
-  #include "storage/filesystems/fat32/fat32_directory.h"
-  #include "storage/filesystems/fat32/fat32_file.h"
+    #include "host/esp32_definitions.h"
+    #include "host/esp32_host.h"
+    #include "system/shell.h"
 
-  PS2Keyboard keyboard(KB_DATA, KB_CLK);
-  UARTTerminal terminal(UARTTERMINAL_SPEED);
-  SDCardSPI sdDriver(SD_MOSI, SD_MISO, SD_SCK, SD_CS);
-  ESP32Host host(keyboard, terminal);
-  MBR mbr;
-  Shell shell(host);
+    // Include your hardware/storage layers
+    #include "devices/sd_card_spi.h"
+    #include "storage/mbr/mbr.h"
+    #include "storage/block/volume.h"
 
-  void setup(){
-    // Start IO and shell
-    Serial.begin(115200);
-    keyboard.begin();
+    // Include the Filesystem layers
+    #include "storage/filesystems/fat32/fat32_filesystem.h"
+    #include "storage/filesystems/vfs/idir_iterator.h"
+    #include "storage/filesystems/vfs/ifile.h"
 
-    // SD CARD/FileFormat testing
-    sdDriver.begin();
+    PS2Keyboard keyboard(KB_DATA, KB_CLK);
+    UARTTerminal terminal(UARTTERMINAL_SPEED);
+    SDCardSPI sdDriver(SD_MOSI, SD_MISO, SD_SCK, SD_CS);
+    ESP32Host host(keyboard, terminal);
+    MBR mbr;
+    Shell shell(host);
 
-    // Debug MBR reading
-    Serial.println("=== DEBUG: Reading MBR ===");
-    if (!mbr.read(sdDriver)) {
-        Serial.println("ERROR: Failed to read MBR!");
-        while(1); // Halt
-    }
-    Serial.println("MBR read successfully");
+    void setup(){
+        // Start IO and shell
+        Serial.begin(115200);
+        keyboard.begin();
 
-    // Debug partition info
-    auto partition = mbr.partition(0);
-    Serial.println("\n=== DEBUG: Partition Info ===");
-    Serial.print("Partition type: 0x");
-    Serial.println(partition.type(), HEX);
-    Serial.print("Partition starts at LBA: ");
-    Serial.println(partition.startLBA());  // Should be 2048
-    Serial.print("Partition size (sectors): ");
-    Serial.println(partition.sectorCount());
-
-    // Debug Volume creation
-    Serial.println("\n=== DEBUG: Creating Volume ===");
-    Volume volume(sdDriver, partition);
-    Serial.println("Volume created successfully");
-
-    // Debug raw sector read (bypass Volume class)
-    Serial.println("\n=== DEBUG: Raw Sector Read (LBA 2048) ===");
-    uint8_t rawBoot[512];
-    if (!sdDriver.readBlock(partition.startLBA(), rawBoot)) {
-        Serial.println("ERROR: Failed to read raw sector!");
-    } else {
-        Serial.println("Raw sector read successful");
-        Serial.println("First 16 bytes (hex):");
-        for (int i = 0; i < 16; i++) {
-            if (rawBoot[i] < 0x10) Serial.print("0");
-            Serial.print(rawBoot[i], HEX);
-            Serial.print(" ");
-        }
-        Serial.println();
-    }
-
-    // Debug Volume read
-    Serial.println("\n=== DEBUG: Volume Sector Read ===");
-    uint8_t boot[512];
-    if (!volume.readBlock(0, boot)) {  // Read block 0 (should be LBA 2048)
-        Serial.println("ERROR: Failed to read via Volume!");
-    } else {
-        Serial.println("Volume sector read successful");
-        Serial.println("First 32 bytes of boot sector (hex):");
-        for (int i = 0; i < 32; i++) {
-            if (boot[i] < 0x10) Serial.print("0");
-            Serial.print(boot[i], HEX);
-            Serial.print(" ");
-            if ((i + 1) % 16 == 0) Serial.println();
-        }
-        Serial.println();
-
-        // Print last 2 bytes (should be 0x55 0xAA)
-        Serial.print("Last 2 bytes (signature): 0x");
-        Serial.print(boot[510], HEX);
-        Serial.print(boot[511], HEX);
-        Serial.println();
-
-        // Debug BPB parsing
-        Serial.println("\n=== DEBUG: BPB Parsing ===");
-        FAT32BPB bpb;
-        if (bpb.parse(boot)) {
-            Serial.println("FAT32 BPB parsed successfully");
-            Serial.print("Bytes per sector: ");
-            Serial.println(bpb.bytesPerSector());
-            Serial.print("Sectors per cluster: ");
-            Serial.println(bpb.sectorsPerCluster());
-            Serial.print("Reserved sectors: ");
-            Serial.println(bpb.reservedSectors());
-            Serial.print("Number of FATs: ");
-            Serial.println(bpb.numberOfFats());
-            Serial.print("FAT size (sectors): ");
-            Serial.println(bpb.fatSize());
-            Serial.print("Root cluster: ");
-            Serial.println(bpb.rootCluster());
-        } else {
-            Serial.println("Failed to parse FAT32 BPB");
-            Serial.print("First 3 bytes: 0x");
-            Serial.print(boot[0], HEX);
-            Serial.print(boot[1], HEX);
-            Serial.println(boot[2], HEX);
-            Serial.print("Signature: 0x");
-            Serial.print(boot[510], HEX);
-            Serial.println(boot[511], HEX);
+        // 1. Initialize Hardware
+        if (!sdDriver.begin()) {
+            Serial.println("CRITICAL: SD Driver failed to initialize.");
+            return;
         }
 
-        // Test out root directory clusters
-        FAT32ClusterTable clusters(volume, bpb);
-
-        uint32_t cluster = bpb.rootCluster();
-
-        Serial.println("\n=== DEBUG: Root Directory Cluster Chain ===");
-
-        while (true) {
-            Serial.print("Cluster: ");
-            Serial.println(cluster);
-
-            uint32_t firstSector = clusters.firstSector(cluster);
-
-            Serial.print("  First sector: ");
-            Serial.println(firstSector);
-
-            uint32_t next = clusters.nextCluster(cluster);
-
-            Serial.print("  Next cluster: ");
-            Serial.println(next, HEX);
-
-            if (clusters.isEndOfChain(next)) {
-                Serial.println("  END OF CHAIN");
-                break;
-            }
-
-            cluster = next;
+        // 2. Locate Partition via MBR
+        if (!mbr.read(sdDriver)) {
+            Serial.println("CRITICAL: Could not read MBR.");
+            return;
+        }
+        
+        // Grab the first partition (Index 0)
+        auto part = mbr.partition(0);
+        if (part.type() == 0) {
+            Serial.println("CRITICAL: Partition 0 is empty/invalid.");
+            return;
         }
 
-        Serial.println("\n=== DEBUG: Directory Listing (Root) ===");
+        // 3. Create the Block Device (Volume) for this partition
+        // This handles the LBA offset math (so block 0 is the start of the partition)
+        Volume vol(sdDriver, part);
 
-        // 1. Initialize the Directory iterator
-        FAT32Directory rootDir(volume, clusters, bpb.rootCluster());
-        FAT32DirectoryEntry entry;
+        // 4. Initialize the Filesystem
+        FAT32FileSystem fs(vol);
+        Serial.print("Mounting FAT32... ");
+        if (!fs.mount()) {
+            Serial.println("FAILED.");
+            return;
+        }
+        Serial.println("SUCCESS.");
 
-        int count = 0;
-        while (rootDir.next(entry)) {
-            count++;
-            
-            // 2. Determine if it's a directory or a file
-            bool isDir = (entry.attributes & FAT_ATTR_DIRECTORY);
-            
-            // 3. Print the name and extension
-            // Note: FAT pads with spaces, so we'll see things like "MYFILE  TXT"
-            Serial.print(isDir ? "[DIR] " : "      ");
-            Serial.print(entry.name);
-            Serial.print(".");
-            Serial.print(entry.extension);
-
-            if (strcmp(entry.name, "PRIMES  ") == 0) {
-                Serial.println("\n--- Content of PRIMES.BAS ---");
-                
-                FAT32File file(volume, clusters, entry);
-                char lineBuffer[64];
-                
-                while (!file.eof()) {
-                    size_t n = file.read((uint8_t*)lineBuffer, sizeof(lineBuffer) - 1);
-                    lineBuffer[n] = '\0'; // Null terminate for printing
-                    Serial.print(lineBuffer);
+        // 5. TEST: Directory Listing using IDirIterator
+        Serial.println("\n=== ROOT DIRECTORY LISTING ===");
+        IDirIterator* it = fs.openDir("/");
+        if (it) {
+            DirectoryEntry vfsEntry;
+            while (it->next(vfsEntry)) {
+                if (vfsEntry.isDirectory) {
+                    Serial.printf("[DIR]  %s\n", vfsEntry.name);
+                } else {
+                    Serial.printf("FILE   %-12s  SIZE: %u bytes\n", vfsEntry.name, vfsEntry.size);
                 }
-                Serial.println("\n--- End of File ---");
             }
-
-
-            // 4. Print file size (directories usually show 0)
-            if (!isDir) {
-                Serial.print("  Size: ");
-                Serial.print(entry.fileSize);
-                Serial.println(" bytes");
-            } else {
-                Serial.println();
-            }
-
-            // 5. Print the starting cluster (useful for verifying your ClusterTable)
-            Serial.print("        Start Cluster: ");
-            Serial.println(entry.firstCluster);
-        }
-
-        if (count == 0) {
-            Serial.println("No files found in root directory.");
+            delete it; // Clean up the iterator
         } else {
-            Serial.printf("\nTotal entries found: %d\n", count);
+            Serial.println("Failed to open Root Directory Iterator.");
         }
+
+        // 6. TEST: Path Resolution and File Reading
+        // This tests walking the tree and reading data
+        const char* testFile = "/PRIMES.BAS";
+        Serial.printf("\n=== READING FILE: %s ===\n", testFile);
+        
+        IFile* file = fs.openFile(testFile);
+        if (file) {
+            Serial.printf("File opened successfully. Total Size: %u bytes\n", file->size());
+            Serial.println("--- START OF CONTENT ---");
+
+            char buffer[64];
+            while (!file->eof()) {
+                size_t bytesRead = file->read((uint8_t*)buffer, sizeof(buffer) - 1);
+                buffer[bytesRead] = '\0'; // Null terminate for Serial printing
+                Serial.print(buffer);
+            }
+            
+            Serial.println("\n--- END OF CONTENT ---");
+            
+            file->close();
+            delete file; // Clean up the file object
+        } else {
+            Serial.printf("Failed to find/open %s\n", testFile);
+        }
+
+        // 7. TEST: Deep Path Resolution (Optional)
+        // Make sure you have a folder called 'GAMES' with a file 'SNAKE.BAS' to test this
+        const char* deepFile = "/BENCH/PI.BAS";
+        IFile* df = fs.openFile(deepFile);
+        if (df) {
+            Serial.printf("\nSuccess! Deep path resolved. Size of %s is %u\n", deepFile, df->size());
+            delete df;
+        }
+
+        Serial.println("\n--- ALL TESTS COMPLETE ---");
+
+        host.begin();
+        shell.runREPL();
     }
 
-    host.begin();
-    shell.runREPL();
-  }
-
-  void loop(){
-    // Loop is handled by REPL
-  }
+    void loop(){
+        // Loop is handled by REPL
+    }
 
 // Compiled only when native env is chosen
 #else
-  #include "host/console_host.h"
-  #include "system/shell.h"
-  ConsoleHost host;
+    #include "host/console_host.h"
+    #include "system/shell.h"
+    ConsoleHost host;
 
-  // Start IO and shell
-  int main(){
-    Shell shell(host);
-    shell.runREPL();
-  }
+    // Start IO and shell
+    int main(){
+        Shell shell(host);
+        shell.runREPL();
+    }
 #endif
