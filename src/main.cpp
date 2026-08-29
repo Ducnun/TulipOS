@@ -9,6 +9,7 @@
   #include "storage/filesystems/fat32/fat32_bpb.h"
   #include "storage/filesystems/fat32/fat32_clustertable.h"
   #include "storage/filesystems/fat32/fat32_directory.h"
+  #include "storage/filesystems/fat32/fat32_file.h"
 
   PS2Keyboard keyboard(KB_DATA, KB_CLK);
   UARTTerminal terminal(UARTTERMINAL_SPEED);
@@ -163,6 +164,21 @@
             Serial.print(".");
             Serial.print(entry.extension);
 
+            if (strcmp(entry.name, "PRIMES  ") == 0) {
+                Serial.println("\n--- Content of PRIMES.BAS ---");
+                
+                FAT32File file(volume, clusters, entry);
+                char lineBuffer[64];
+                
+                while (!file.eof()) {
+                    size_t n = file.read((uint8_t*)lineBuffer, sizeof(lineBuffer) - 1);
+                    lineBuffer[n] = '\0'; // Null terminate for printing
+                    Serial.print(lineBuffer);
+                }
+                Serial.println("\n--- End of File ---");
+            }
+
+
             // 4. Print file size (directories usually show 0)
             if (!isDir) {
                 Serial.print("  Size: ");
@@ -182,7 +198,6 @@
         } else {
             Serial.printf("\nTotal entries found: %d\n", count);
         }
-
     }
 
     host.begin();
