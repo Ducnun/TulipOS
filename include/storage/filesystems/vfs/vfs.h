@@ -22,6 +22,11 @@ public:
     bool cd(const char* path);
     const char* getCwd(void);
 
+    const char* getActiveDrivePrefix() { return _mounts[_currentDrive].prefix; };
+
+    int getMountCount(void) { return _mountCount; };
+    void setActiveDrive(int driveNr) {_currentDrive = driveNr;};
+
 private:
     MountPoint* findMount(const char* path, const char** internalPath);
     void resolveFullPath(MountPoint* mnt, const char* input, char* output);
@@ -29,5 +34,5 @@ private:
 
     MountPoint _mounts[4];
     int _mountCount;
-    int _currentDrive;
+    int _currentDrive = -1;
 };

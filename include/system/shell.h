@@ -34,6 +34,7 @@ private:
     IHost& _host;   ///< Reference to IO system for input/output
     StorageService& _storage;   ///< Reference to storage service
     BasicEngine _engine;        ///< Runs BASIC interpreter
+    const char* _prompt;        ///< String used as prompt
 
     void printWelcome();
 
@@ -51,4 +52,5 @@ private:
      * @return false If the input needs to be passed down to the rest of the interpreter chain
      */
     bool handleREPLDirective(const std::string& line);
+    void handleLoad(const std::string& path);
 };

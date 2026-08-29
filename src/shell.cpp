@@ -4,8 +4,11 @@ Shell::Shell(IHost& host, StorageService& storage) : _host(host), _storage(stora
 
 void Shell::runREPL() {
     printWelcome();
-
+    
     while (true) {
+        _prompt = _storage.getCwd();
+        _host.print("\n");
+        _host.print(_prompt);
         _host.print("> ");
         std::string line = _host.readLine();
         if (line.empty()) continue;
@@ -97,6 +100,14 @@ bool Shell::handleREPLDirective(const std::string& line){
         _storage.ls(nullptr);
         return true;
     }
+    if (line.substr(0, 3) == "CD "){
+        _storage.cd(line.substr(3).c_str());
+        return true;
+    }
+    if (line.substr(0, 5) == "LOAD ") {
+        handleLoad(line.substr(5));
+        return true;
+    }
     if (line == "BENCHPI"){
         std::string benchScript = 
             "10 PRINT \"PI APPROXIMATION\"\n"
@@ -165,4 +176,51 @@ bool Shell::handleREPLDirective(const std::string& line){
     }
 
     return false;
+}
+
+void Shell::handleLoad(const std::string& path) {
+    IFile* file = _storage.open(path.c_str());
+    if (!file) return;
+
+    // 1. Prepare Engine (Equivalent to 'NEW')
+    _engine.clear(); 
+    _host.print("\nLoading " + path + "...\n");
+
+    // 2. Streaming Read
+    std::string lineBuffer = "";
+    uint8_t readBuf[256]; // Small chunks
+
+    while (!file->eof()) {
+        _host.service(); // Crucial: Keep Keyboard/System alive
+        
+        if (_host.checkBreakRequested()) {
+            _host.print("\nLoad aborted by user.\n");
+            break;
+        }
+
+        size_t n = file->read(readBuf, sizeof(readBuf));
+        
+        for (size_t i = 0; i < n; i++) {
+            char c = (char)readBuf[i];
+            
+            if (c == '\n' || c == '\r') {
+                if (!lineBuffer.empty()) {
+                    // Send one line to the engine immediately
+                    _engine.processRawLine(lineBuffer);
+                    lineBuffer.clear();
+                }
+            } else {
+                lineBuffer += c;
+            }
+        }
+    }
+
+    // Handle the last line if the file doesn't end with a newline
+    if (!lineBuffer.empty()) {
+        _engine.processRawLine(lineBuffer);
+    }
+
+    file->close();
+    delete file;
+    _host.print("READY.\n");
 }

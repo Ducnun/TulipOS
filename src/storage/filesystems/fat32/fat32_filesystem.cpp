@@ -59,47 +59,41 @@ bool FAT32FileSystem::mount() {
 }
 
 bool FAT32FileSystem::resolvePath(const char* path, FAT32DirectoryEntry& outEntry) {
-    // Start at the Root Cluster
+    // Standardize: if path is empty or "/", it's the root (no entry to return)
+    if (!path || path[0] == '\0' || strcmp(path, "/") == 0) return false;
+
     uint32_t currentDirCluster = _bpb.rootCluster();
+    char buffer[256];
+    strncpy(buffer, path, sizeof(buffer));
     
-    // Create a copy of the path because we need to tokenize it
-    char pathCopy[256];
-    strncpy(pathCopy, path, sizeof(pathCopy));
-    
-    char* part = strtok(pathCopy, "/");
-    
-    // If path is just "/", we refer to the root
-    if (part == nullptr) {
-        // You might need a dummy entry for root if your openDir needs it
-        return false; 
-    }
-
+    char* part = strtok(buffer, "/");
     while (part != nullptr) {
-        bool found = false;
-        FAT32Directory dir(_dev, *_clusters, currentDirCluster);
-        FAT32DirectoryEntry entry;
+        // Skip empty parts or "." parts
+        if (strcmp(part, ".") == 0) {
+            part = strtok(nullptr, "/");
+            continue;
+        }
 
-        while (dir.next(entry)) {
-            if (matches(entry, part)) {
+        FAT32Directory dir(_dev, *_clusters, currentDirCluster);
+        bool found = false;
+        
+        while (dir.next(outEntry)) {
+            if (matches(outEntry, part)) {
                 found = true;
-                outEntry = entry;
                 break;
             }
         }
 
-        if (!found) return false; // Path component not found
+        if (!found) return false;
 
         part = strtok(nullptr, "/");
-        
-        // If there are more parts, the current one MUST be a directory
         if (part != nullptr) {
-            if (!(outEntry.attributes & FAT_ATTR_DIRECTORY)) return false;
+            if (!(outEntry.attributes & 0x10)) return false; // Not a dir
             currentDirCluster = outEntry.firstCluster;
             if (currentDirCluster == 0) currentDirCluster = _bpb.rootCluster();
         }
     }
-
-    return true; // The last part was found and is in outEntry
+    return true;
 }
 
 IFile* FAT32FileSystem::openFile(const char* path) {

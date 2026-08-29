@@ -24,6 +24,7 @@ public:
     }
 
     void storeLine(int lineNumber, const std::string& source);
+    void processRawLine(const std::string& line);
     void removeLine(int lineNumber);
     void executeImmediate(const std::string& source);
     void run(void);

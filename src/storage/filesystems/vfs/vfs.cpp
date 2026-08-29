@@ -110,6 +110,8 @@ bool VFS::cd(const char* path) {
 }
 
 const char* VFS::getCwd() {
+    if (_currentDrive == -1) return "";     // If no drive mounted, return
+
     static char fullCwd[VFS_MAX_PATH_LENGTH + 16];
     MountPoint& mnt = _mounts[_currentDrive];
     
@@ -118,33 +120,37 @@ const char* VFS::getCwd() {
 }
 
 void VFS::resolveFullPath(MountPoint* mnt, const char* input, char* output) {
-    // 1. If input starts with '/', it's absolute relative to the drive
+    // Start with the base (CWD or Root)
     if (input[0] == '/') {
         strncpy(output, input, VFS_MAX_PATH_LENGTH);
-    } else {
-        // 2. It's relative. Combine CWD and input
+    } else if (strcmp(input, ".") == 0 || strlen(input) == 0) {
         strncpy(output, mnt->cwd, VFS_MAX_PATH_LENGTH);
-        
-        // Add a separator if the CWD isn't just "/"
-        if (output[strlen(output)-1] != '/') {
-            strncat(output, "/", VFS_MAX_PATH_LENGTH - strlen(output));
-        }
-        strncat(output, input, VFS_MAX_PATH_LENGTH - strlen(output));
+    } else {
+        strncpy(output, mnt->cwd, VFS_MAX_PATH_LENGTH);
+        if (output[strlen(output)-1] != '/') strncat(output, "/", VFS_MAX_PATH_LENGTH);
+        strncat(output, input, VFS_MAX_PATH_LENGTH);
     }
 
-    // 3. Handle ".." (Parent directory) logic
+    // This removes trailing dots, double slashes, and handles ".."
     cleanPath(output);
 }
 
 void VFS::cleanPath(char* path) {
-    // Simple logic: if path ends in "/..", remove the last two segments
-    char* dotdot = strstr(path, "/..");
-    if (dotdot) {
-        *dotdot = '\0'; // Cut the string at the dots
-        char* lastSlash = strrchr(path, '/');
-        if (lastSlash) {
-            if (lastSlash == path) *(lastSlash + 1) = '\0'; // Keep root slash
-            else *lastSlash = '\0';
-        }
+    size_t len = strlen(path);
+    if (len == 0) return;
+
+    // Remove trailing slash (unless it's the root "/")
+    if (len > 1 && path[len - 1] == '/') {
+        path[len - 1] = '\0';
+        len--;
     }
+
+    // Handle "/." (e.g., "/DATA/." -> "/DATA")
+    if (len >= 2 && strcmp(&path[len - 2], "/.") == 0) {
+        path[len - 2] = '\0';
+        if (strlen(path) == 0) strcpy(path, "/"); // Ensure we don't end up empty
+    }
+    
+    // If the path is strictly ".", it's the root
+    if (strcmp(path, ".") == 0) strcpy(path, "/");
 }

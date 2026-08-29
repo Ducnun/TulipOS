@@ -8,6 +8,22 @@ void BasicEngine::storeLine(int lineNumber, const std::string& source){
     _program.addLine(lineNumber, wrapStatements(std::move(statements)), source);
 }
 
+void BasicEngine::processRawLine(const std::string& line) {
+    if (line.empty()) return;
+
+    // Find the first space to separate line number from code
+    size_t firstSpace = line.find(' ');
+    if (firstSpace != std::string::npos) {
+        try {
+            int lineNum = std::stoi(line.substr(0, firstSpace));
+            std::string content = line.substr(firstSpace + 1);
+            storeLine(lineNum, content);
+        } catch (...) {
+            // Log error: Line doesn't start with a valid number
+        }
+    }
+}
+
 // Removes a line
 void BasicEngine::removeLine(int lineNumber) {
     _program.removeLine(lineNumber);
