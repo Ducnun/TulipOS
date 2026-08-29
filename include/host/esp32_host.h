@@ -11,7 +11,7 @@ public:
      * @brief Construct a new ESP32Host object
      * @param PS2Keyboard
      */
-    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal, SDCardSPI sdCard) : _keyboard(keyboard), _terminal(terminal), _sdCard(sdCard) {}
+    ESP32Host(PS2Keyboard& keyboard, UARTTerminal& terminal, SDCardSPI& sdCard) : _keyboard(keyboard), _terminal(terminal), _sdCard(sdCard) {}
 
     /**
      * @brief Starts the IO class, reading out inputs and setting up outputs

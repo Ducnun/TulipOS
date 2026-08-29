@@ -2,26 +2,33 @@
 #include <string.h>
 
 void StorageService::initializeStorage() {
-    // Ask host for all physical disks
-    std::vector<StorageDescriptor> hardware = _host.getAvailableStorage();
+    auto hardware = _host.getAvailableStorage();
 
     for (StorageDescriptor& desc : hardware) {
         MBR mbr;
-        if (!mbr.read(*desc.device)) continue;
+        if (!mbr.read(*desc.device)) {
+            _host.print("No MBR found on " + std::string(desc.defaultPrefix) + "\n");
+            continue;
+        }
 
-        // Iterate through partitions found on disk
-        for (int i = 0; i < 4; i++) {
-            Partition part = mbr.partition(i);
+        // ONLY iterate through found partitions
+        for (size_t i = 0; i < mbr.partitionCount(); i++) {
+            const Partition& part = mbr.getPartition(i);
+            
             if (part.type() == 0x0C || part.type() == 0x0B) {
-                // Wrap partition in Volume logic
                 Volume* vol = new Volume(*desc.device, part);
                 FAT32FileSystem* fs = new FAT32FileSystem(*vol);
 
-                // Mount the concrete file system, then mount that into the VFS
                 if (fs->mount()) {
                     char prefix[16];
-                    sprintf(prefix, "%s%d", desc.defaultPrefix, i);
+                    // Name them SD0, SD1, etc based on the physical order
+                    snprintf(prefix, sizeof(prefix), "%s%d", desc.defaultPrefix, (int)i);
                     _vfs.mount(strdup(prefix), fs);
+                    
+                    _host.print("Mounted " + std::string(prefix) + ":\n");
+                } else {
+                    delete fs;
+                    delete vol;
                 }
             }
         }

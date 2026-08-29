@@ -19,11 +19,13 @@
     Shell shell(host, storage);
 
     void setup(){
+        // Init hardware
+        host.begin();
+
         // Start services
         storage.initializeStorage();
-        
-        // Start IO and shell
-        host.begin();
+
+        // Bootup shell
         shell.runREPL();
     }
 
