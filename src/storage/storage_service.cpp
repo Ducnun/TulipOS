@@ -111,7 +111,7 @@ void StorageService::ls(const char* path) {
     formatSize(totalSize, totalSizeBuf, sizeof(totalSizeBuf));
     
     char footer[64];
-    snprintf(footer, sizeof(footer), "%u Object(s) found. (%s total)\n\n", count, totalSizeBuf);
+    snprintf(footer, sizeof(footer), "%u Object(s) found. (%s total)\n\n", (unsigned int)count, totalSizeBuf);
     _host.print(std::string(footer));
 
     delete it;
@@ -135,7 +135,7 @@ bool StorageService::cd(const char* path) {
 void StorageService::formatSize(uint32_t bytes, char* out, size_t outSize) {
     if (bytes < 1024) {
         // Bytes: 512 B
-        snprintf(out, outSize, "%u B", bytes);
+        snprintf(out, outSize, "%u B", (unsigned int)bytes);
     } else if (bytes < 1024 * 1024) {
         // Kilobytes: 12.5 KB
         snprintf(out, outSize, "%.1f KB", (float)bytes / 1024.0f);

@@ -15,9 +15,9 @@ public:
     BasicEngine(IHost& host) 
         : _host(host),
           _staticArena(PROGRAM_SIZE),
+          _ctx(_host, TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
           _symTable(_staticArena),
           _parser(_symTable, _staticArena),
-          _ctx(_host, TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
           _interpreter(_ctx, _symTable, _staticArena)
     {
         // Constructor body
@@ -32,16 +32,16 @@ public:
     void clear(void);
     void loadProgram(const std::string& scrip);
     void DumpProgram();
-    const uint32_t reportProgramSize(){ return _staticArena.getOffset(); }
+    uint32_t reportProgramSize(){ return _staticArena.getOffset(); }
 
 private:
     IHost& _host;
     Arena _staticArena;
-    SymbolTable _symTable;
     RuntimeContext _ctx;
+    SymbolTable _symTable;
+    Parser _parser;
     Program _program;
     Tokenizer _tokenizer;
-    Parser _parser;
     Interpreter _interpreter;
 
     StmtPtr wrapStatements(std::vector<StmtPtr>&& statements);

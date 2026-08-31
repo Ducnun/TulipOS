@@ -82,6 +82,7 @@ private:
         if (a.type == ValueType::Boolean && b.type == ValueType::Boolean){
             return a.boolean > b.boolean;
         }
+        return false;
     }
 
     Value handleCall(Symbol mod, Symbol func, const std::vector<Value>& args, RuntimeContext& ctx);

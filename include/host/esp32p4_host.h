@@ -7,7 +7,9 @@
 
 class ESP32P4Host : public IHost {
 public:
-    ESP32P4Host(PS2Keyboard kb, UARTTerminal terminal, SDCardSPI sdCard);
+    ESP32P4Host(PS2Keyboard& kb, UARTTerminal& terminal, SDCardSPI& sdCard) 
+        : _kb(kb), _terminal(terminal), _sdCard(sdCard) 
+    {}
 
         /**
      * @brief Starts the IO class, reading out inputs and setting up outputs

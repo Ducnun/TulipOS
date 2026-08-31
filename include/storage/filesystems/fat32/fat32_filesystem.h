@@ -5,6 +5,7 @@
 #include "../vfs/ifile_system.h"
 #include "fat32_iterator.h"
 
+#pragma pack(push, 4)
 class FAT32FileSystem : public IFileSystem {
 public:
     FAT32FileSystem(IBlockDevice& dev) : _dev(dev), _clusters(nullptr) {}
@@ -22,3 +23,5 @@ private:
     FAT32BPB _bpb;
     FAT32ClusterTable* _clusters;
 };
+
+#pragma pack(pop)

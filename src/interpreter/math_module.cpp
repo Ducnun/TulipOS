@@ -10,7 +10,7 @@ ModuleResult MathModule::call(const std::string& func, const std::vector<Value>&
 Value MathModule::basicCastInt(const std::vector<Value>& args){
     if (args.size() > 1) return Value::Bool(false);
     if (args[0].type == ValueType::Number){
-        return Value::Float(std::floor(args[0].number));
+        return Value::Float(floor(args[0].number));
     }
     return Value::Bool(false);
 }

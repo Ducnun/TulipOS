@@ -47,6 +47,7 @@ void Interpreter::visit(const BinaryExpr& expr){
 
         case TokenType::And: _lastValue = Value::Bool(left.isTruthy() && right.isTruthy()); break;
         case TokenType::Or:  _lastValue = Value::Bool(left.isTruthy() || right.isTruthy()); break;
+        default: break;
     }
 }
 
@@ -55,6 +56,7 @@ void Interpreter::visit(const UnaryExpr& expr){
     switch (expr.op) {
         case TokenType::Minus: _lastValue = Value::Float(-val.number); break;
         case TokenType::Not:   _lastValue = Value::Bool(!val.isTruthy()); break;
+        default: break;
     }
 }
 
@@ -142,8 +144,11 @@ void Interpreter::visit(const NextStmt& stmt) {
     // Verify var exists or kill loop
     Value* var = _ctx.get(frame.variable);
     if (!var || var->type != ValueType::Number) {
-        printf("NEXT Error: Variable didnt exist or was not of right type. Type: %d, Ptr: %d\n", 
-        _ctx.get(frame.variable)->type, _ctx.get(stmt.variable)->number);
+        printf("NEXT Error: Variable didnt exist or was not of right type. Type: %d, Ptr: %f\n",
+            (int)_ctx.get(frame.variable)->type, // Cast enum to int
+            _ctx.get(stmt.variable)->number      // Use %f for double
+        );
+        _ctx.get(frame.variable)->type, _ctx.get(stmt.variable)->number;
         _ctx.forLoopStack.pop_back();
         return; 
     }

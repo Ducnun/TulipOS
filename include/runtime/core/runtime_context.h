@@ -28,8 +28,8 @@ struct RuntimeContext {
     RuntimeContext(IHost& host, size_t variableCount, size_t persistent, size_t transient) : 
         host(host),
         variableCount(variableCount),
-        persistentArena(persistent), 
-        transientArena(transient)
+        transientArena(transient),
+        persistentArena(persistent)
         { 
             variables.resize(variableCount);
         }
