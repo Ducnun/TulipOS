@@ -1,7 +1,5 @@
 #include "storage/filesystems/fat32/fat32_directory.h"
 
-#include "Arduino.h"
-
 FAT32Directory::FAT32Directory(IBlockDevice& device, FAT32ClusterTable& clusters, uint32_t firstCluster) : 
         _device(device),
         _clustertable(clusters),
@@ -61,9 +59,6 @@ bool FAT32Directory::next(FAT32DirectoryEntry& entry) {
             entry.firstCluster = (high << 16) | low;
 
             uint8_t* sizePtr = (uint8_t*)&raw->fileSize;
-            Serial.printf("Raw Size Bytes: %02X %02X %02X %02X\n", sizePtr[0], sizePtr[1], sizePtr[2], sizePtr[3]);
-
-            Serial.printf("Buffer Address: %p\n", _sectorBuffer);
 
             _entryIndex++; 
             return true;

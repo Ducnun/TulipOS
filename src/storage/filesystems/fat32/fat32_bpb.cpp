@@ -1,5 +1,4 @@
 #include "storage/filesystems/fat32/fat32_bpb.h"
-#include "Arduino.h"
 
 bool FAT32BPB::parse(uint8_t* sector){
     //  Check signature BPB end bytes
