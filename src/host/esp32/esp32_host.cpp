@@ -1,5 +1,7 @@
 #include "host/esp32_host.h"
 
+#include "Arduino.h"
+
 void ESP32Host::begin(){
     Serial.begin(115200);
     _terminal.begin();

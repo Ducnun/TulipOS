@@ -1,5 +1,7 @@
 #include "devices/uart_terminal.h"
 
+#include "Arduino.h"
+
 bool UARTTerminal::begin() {
     uart_config_t uart_config = {
         .baud_rate  = _baudRate,

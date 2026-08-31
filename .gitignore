@@ -39,3 +39,5 @@ project.checksum
 .vscode/launch.json
 .vscode/ipch
 /html
+/build
+.clangd

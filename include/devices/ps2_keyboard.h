@@ -1,9 +1,12 @@
 #pragma once
 
-#include <Arduino.h>
+#include <cstdint>
+#include <cstddef>
 #include <queue>
 #include <unordered_map> 
 #include <string>
+
+#include "freertos/FreeRTOS.h"
 
 /**
  * @brief Enum that holds the different kinds of actions from the keyboard
@@ -68,7 +71,7 @@ private:
      * @brief Registers a memory safe interrupt on the clock signal
      * @param arg Callback function to register
      */
-    static void IRAM_ATTR handleClockInterrupt(void* arg);
+    static void handleClockInterrupt(void* arg);
 
     /**
      * @brief Callback function for the clock signal
