@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include <cstddef>
 #include <queue>
 #include <unordered_map> 

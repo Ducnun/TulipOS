@@ -1,19 +1,83 @@
 #include "host/esp32p4_host.h"
 
 void ESP32P4Host::begin(){
-    
+    _kb.begin();
 }
 
 void ESP32P4Host::service(){
-
+    vTaskDelay(1);
 }
 
 void ESP32P4Host::print(const std::string& txt){
-
+    printf(txt.c_str());
 }
 
 std::string ESP32P4Host::readLine(){
-    return "";
+    std::string line;
+    while (true) {
+        vTaskDelay(1);  // Yield when not actively reading
+        if (_kb.available()) {
+            KeyEvent key = _kb.readEvent();
+
+            if (key.action == KeyAction::None) continue;
+
+            if (key.action == KeyAction::Char && key.character == '\n') {
+                _history.push_back(line);
+                printf("\n");   
+                _terminal.newline();
+                break;
+            }
+
+            if (key.action == KeyAction::Char && key.character == '\b') {
+                if (!line.empty()) {
+                    line.pop_back();
+                    printf("\b \b");  // Erase last char
+                    _terminal.backspace();
+                }
+                continue;
+            }
+
+            if (key.action == KeyAction::Pause){
+                _breakRequested = true;
+                return "";
+            }
+
+            if (key.action == KeyAction::Char){
+                line += key.character;
+                printf("%c", key.character);
+                _terminal.sendChar(key.character);
+            }
+
+            if (key.action == KeyAction::ArrowUp){
+                if (_history.empty()) continue;
+                if (_historyIndex == -1){
+                    _historyIndex = _history.size() - 1;
+                    _currentLine = line;
+                }
+                else if (_historyIndex > 0){
+                    _historyIndex--;
+                }
+                line = _history[_historyIndex];
+                redrawLine(line);
+                continue;
+            }
+
+            if (key.action == KeyAction::ArrowDown){
+                if (_historyIndex == -1) continue;
+                if (_historyIndex < _history.size() - 1){
+                    _historyIndex++;
+                    line = _history[_historyIndex];
+                }
+                else{
+                    line = _currentLine;
+                    _historyIndex = -1;
+                }
+                redrawLine(line);
+                continue;
+            }
+        }
+    }
+    return line;
 }
 
 void ESP32P4Host::redrawLine(std::string& line){

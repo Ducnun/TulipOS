@@ -2,8 +2,9 @@
 #include "system/shell.h"
 #include "services/storage_service.h"
 
-#define KB_DATA 13
-#define KB_CLK  14
+#define KB_DATA 31
+#define KB_CLK  34
+
 #define UARTTERMINAL_SPEED 1000000
 #define SD_MOSI 23 
 #define SD_MISO 19

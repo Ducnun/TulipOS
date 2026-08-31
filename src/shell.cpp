@@ -6,6 +6,7 @@ void Shell::runREPL() {
     printWelcome();
     
     while (true) {
+        _host.service();
         _prompt = _storage.getCwd();
         _host.print("\n");
         _host.print(_prompt);
