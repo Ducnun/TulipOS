@@ -26,6 +26,7 @@ uint32_t MemoryManager::generateMask(MemoryType type){
             break;
         }
     }
+    return caps;
 }
 
 void* MemoryManager::alloc(size_t size, MemoryType type){

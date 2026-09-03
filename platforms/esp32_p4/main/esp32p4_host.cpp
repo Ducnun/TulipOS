@@ -1,6 +1,6 @@
 #include "esp32p4_host.h"
 #include "esp_timer.h"
-#include "hardware_drivers/mem_manager.h"
+#include "mem_manager.h"
 #include <unistd.h>
 
 void ESP32P4Host::begin(){
@@ -122,6 +122,10 @@ std::vector<StorageDescriptor> ESP32P4Host::getAvailableStorage(void){
     // The host knows that on ESP32, we have an SD Card.
     devices.push_back({"SD", &_sdCard});
     return devices;
+}
+
+IMemoryManager* ESP32P4Host::getMemory(){
+    return &_memory;
 }
 
 void ESP32P4Host::delay(uint32_t ms){

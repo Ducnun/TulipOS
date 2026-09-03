@@ -8,7 +8,8 @@ void os_task(void* arg) {
     static PS2Keyboard keyboard(KB_DATA, KB_CLK);
     static UARTTerminal terminal(UART_TERMINAL_BAUD, UART_TERMINAL_TX, UART_TERMINAL_RX);
     static SDCardSPI sdDriver(SD_MOSI, SD_MISO, SD_SCK, SD_CS);
-    static ESP32P4Host host(keyboard, terminal, sdDriver);
+    static MemoryManager memory;
+    static ESP32P4Host host(keyboard, terminal, sdDriver, memory);
 
     static VFS vfs;
     static StorageService storage(vfs, host);
