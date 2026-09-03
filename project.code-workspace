@@ -1,0 +1,17 @@
+{
+  "folders": [
+    { "path": "." }
+  ],
+  "settings": {
+    // 1. Disable the Microsoft IntelliSense to stop the fighting
+    "C_Cpp.intelliSenseEngine": "disabled",
+    
+    // 2. Tell Clangd how to find the different platforms
+    "clangd.arguments": [
+        "--compile-commands-dir=build", // Default to Native
+        "--query-driver=/home/duncan/.espressif/tools/riscv32-esp-elf/**/*-g++,/usr/bin/g++",
+        "--header-insertion=never",
+        "--background-index"
+      ]
+  }
+}

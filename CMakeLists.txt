@@ -1,21 +1,10 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.10)
+project(ESPBASIC_Native)
 
-# 1. Set variables that influence component discovery FIRST
-set(EXTRA_COMPONENT_DIRS 
-    "src" 
-    "lib"
-)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # This is vital
 
-# 2. Then include the project logic
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+include_directories(core/include)
+file(GLOB_RECURSE CORE_SOURCES "core/src/*.cpp")
 
-# 3. Then define the project
-project(TulipBasic_P4)
-
-# 4. Then global compiler options
-add_compile_options(
-    -Wno-error=reorder
-    -Wno-error=ignored-qualifiers
-    -Wno-error=packed-not-aligned
-    -fexceptions
-)
+add_executable(core_test ${CORE_SOURCES} platforms/native/console_host.h)
