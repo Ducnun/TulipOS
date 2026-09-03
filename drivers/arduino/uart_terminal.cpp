@@ -118,6 +118,10 @@ bool UARTTerminal::setBackground(uint8_t color) {
     return sendPacket(STREAM_CMD_SET_BG, 1, &color);
 }
 
+bool UARTTerminal::setColor(uint8_t color) {
+    return sendPacket(STREAM_CMD_SET_FG, 1, &color);
+}
+
 bool UARTTerminal::scroll(int8_t dir, uint8_t lines) {
     uint8_t packet[2] = { (uint8_t)dir, lines };
     return sendPacket(STREAM_CMD_SCROLL, 2, packet);

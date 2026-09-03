@@ -5,41 +5,11 @@
 #include <queue>
 #include <unordered_map> 
 #include <string>
-
 #include "freertos/FreeRTOS.h"
 
-/**
- * @brief Enum that holds the different kinds of actions from the keyboard
- */
-enum KeyAction {
-    None,
-    Char,
-    ArrowLeft,
-    ArrowRight,
-    ArrowUp,
-    ArrowDown,
-    Pause,
-};
+#include "hal/ikeyboard.h"
 
-/**
- * @brief Struct that holds an action and if applicable a value for that action
- */
-struct KeyEvent {
-    KeyAction action;
-    char character;
-};
-
-/**
- * @brief Enum that represents the different possible states for extended and break scancodes
- */
-enum ScancodeState {
-    Normal,
-    ExpectExtended,
-    ExpectBreak,
-    ExpectExtendedBreak,
-};
-
-class PS2Keyboard{
+class PS2Keyboard : public IKeyboard{
 public:
     /**
      * @brief Construct a new PS2Keyboard object

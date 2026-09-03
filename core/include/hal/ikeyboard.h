@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint>
+#include <cstdint>
 
 /**
  * @brief Enum that holds the different kinds of actions from the keyboard
@@ -39,4 +39,4 @@ public:
     virtual void begin() = 0;
     virtual bool available() = 0;
     virtual KeyEvent readEvent() = 0;    
-}
+};

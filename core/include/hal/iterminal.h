@@ -1,12 +1,13 @@
 #pragma once
 
-#include <cstdint.h>
+#include <cstdint>
+#include <string>
 
 class ITerminal{
 public:
     ~ITerminal() = default;
 
-    bool begin();
+    virtual bool begin() = 0;
 
     virtual bool sendChar(char c) = 0;
     virtual bool sendString(const std::string& txt) = 0;

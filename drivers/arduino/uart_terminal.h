@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "hal/iterminal.h"
 #include "driver/uart.h"
 
 // --- UART command codes ---
@@ -40,7 +41,7 @@ typedef struct {
 #define UART_LEN_INDEX  2
 #define UART_ARG_INDEX  3
 
-class UARTTerminal {
+class UARTTerminal : public ITerminal {
 public:
     UARTTerminal(int baudRate) : _baudRate(baudRate){};
 
@@ -53,6 +54,7 @@ public:
     bool setCursor(uint8_t x, uint8_t y);
     bool clearScreen();
     bool setBackground(uint8_t color);
+    bool setColor(uint8_t color);
     bool backspace();
     bool newline();
     bool scroll(int8_t dir, uint8_t lines = 1);

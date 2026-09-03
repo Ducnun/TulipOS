@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "hal/iterminal.h"
 #include "driver/uart.h"
 
 // --- UART command codes ---
@@ -30,8 +31,6 @@ typedef struct {
 } stream_msg;
 
 #define UART_NUM                UART_NUM_1
-#define UART_TX_PIN             16
-#define UART_RX_PIN             17
 #define UART_BUF_SIZE           1024
 #define UART_MAX_PROTOCOL_SIZE  64
 #define UART_PACKET_OVERHEAD    5   // SYNC, CMD, LEN, SEQ, CRC
@@ -40,9 +39,9 @@ typedef struct {
 #define UART_LEN_INDEX  2
 #define UART_ARG_INDEX  3
 
-class UARTTerminal {
+class UARTTerminal : public ITerminal {
 public:
-    UARTTerminal(int baudRate) : _baudRate(baudRate){};
+    UARTTerminal(int baudRate, uint8_t txPin, uint8_t rxPin) : _baudRate(baudRate), _txPin(txPin), _rxPin(rxPin){};
 
     bool begin();
     
@@ -53,6 +52,7 @@ public:
     bool setCursor(uint8_t x, uint8_t y);
     bool clearScreen();
     bool setBackground(uint8_t color);
+    bool setColor(uint8_t color);
     bool backspace();
     bool newline();
     bool scroll(int8_t dir, uint8_t lines = 1);
@@ -60,6 +60,9 @@ public:
 
 private:
     int _baudRate;
+    uint8_t _txPin;
+    uint8_t _rxPin;
+
     uint8_t _curSequenceNr;
 
     stream_msg _history[256];
