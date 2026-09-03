@@ -4,11 +4,12 @@
 
 void ESP32P4Host::begin(){
     _kb.begin();
+    _terminal.begin();
 }
 
 void ESP32P4Host::service() {
     static uint32_t count = 0;
-    // Only yield every 1000 calls (tweak this number as needed)
+    // Only yield every 3000 calls (tweak this number as needed)
     if (++count > 3000) {
         vTaskDelay(0);
         count = 0;
@@ -17,6 +18,7 @@ void ESP32P4Host::service() {
 
 void ESP32P4Host::print(const std::string& txt){
     printf(txt.c_str());
+    _terminal.sendString(txt.c_str());
     fsync(STDOUT_FILENO);
 }
 
@@ -95,15 +97,15 @@ void ESP32P4Host::redrawLine(std::string& line){
 }
 
 void ESP32P4Host::clearScreen(){
-
+    _terminal.clearScreen();
 }
 
 void ESP32P4Host::reset(){
-
+    _terminal.clearScreen();
 }
 
 void ESP32P4Host::setCursor(int x, int y){
-
+    _terminal.setCursor(x, y);
 }
 
 bool ESP32P4Host::checkBreakRequested(){

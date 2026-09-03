@@ -49,14 +49,6 @@ void Shell::printWelcome(){
     _host.reset();
     _host.clearScreen();
     _host.print("**** TULIP OS V2 ****\n");
-    
-    #ifdef ESP32
-        size_t freeHeap = PROGRAM_SIZE;
-        size_t used = _engine.reportProgramSize();
-        std::string memLine = std::to_string(freeHeap / 1024) + "K BYTES FREE (" +
-                            std::to_string(used) + "B USED)\n";      
-        _host.print(memLine);
-    #endif
     _host.print("READY.\n");
 }
 
