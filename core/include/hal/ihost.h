@@ -3,7 +3,9 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+
 #include "iblock_device.h"
+#include "imemory.h"
 
 struct StorageDescriptor {
     const char* defaultPrefix; // e.g. "SD"
@@ -17,6 +19,12 @@ public:
      * @brief Destroy the IHost object
      */
     virtual ~IHost() = default;
+
+    // --- Hardware Discovery ---
+    virtual std::vector<StorageDescriptor> getAvailableStorage() = 0;
+
+    // --- Platform dependent Services ---
+    virtual IMemoryManager* getMemory() = 0;
 
     /**
      * @brief Services any background tasks during busy waiting
@@ -58,9 +66,6 @@ public:
      * @return false Not pressed
      */
     virtual bool checkBreakRequested() {return false;}
-
-    // --- Hardware Discovery ---
-    virtual std::vector<StorageDescriptor> getAvailableStorage() = 0;
 
     virtual void delay(uint32_t ms) = 0;
     virtual uint32_t millis() = 0;

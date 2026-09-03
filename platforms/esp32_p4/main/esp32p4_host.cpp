@@ -1,5 +1,6 @@
 #include "esp32p4_host.h"
 #include "esp_timer.h"
+#include "hardware_drivers/mem_manager.h"
 #include <unistd.h>
 
 void ESP32P4Host::begin(){
