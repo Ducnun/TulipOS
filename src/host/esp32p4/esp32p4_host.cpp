@@ -1,15 +1,23 @@
 #include "host/esp32p4_host.h"
+#include "esp_timer.h"
+#include <unistd.h>
 
 void ESP32P4Host::begin(){
     _kb.begin();
 }
 
-void ESP32P4Host::service(){
-    vTaskDelay(1);
+void ESP32P4Host::service() {
+    static uint32_t count = 0;
+    // Only yield every 1000 calls (tweak this number as needed)
+    if (++count > 3000) {
+        vTaskDelay(0);
+        count = 0;
+    }
 }
 
 void ESP32P4Host::print(const std::string& txt){
     printf(txt.c_str());
+    fsync(STDOUT_FILENO);
 }
 
 std::string ESP32P4Host::readLine(){
@@ -31,7 +39,8 @@ std::string ESP32P4Host::readLine(){
             if (key.action == KeyAction::Char && key.character == '\b') {
                 if (!line.empty()) {
                     line.pop_back();
-                    printf("\b \b");  // Erase last char
+                    write(STDOUT_FILENO, "\b \b", 3);
+                    fsync(STDOUT_FILENO);
                     _terminal.backspace();
                 }
                 continue;
@@ -44,7 +53,8 @@ std::string ESP32P4Host::readLine(){
 
             if (key.action == KeyAction::Char){
                 line += key.character;
-                printf("%c", key.character);
+                write(STDOUT_FILENO, &key.character, 1);        // Low level write to VFS uart file
+                fsync(STDOUT_FILENO);
                 _terminal.sendChar(key.character);
             }
 
@@ -97,6 +107,10 @@ void ESP32P4Host::setCursor(int x, int y){
 }
 
 bool ESP32P4Host::checkBreakRequested(){
+    if (_breakRequested){
+        _breakRequested = false;
+        return true;
+    }
     return false;
 }
 
@@ -108,9 +122,9 @@ std::vector<StorageDescriptor> ESP32P4Host::getAvailableStorage(void){
 }
 
 void ESP32P4Host::delay(uint32_t ms){
-
+    vTaskDelay(pdMS_TO_TICKS(ms));
 }
 
 uint32_t ESP32P4Host::millis(){
-    return 0;
+    return (uint32_t)(esp_timer_get_time() / 1000);
 }

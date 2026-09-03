@@ -64,7 +64,7 @@ bool FAT32FileSystem::resolvePath(const char* path, FAT32DirectoryEntry& outEntr
 
     uint32_t currentDirCluster = _bpb.rootCluster();
     char buffer[256];
-    strncpy(buffer, path, sizeof(buffer));
+    strlcpy(buffer, path, sizeof(buffer));
     
     char* part = strtok(buffer, "/");
     while (part != nullptr) {

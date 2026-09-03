@@ -58,8 +58,6 @@ bool FAT32Directory::next(FAT32DirectoryEntry& entry) {
             uint32_t low  = util::readLE16(rawEntryBase + 26);
             entry.firstCluster = (high << 16) | low;
 
-            uint8_t* sizePtr = (uint8_t*)&raw->fileSize;
-
             _entryIndex++; 
             return true;
         }

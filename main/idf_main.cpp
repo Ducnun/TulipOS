@@ -11,7 +11,7 @@
 #define SD_SCK  18
 #define SD_CS   5
 
-extern "C" void app_main() {
+void os_task(void* arg) {
     // 1. Initialize P4 Hardware
     static PS2Keyboard keyboard(KB_DATA, KB_CLK);
     static UARTTerminal terminal(115200);
@@ -23,8 +23,11 @@ extern "C" void app_main() {
     static Shell shell(host, storage);
 
     host.begin();
-    storage.initializeStorage();
+    host.print("Tulip OS Booting...\n");
+    shell.runREPL();
+}
 
-    // 2. Start the OS
-    shell.runREPL(); 
+extern "C" void app_main() {
+    // Create a task with 64KB of stack
+    xTaskCreatePinnedToCore(os_task, "os_task", 131070, NULL, 5, NULL, 0);
 }
