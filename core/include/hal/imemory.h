@@ -16,7 +16,6 @@ public:
     virtual void* alloc(size_t size, MemoryType type) = 0;
     virtual void free(void* ptr) = 0;
     
-    // Useful for the BASIC 'FRE(0)' command
     virtual size_t getFree(MemoryType type) = 0;
     virtual size_t getTotal(MemoryType type) = 0;
 };

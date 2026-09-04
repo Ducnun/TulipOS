@@ -9,7 +9,7 @@
 #endif
 #include "hal/ihost.h"
 #include "engine/basic_engine.h"
-#include "services/storage_service.h"
+#include "kernel/storage_service.h"
 
 // Debug
 #include "interpreter/pretty_printer.h" 

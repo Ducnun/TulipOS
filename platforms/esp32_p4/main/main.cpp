@@ -1,6 +1,7 @@
 #include "esp32p4_host.h"
+#include "kernel/kernel.h"
 #include "system/shell.h"
-#include "services/storage_service.h"
+#include "kernel/storage_service.h"
 #include "platform_config.h"
 
 void os_task(void* arg) {
