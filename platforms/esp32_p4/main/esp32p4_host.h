@@ -8,79 +8,39 @@
 
 class ESP32P4Host : public IHost {
 public:
-    ESP32P4Host(PS2Keyboard& kb, UARTTerminal& terminal, SDCardSPI& sdCard, MemoryManager& memory) 
-        : _kb(kb), _terminal(terminal), _sdCard(sdCard), _memory(memory) 
+    ESP32P4Host(SDCardSPI& sdCard, MemoryManager& memory, UARTTerminal& terminal, PS2Keyboard& keyboard) 
+        : _sdCard(sdCard), _memory(memory), _terminal(terminal), _keyboard(keyboard)
     {}
-
-        /**
-     * @brief Starts the IO class, reading out inputs and setting up outputs
-     */
-    void begin();
 
     // --- Hardware Discovery ---
     std::vector<StorageDescriptor> getAvailableStorage();
 
-    // --- Platform dependent Services ---
-    IMemoryManager* getMemory();
+    // --- Platform dependent hardware controllers ---
+    IMemoryManager* getMemory(){return &_memory; }
+    ITerminal* getTerminal(){ return &_terminal; }
+    IKeyboard* getKeyboard(){ return &_keyboard; }
 
     /**
-     * @brief Checks up on hardware modules/devices
+     * @brief Services any background tasks during busy waiting
      */
     void service();
 
     /**
-     * @brief Overrides the standard io_interface print statement to output to the terminal/monitor
-     * @param txt 
+     * @brief Executes platform dependent delay
      */
-    void print(const std::string& txt);
-
-    /**
-     * @brief Reads the inputs from the provided keyboard
-     * @return std::string Returns the raw input
-     */
-    std::string readLine();
-
-    /**
-     * @brief Redraws the currently buffered line (e.g. when moving through history or moving cursor)
-     * @param line Line to redraw
-     */
-    void redrawLine(std::string& line);
-
-    /**
-     * @brief Clears the buffer/line
-     */
-    void clearScreen();
-
-    /**
-     * @brief Resets any states of the IO
-     */
-    void reset();
-
-    /**
-     * @brief Set the Cursor object
-     * @param x 
-     * @param y 
-     */
-    void setCursor(int x, int y);
-
-    /**
-     * @brief Overrides io_interface Check if break input is requested from Keyboard
-     * @return true Break is pressed
-     * @return false Break is not pressed
-     */
-    bool checkBreakRequested();
-
     void delay(uint32_t ms);
+
+    /**
+     * @brief Executes platform dependent "millis" (ms since boot)
+     */
     uint32_t millis();
     
 private:
-    PS2Keyboard& _kb;
-    UARTTerminal& _terminal;
+    // Drives
     SDCardSPI& _sdCard;
-    MemoryManager& _memory;
 
-    bool _breakRequested = false;   ///< Buffers the break key
-    std::vector<std::string> _history;  ///< Stores command history
-    int _historyIndex = -1; ///< Tracks currently selected index in history
-    std::string _currentLine;   ///< Currently selected/typed and drawn line
+    // General devices
+    MemoryManager& _memory;
+    UARTTerminal& _terminal;
+    PS2Keyboard& _keyboard;
 };

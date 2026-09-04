@@ -4,12 +4,8 @@
 #include <unordered_map>
 #include <memory>
 #include <sstream>
-#ifdef ESP32    // Heap cap not available for native builds
-#include "esp_heap_caps.h"
-#endif
-#include "hal/ihost.h"
 #include "engine/basic_engine.h"
-#include "kernel/storage_service.h"
+#include "kernel/kernel.h"
 
 // Debug
 #include "interpreter/pretty_printer.h" 
@@ -18,9 +14,10 @@ class Shell{
 public: 
     /**
      * @brief Construct a new Basic Interpreter object
-     * @param io A reference to an IHost (console or ESP32 based)
+     * @param kernel Reference to the kernel that created this shell instance
      */
-    Shell(IHost& host, StorageService& storage);
+    Shell(Kernel& kernel) : _kernel(kernel) {}
+
     /**
      * @brief Destroy the Basic Interpreter object
      */
@@ -31,8 +28,7 @@ public:
     void runREPL();
     
 private:
-    IHost& _host;   ///< Reference to IO system for input/output
-    StorageService& _storage;   ///< Reference to storage service
+    Kernel& _kernel;
     BasicEngine _engine;        ///< Runs BASIC interpreter
     const char* _prompt;        ///< String used as prompt
 

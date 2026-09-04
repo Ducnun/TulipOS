@@ -3,129 +3,22 @@
 #include "mem_manager.h"
 #include <unistd.h>
 
-void ESP32P4Host::begin(){
-    _kb.begin();
-    _terminal.begin();
-}
-
-void ESP32P4Host::service() {
-    static uint32_t count = 0;
-    // Only yield every 3000 calls (tweak this number as needed)
-    if (++count > 3000) {
-        vTaskDelay(0);
-        count = 0;
-    }
-}
-
-void ESP32P4Host::print(const std::string& txt){
-    printf(txt.c_str());
-    _terminal.sendString(txt.c_str());
-    fsync(STDOUT_FILENO);
-}
-
-std::string ESP32P4Host::readLine(){
-    std::string line;
-    while (true) {
-        vTaskDelay(1);  // Yield when not actively reading
-        if (_kb.available()) {
-            KeyEvent key = _kb.readEvent();
-
-            if (key.action == KeyAction::None) continue;
-
-            if (key.action == KeyAction::Char && key.character == '\n') {
-                _history.push_back(line);
-                printf("\n");   
-                _terminal.newline();
-                break;
-            }
-
-            if (key.action == KeyAction::Char && key.character == '\b') {
-                if (!line.empty()) {
-                    line.pop_back();
-                    write(STDOUT_FILENO, "\b \b", 3);
-                    fsync(STDOUT_FILENO);
-                    _terminal.backspace();
-                }
-                continue;
-            }
-
-            if (key.action == KeyAction::Pause){
-                _breakRequested = true;
-                return "";
-            }
-
-            if (key.action == KeyAction::Char){
-                line += key.character;
-                write(STDOUT_FILENO, &key.character, 1);        // Low level write to VFS uart file
-                fsync(STDOUT_FILENO);
-                _terminal.sendChar(key.character);
-            }
-
-            if (key.action == KeyAction::ArrowUp){
-                if (_history.empty()) continue;
-                if (_historyIndex == -1){
-                    _historyIndex = _history.size() - 1;
-                    _currentLine = line;
-                }
-                else if (_historyIndex > 0){
-                    _historyIndex--;
-                }
-                line = _history[_historyIndex];
-                redrawLine(line);
-                continue;
-            }
-
-            if (key.action == KeyAction::ArrowDown){
-                if (_historyIndex == -1) continue;
-                if (_historyIndex < _history.size() - 1){
-                    _historyIndex++;
-                    line = _history[_historyIndex];
-                }
-                else{
-                    line = _currentLine;
-                    _historyIndex = -1;
-                }
-                redrawLine(line);
-                continue;
-            }
-        }
-    }
-    return line;
-}
-
-void ESP32P4Host::redrawLine(std::string& line){
-
-}
-
-void ESP32P4Host::clearScreen(){
-    _terminal.clearScreen();
-}
-
-void ESP32P4Host::reset(){
-    _terminal.clearScreen();
-}
-
-void ESP32P4Host::setCursor(int x, int y){
-    _terminal.setCursor(x, y);
-}
-
-bool ESP32P4Host::checkBreakRequested(){
-    if (_breakRequested){
-        _breakRequested = false;
-        return true;
-    }
-    return false;
-}
-
 std::vector<StorageDescriptor> ESP32P4Host::getAvailableStorage(void){
     std::vector<StorageDescriptor> devices;
-    // The host knows that on ESP32, we have an SD Card.
+    // Provide the SD card hardware device
     devices.push_back({"SD", &_sdCard});
     return devices;
 }
 
-IMemoryManager* ESP32P4Host::getMemory(){
-    return &_memory;
+void ESP32P4Host::service(){
+    static uint32_t calls = 0;
+
+    // Only call vTaskDelay every 3000 calls
+    calls++;
+    if (calls > 3000) {
+        vTaskDelay(1);      // Feeds the watchdog
+        calls = 0;
+    }
 }
 
 void ESP32P4Host::delay(uint32_t ms){
