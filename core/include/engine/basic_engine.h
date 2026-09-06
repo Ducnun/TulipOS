@@ -3,18 +3,20 @@
 #include "interpreter/interpreter.h"
 #include "interpreter/pretty_printer.h"
 #include "kernel/system_api.h"
+#include "hal/system_config.h"
 #include "program.h"
 #include <sstream>
 
 struct RuntimeResources {
     Arena& programArena;
     Arena& transientArena;
+    Arena& symbolArena;
     ManagedArena& persistentArena;
 };
 
 class BasicEngine {
 public:
-    BasicEngine(ISystemAPI& sys);
+    BasicEngine(ISystemAPI& sys, RuntimeResources res);
 
     void storeLine(int lineNumber, const std::string& source);
     void processRawLine(const std::string& line);
@@ -29,7 +31,7 @@ public:
 
 private:
     ISystemAPI& _sys;
-    Arena _staticArena;
+    Arena& _staticArena;
     RuntimeContext _ctx;
     SymbolTable _symTable;
     Parser _parser;

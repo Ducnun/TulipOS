@@ -1,24 +1,26 @@
 #include "system/shell.h"
 
-void Shell::bootstrapEngine(){
-    // 1. Ask the memory service for the raw blocks based on logical type
-    void* progMem = _kernel.memory().alloc(PROGRAM_SIZE, MemoryType::Program);
-    void* tranMem = _kernel.memory().alloc(TRANSIENT_SIZE, MemoryType::Transient);
-    void* persMem = _kernel.memory().alloc(PERSISTANT_SIZE, MemoryType::Program); 
+void Shell::launchEngine(){
+    auto& mem = _kernel.memory();
+    
+    // 1. Allocate raw blocks
+    void* pBuf = mem.alloc(sysconfig.programSize,   MemoryType::Program);
+    void* tBuf = mem.alloc(sysconfig.transientSize, MemoryType::Transient);
+    void* sBuf = mem.alloc(sysconfig.symbolSize,    MemoryType::Program); // For STL nodes
+    void* aBuf = mem.alloc(sysconfig.persistentSize, MemoryType::Program);
+    void* bBuf = mem.alloc(sysconfig.persistentSize, MemoryType::Program);
 
-    // 2. Wrap them in Arenas
-    // These Arenas now "live" in the correct physical banks automatically
-    RuntimeResources res {
-        .programArena = Arena(progMem, PROGRAM_SIZE),
-        .transientArena = Arena(tranMem, TRANSIENT_SIZE),
-        .persistentArena = ManagedArena(persMem, PERSISTANT_SIZE)
-    };
+    _progArena.init(pBuf, sysconfig.programSize);
+    _tranArena.init(tBuf, sysconfig.transientSize);
+    _symArena.init(sBuf, sysconfig.symbolSize);
+    _persArena.init(aBuf, bBuf, sysconfig.persistentSize);
 
-    // 3. Start the engine
-    _engine = new BasicEngine(_kernel, res);
+    RuntimeResources res { _progArena, _tranArena, _symArena, _persArena };
+
+    _engine = new BasicEngine(_kernel, res); // Kernel is passed as ISystemAPI
 }
 
-void Shell::runREPL() {
+void Shell::runREPL(){
     printWelcome();
     
     while (true) {
@@ -40,12 +42,12 @@ void Shell::runREPL() {
                 std::getline(iss, rest);
                 
                 if (rest.find_first_not_of(" \t\r\n") == std::string::npos) {
-                    _engine.removeLine(num);
+                    _engine->removeLine(num);
                 } else {
-                    _engine.storeLine(num, rest);
+                    _engine->storeLine(num, rest);
                 }
             } else {
-                _engine.executeImmediate(line);
+                _engine->executeImmediate(line);
             }
         } catch (const std::exception& e) {
             _kernel.console().print("? ERROR: ");
@@ -76,7 +78,7 @@ std::string Shell::toUpper(const std::string& line){
 bool Shell::handleREPLDirective(const std::string& line){    
     if (line == "RUN") {
         uint32_t start = _kernel.system().millis();
-        _engine.run();
+        _engine->run();
         uint32_t duration = _kernel.system().millis() - start;
         _kernel.console().print("\nExecution time: ");
         _kernel.console().print(std::to_string(duration));
@@ -86,15 +88,15 @@ bool Shell::handleREPLDirective(const std::string& line){
         return true;
     }
     if (line == "LIST") {
-        _engine.list();
+        _engine->list();
         return true;
     }
     if (line == "NEW") {
-        _engine.clear();
+        _engine->clear();
         return true;
     }
     if (line == "DUMP"){
-        _engine.DumpProgram();
+        _engine->DumpProgram();
         return true;
     }
     if (line == "LS"){
@@ -121,7 +123,7 @@ bool Shell::handleREPLDirective(const std::string& line){
             "80 NEXT I\n"
             "90 LET PI = PI * 4\n"
             "100 PRINT PI\n";
-        _engine.loadProgram(benchScript);
+        _engine->loadProgram(benchScript);
 
         return true;
     }
@@ -137,7 +139,7 @@ bool Shell::handleREPLDirective(const std::string& line){
             "80 IF P = 1 THEN LET C = C + 1\n"
             "90 NEXT N\n"
             "100 PRINT \"FOUND \": PRINT C: PRINT \" PRIMES\"\n";
-        _engine.loadProgram(script);
+        _engine->loadProgram(script);
         return true;
     }
     if (line == "BENCHSTR") {
@@ -148,7 +150,7 @@ bool Shell::handleREPLDirective(const std::string& line){
             "40 NEXT I\n"
             "50 PRINT \"STRING LENGTH: \": PRINT 1000\n"
             "60 PRINT \"LAST CHAR: \": PRINT \".\"\n";
-        _engine.loadProgram(script);
+        _engine->loadProgram(script);
         return true;
     }
     if (line == "BENCHNEST") {
@@ -162,7 +164,7 @@ bool Shell::handleREPLDirective(const std::string& line){
             "70 NEXT J\n"
             "80 NEXT I\n"
             "90 PRINT \"TOTAL ITERATIONS: \": PRINT K\n";
-        _engine.loadProgram(script);
+        _engine->loadProgram(script);
         return true;
     }
 
@@ -184,7 +186,7 @@ void Shell::handleLoad(const std::string& path) {
     if (!file) return;
 
     // 1. Prepare Engine (Equivalent to 'NEW')
-    _engine.clear(); 
+    _engine->clear(); 
     _kernel.console().print("\nLoading " + path + "...\n");
 
     // 2. Streaming Read
@@ -207,7 +209,7 @@ void Shell::handleLoad(const std::string& path) {
             if (c == '\n' || c == '\r') {
                 if (!lineBuffer.empty()) {
                     // Send one line to the engine immediately
-                    _engine.processRawLine(lineBuffer);
+                    _engine->processRawLine(lineBuffer);
                     lineBuffer.clear();
                 }
             } else {
@@ -218,7 +220,7 @@ void Shell::handleLoad(const std::string& path) {
 
     // Handle the last line if the file doesn't end with a newline
     if (!lineBuffer.empty()) {
-        _engine.processRawLine(lineBuffer);
+        _engine->processRawLine(lineBuffer);
     }
 
     file->close();

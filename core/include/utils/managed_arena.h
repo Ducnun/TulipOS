@@ -6,8 +6,13 @@
 
 class ManagedArena {
 public:
-    ManagedArena(size_t size) 
-        : arenaA(size), arenaB(size), activeArena(&arenaA) {}
+    ManagedArena() : activeArena(&arenaA) {}
+
+    void init(void* bufA, void* bufB, size_t size) {
+        arenaA.init(bufA, size);
+        arenaB.init(bufB, size);
+        activeArena = &arenaA;
+    }
 
     void* alloc(size_t size, std::vector<Value>& roots) {
         size_t total = size + sizeof(StringHeader);
@@ -25,7 +30,6 @@ public:
         return (char*)block + sizeof(StringHeader);
     }
 
-    // THE IMPROVED dupString
     char* dupString(const char* src, size_t len, std::vector<Value>& roots) {
         // TRAP: If src is already in the activeArena, a GC trigger in alloc() 
         // will move src, making our pointer invalid before we can memcpy it!
@@ -35,7 +39,7 @@ public:
         // If it's managed, we need to know its offset so we can find it after GC
         uint32_t srcOffset = 0;
         if (srcIsManaged) {
-            // This is a rare case in your BASIC (usually src is Transient), 
+            // This is a rare case in our BASIC (usually src is Transient), 
             // but we handle it for safety.
             srcOffset = (uint32_t)((uint8_t*)src - (uint8_t*)activeArena->getPointer(0));
         }

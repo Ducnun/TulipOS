@@ -6,6 +6,7 @@
 #include <sstream>
 #include "engine/basic_engine.h"
 #include "kernel/kernel.h"
+#include "hal/system_config.h"
 
 // Debug
 #include "interpreter/pretty_printer.h" 
@@ -13,7 +14,8 @@
 // TODO: Change to system config struct that can be passed down
 #define PROGRAM_SIZE    65535
 #define TRANSIENT_SIZE  8192
-#define PERSISTANT_SIZE 16384
+#define PERSISTENT_SIZE 16384
+#define SYMBOL_SIZE     2048
 
 class Shell{
 public: 
@@ -22,24 +24,32 @@ public:
      * @param kernel Reference to the kernel that created this shell instance
      * Importantly, the engine only sees the ISystemAPI interface, not the full class
      */
-    Shell(Kernel& kernel) : _kernel(kernel), _engine(kernel) {}
+    Shell(Kernel& kernel) : _kernel(kernel) {}
 
     /**
      * @brief Destroy the Basic Interpreter object
      */
     ~Shell() = default;
+
     /**
      * @brief Start main REPL loop
      */
     void runREPL();
+
+    void launchEngine();
     
 private:
     Kernel& _kernel;            ///< Kernel that started this shell
-    BasicEngine _engine;        ///< Runs BASIC interpreter
+    BasicEngine* _engine;       ///< Runs BASIC interpreter
     const char* _prompt;        ///< String used as prompt
 
+    // Engine arenas
+    Arena _progArena;
+    Arena _tranArena;
+    Arena _symArena;
+    ManagedArena _persArena;
+
     void printWelcome();
-    void bootstrapEngine();
 
     /**
      * @brief Preprocesses the input line, trims whitespace forces all uper
@@ -56,4 +66,12 @@ private:
      */
     bool handleREPLDirective(const std::string& line);
     void handleLoad(const std::string& path);
+
+    // Temporary stub, TODO: Replace by injecting through IHost/Kernel/SystemAPI?
+    SystemConfig sysconfig = {
+        .programSize = PROGRAM_SIZE,
+        .transientSize = TRANSIENT_SIZE,
+        .persistentSize = PERSISTENT_SIZE,
+        .symbolSize = SYMBOL_SIZE
+    };
 };

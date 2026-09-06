@@ -15,7 +15,7 @@ public:
         _offset = 0;
     }
 
-    ~Arena(){free(_buffer);}
+    ~Arena(){};
 
     void* alloc(size_t size){
         #ifdef ESP32
@@ -26,13 +26,10 @@ public:
 
         // Not necessarily an issue if triggered in a managed environment
         // (e.g. triggering a swap in managed_arena.h)
-        if (_offset + size > _capacity){
-            return nullptr;
-        }
+        if (!_buffer || _offset + size > _capacity) return nullptr;
 
         void *ptr = &_buffer[_offset];
         _offset += size;
-
         return ptr;
     }
 
