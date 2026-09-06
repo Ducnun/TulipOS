@@ -3,8 +3,9 @@
 #include <string>
 #include "storage/filesystems/vfs/vfs.h"
 #include "hal/ihost.h"
+#include "istorage.h"
 
-class StorageService {
+class StorageService : public IStorage {
 public:
     StorageService(VFS& vfs) : _vfs(vfs) {}
 

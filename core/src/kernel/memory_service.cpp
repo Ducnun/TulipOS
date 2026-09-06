@@ -7,7 +7,7 @@ void* MemoryService::alloc(size_t size, MemoryType type){
     if (type == MemoryType::Transient && size > 1024 * 64) return nullptr;
 
     void* ptr = _memory->alloc(size, type);
-    if (ptr) return ptr;
+    return ptr;
 }
 
 

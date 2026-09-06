@@ -3,9 +3,10 @@
 #include "hal/ikeyboard.h"
 #include "hal/iterminal.h"
 #include "hal/ihost.h"
+#include "iconsole.h"
 #include <vector>
 
-class ConsoleService{
+class ConsoleService : public IConsole {
 public:
     ConsoleService(ITerminal* terminal, IKeyboard* keyboard, IHost& host) : _terminal(terminal), _keyboard(keyboard), _host(host) {}
 

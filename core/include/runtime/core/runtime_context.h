@@ -1,8 +1,8 @@
 #pragma once
 
+#include "kernel/kernel.h"
 #include "value.h"
-#include "../../utils/managed_arena.h"
-#include "../../hal/ihost.h"
+#include "utils/managed_arena.h"
 #include <vector>
 
 struct ForLoopFrame {
@@ -13,8 +13,6 @@ struct ForLoopFrame {
 };
 
 struct RuntimeContext {
-    IHost& host;
-
     // Variables
     std::vector<Value> variables;
     Value* varPtr = nullptr;
@@ -25,8 +23,7 @@ struct RuntimeContext {
     Arena transientArena;
     ManagedArena persistentArena;
 
-    RuntimeContext(IHost& host, size_t variableCount, size_t persistent, size_t transient) : 
-        host(host),
+    RuntimeContext(size_t variableCount, size_t persistent, size_t transient) :
         variableCount(variableCount),
         transientArena(transient),
         persistentArena(persistent)

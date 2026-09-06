@@ -6,8 +6,13 @@
 
 class Arena{
 public:
-    Arena(size_t size) : _capacity(size), _offset(0){
-        _buffer = (uint8_t*)malloc(size);
+    Arena() : _buffer(nullptr), _capacity(0), _offset(0) {}
+
+    // Initializer used by the Kernel/Shell
+    void init(void* buffer, size_t size) {
+        _buffer = (uint8_t*)buffer;
+        _capacity = size;
+        _offset = 0;
     }
 
     ~Arena(){free(_buffer);}

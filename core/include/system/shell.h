@@ -10,13 +10,19 @@
 // Debug
 #include "interpreter/pretty_printer.h" 
 
+// TODO: Change to system config struct that can be passed down
+#define PROGRAM_SIZE    65535
+#define TRANSIENT_SIZE  8192
+#define PERSISTANT_SIZE 16384
+
 class Shell{
 public: 
     /**
      * @brief Construct a new Basic Interpreter object
      * @param kernel Reference to the kernel that created this shell instance
+     * Importantly, the engine only sees the ISystemAPI interface, not the full class
      */
-    Shell(Kernel& kernel) : _kernel(kernel) {}
+    Shell(Kernel& kernel) : _kernel(kernel), _engine(kernel) {}
 
     /**
      * @brief Destroy the Basic Interpreter object
@@ -28,11 +34,12 @@ public:
     void runREPL();
     
 private:
-    Kernel& _kernel;
+    Kernel& _kernel;            ///< Kernel that started this shell
     BasicEngine _engine;        ///< Runs BASIC interpreter
     const char* _prompt;        ///< String used as prompt
 
     void printWelcome();
+    void bootstrapEngine();
 
     /**
      * @brief Preprocesses the input line, trims whitespace forces all uper

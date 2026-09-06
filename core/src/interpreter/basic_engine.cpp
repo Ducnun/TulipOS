@@ -1,5 +1,11 @@
 #include "engine/basic_engine.h"
 
+BasicEngine::BasicEngine(ISystemAPI& sys)
+    : _sys(sys)
+{
+
+}
+
 void BasicEngine::storeLine(int lineNumber, const std::string& source){
     auto tokens = _tokenizer.tokenize(source);
     auto statements = _parser.parse(std::move(tokens));
@@ -61,24 +67,24 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
     
     auto pc = _program.lower_bound(startLine);
     
-    _host.service();
+    _sys.system().yield();
     while (pc != _program.end() && !_ctx.halted){
         _ctx.currentLine = pc->first;
 
         // Handle break requests
         if (_host.checkBreakRequested()){
-            _host.print("! BREAK TRIG'D ON ");
-            _host.print(std::to_string(_ctx.currentLine));
-            _host.print("\n");
+            _sys.console().print("! BREAK TRIG'D ON ");
+            _sys.console().print(std::to_string(_ctx.currentLine));
+            _sys.console().print("\n");
             return;
         }
-        _host.service();
+        _sys.system().yield();
         
         if (pc->second.statement){
             try{
                 pc->second.statement->accept(_interpreter);
             } catch (const std::exception& e){
-                _host.print("? RUNTIME ERROR: " + std::string(e.what()) + "\n");
+                _sys.console().print("? RUNTIME ERROR: " + std::string(e.what()) + "\n");
                 break;
             }
         }
@@ -100,7 +106,7 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
 
 void BasicEngine::list(){
     for (auto const& line : _program) {
-        _host.print(std::to_string(line.first) + " " + line.second.source + "\n");
+        _sys.console().print(std::to_string(line.first) + " " + line.second.source + "\n");
     }
 }
 
@@ -147,26 +153,26 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
 }
 
 void BasicEngine::DumpProgram() {
-    _host.print(_symTable.DumpTable().c_str());
-    _host.print("--- PROGRAM AST DUMP ---\n");
+    _sys.console().print(_symTable.DumpTable().c_str());
+    _sys.console().print("--- PROGRAM AST DUMP ---\n");
 
     PrettyPrinter printer(_symTable);
 
     // Iterating through the map of program lines
     for (auto const& [lineNum, lineData] : _program) {
-        _host.print("[");
-        _host.print(std::to_string(lineNum));
-        _host.print("] ");
+        _sys.console().print("[");
+        _sys.console().print(std::to_string(lineNum));
+        _sys.console().print("] ");
         
         // This triggers the visitor pattern
         std::string output = printer.print(lineData.statement);
-        _host.print(output);
+        _sys.console().print(output);
     }
-    _host.print("------------------------\n");
+    _sys.console().print("------------------------\n");
 
-    _host.print("Size: ");
-    _host.print(std::to_string(reportProgramSize()));
-    _host.print("\nTotal space: ");
-    _host.print(std::to_string(PROGRAM_SIZE));
-    _host.print("\n");
+    _sys.console().print("Size: ");
+    _sys.console().print(std::to_string(reportProgramSize()));
+    _sys.console().print("\nTotal space: ");
+    _sys.console().print(std::to_string(PROGRAM_SIZE));
+    _sys.console().print("\n");
 }

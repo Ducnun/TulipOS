@@ -5,6 +5,6 @@ void Kernel::boot(){
     _storage.mountHardware(_host.getAvailableStorage());
     _console.println("Kernel Booted.");
 
-    Shell shell(*this);
-    shell.runREPL();
+    // Shell shell(*this);
+    // shell.runREPL();
 }

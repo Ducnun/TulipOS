@@ -2,26 +2,19 @@
 #include "parser/parser.h"
 #include "interpreter/interpreter.h"
 #include "interpreter/pretty_printer.h"
+#include "kernel/system_api.h"
 #include "program.h"
 #include <sstream>
 
-#define PROGRAM_SIZE    65536
-#define PERSISTANT_SIZE 8192
-#define SCRATCHPAD_SIZE 4096
-#define TOTAL_VARIABLES 512
+struct RuntimeResources {
+    Arena& programArena;
+    Arena& transientArena;
+    ManagedArena& persistentArena;
+};
 
 class BasicEngine {
 public:
-    BasicEngine(IHost& host) 
-        : _host(host),
-          _staticArena(PROGRAM_SIZE),
-          _ctx(_host, TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
-          _symTable(_staticArena),
-          _parser(_symTable, _staticArena),
-          _interpreter(_ctx, _symTable, _staticArena)
-    {
-        // Constructor body
-    }
+    BasicEngine(ISystemAPI& sys);
 
     void storeLine(int lineNumber, const std::string& source);
     void processRawLine(const std::string& line);
@@ -35,7 +28,7 @@ public:
     uint32_t reportProgramSize(){ return _staticArena.getOffset(); }
 
 private:
-    IHost& _host;
+    ISystemAPI& _sys;
     Arena _staticArena;
     RuntimeContext _ctx;
     SymbolTable _symTable;

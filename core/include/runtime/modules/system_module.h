@@ -6,7 +6,7 @@
 #include <chrono>
 #endif
 
-#include "IBasicModule.h"
+#include "ibasic_module.h"
 #include "ast/statement.h"
 #include "runtime/core/runtime_context.h"
 

@@ -1,18 +1,28 @@
 #include "system/shell.h"
 
-Shell::Shell(IHost& host, StorageService& storage) : _host(host), _storage(storage), _engine(_host) {}
+void Shell::bootstrapEngine(){
+    // 1. Ask the memory service for the raw blocks based on logical type
+    void* progMem = _kernel.memory().alloc(PROGRAM_SIZE, MemoryType::Program);
+    void* tranMem = _kernel.memory().alloc(TRANSIENT_SIZE, MemoryType::Transient);
+    void* persMem = _kernel.memory().alloc(PERSISTANT_SIZE, MemoryType::Program); 
+
+    // 2. Wrap them in Arenas
+    // These Arenas now "live" in the correct physical banks automatically
+    RuntimeResources res {
+        .programArena = Arena(progMem, PROGRAM_SIZE),
+        .transientArena = Arena(tranMem, TRANSIENT_SIZE),
+        .persistentArena = ManagedArena(persMem, PERSISTANT_SIZE)
+    };
+
+    // 3. Start the engine
+    _engine = new BasicEngine(_kernel, res);
+}
 
 void Shell::runREPL() {
     printWelcome();
     
     while (true) {
-        _host.service();
-        _prompt = _storage.getCwd();
-        _host.print("\n");
-        _host.print(_prompt);
-        _host.print("> ");
-        std::string line = _host.readLine();
-        if (line.empty()) continue;
+        std::string line = _kernel.console().readLine("> ");
 
         // 1. Handle Built-in Shell Commands
         std::string upper = toUpper(line);
@@ -38,18 +48,16 @@ void Shell::runREPL() {
                 _engine.executeImmediate(line);
             }
         } catch (const std::exception& e) {
-            _host.print("? ERROR: ");
-            _host.print(e.what());
-            _host.print("\n");
+            _kernel.console().print("? ERROR: ");
+            _kernel.console().println(e.what());
         }
     }
 }
 
 void Shell::printWelcome(){
-    _host.reset();
-    _host.clearScreen();
-    _host.print("**** TULIP OS V2 ****\n");
-    _host.print("READY.\n");
+    _kernel.console().clearScreen();
+    _kernel.console().println("**** TULIP OS V2 ****");
+    _kernel.console().println("READY.");
 }
 
 std::string Shell::toUpper(const std::string& line){
@@ -67,14 +75,14 @@ std::string Shell::toUpper(const std::string& line){
 
 bool Shell::handleREPLDirective(const std::string& line){    
     if (line == "RUN") {
-        uint32_t start = _host.millis();
+        uint32_t start = _kernel.system().millis();
         _engine.run();
-        uint32_t duration = _host.millis() - start;
-        _host.print("\nExecution time: ");
-        _host.print(std::to_string(duration));
-        _host.print(" ms\n");
+        uint32_t duration = _kernel.system().millis() - start;
+        _kernel.console().print("\nExecution time: ");
+        _kernel.console().print(std::to_string(duration));
+        _kernel.console().print(" ms\n");
         
-        _host.print("READY.\n");
+        _kernel.console().print("READY.\n");
         return true;
     }
     if (line == "LIST") {
@@ -90,11 +98,11 @@ bool Shell::handleREPLDirective(const std::string& line){
         return true;
     }
     if (line == "LS"){
-        _storage.ls(nullptr);
+        _kernel.storage().listDirectory();
         return true;
     }
     if (line.substr(0, 3) == "CD "){
-        _storage.cd(line.substr(3).c_str());
+        _kernel.storage().cd(line.substr(3).c_str());
         return true;
     }
     if (line.substr(0, 5) == "LOAD ") {
@@ -159,12 +167,12 @@ bool Shell::handleREPLDirective(const std::string& line){
     }
 
     if (line == "EXIT" || line == "QUIT"){
-        _host.print("OK");
+        _kernel.console().print("OK");
         return true;
     }
 
     if (line == "CLS"){
-        _host.clearScreen();
+        _kernel.console().clearScreen();
         return true;
     }
 
@@ -172,22 +180,22 @@ bool Shell::handleREPLDirective(const std::string& line){
 }
 
 void Shell::handleLoad(const std::string& path) {
-    IFile* file = _storage.open(path.c_str());
+    IFile* file = _kernel.storage().open(path.c_str());
     if (!file) return;
 
     // 1. Prepare Engine (Equivalent to 'NEW')
     _engine.clear(); 
-    _host.print("\nLoading " + path + "...\n");
+    _kernel.console().print("\nLoading " + path + "...\n");
 
     // 2. Streaming Read
     std::string lineBuffer = "";
     uint8_t readBuf[256]; // Small chunks
 
     while (!file->eof()) {
-        _host.service(); // Crucial: Keep Keyboard/System alive
+        _kernel.system().yield(); // Crucial: Keep system alive
         
-        if (_host.checkBreakRequested()) {
-            _host.print("\nLoad aborted by user.\n");
+        if (_kernel.console().checkAndResetBreak()) {
+            _kernel.console().println("\nLoad aborted by user.");
             break;
         }
 
@@ -215,5 +223,5 @@ void Shell::handleLoad(const std::string& path) {
 
     file->close();
     delete file;
-    _host.print("READY.\n");
+    _kernel.console().print("READY.\n");
 }
