@@ -8,6 +8,7 @@
 #include "parser/parser.h"
 #include "program.h"
 #include "interpreter/interpreter.h"
+#include "interpreter/pretty_printer.h"
 
 class BasicEngine {
 public:

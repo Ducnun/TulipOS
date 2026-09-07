@@ -1,11 +1,18 @@
 #include "engine/basic_engine.h"
+#include <sstream>
 
 void BasicEngine::storeLine(int lineNumber, const std::string& source){
-    auto tokens = _tokenizer.tokenize(source);
-    auto statements = _parser.parse(std::move(tokens));
-    if (statements.empty()) return;
+    // Store line of source code in src Arena and generate string view for it
+    char* sMem = (char*)_res.srcArena.alloc(source.length() + 1);
+    memcpy(sMem, source.c_str(), source.length() + 1);
+    util::StringView sourceView(sMem, source.length());
 
-    _program.addLine(lineNumber, wrapStatements(std::move(statements)), source);
+    _tokenizer.init(sourceView);
+    StmtPtr statement = _parser.parseLine(_tokenizer, _res.codeArena);
+
+    if (statement) {
+        _program.addLine(lineNumber, statement, sourceView);
+    }
 }
 
 void BasicEngine::processRawLine(const std::string& line) {
@@ -35,7 +42,7 @@ void BasicEngine::executeImmediate(const std::string& source){
     if (statements.empty()) return;
 
     // Treat immediate execution as a temporary "Line 0"
-    // This allows loops/jumps to point back to "0" and work!
+    // This allows loops/jumps to point back to "0" and work
     _program.addLine(0, wrapStatements(std::move(statements)), source);
     
     // Run starting at 0, but do NOT reset variables (keep REPL state)
@@ -66,7 +73,7 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
         _ctx.currentLine = pc->first;
 
         // Handle break requests
-        if (_sys.console().check()){        // TODO: figure out how to do break requests inside here 
+        if (_sys.console().checkAndResetBreak()){
             _sys.console().print("! BREAK TRIG'D ON ");
             _sys.console().print(std::to_string(_ctx.currentLine));
             _sys.console().print("\n");
@@ -84,7 +91,7 @@ void BasicEngine::runInternal(int startLine, bool shouldReset, bool limitToOneLi
         }
 
         // Clear all temporary results per line
-        _ctx.transientArena.reset();
+        _res.tranArena.reset();
 
         // Handle Control Flow
         if (_ctx.jumpRequested){
@@ -104,17 +111,18 @@ void BasicEngine::list(){
     }
 }
 
-void BasicEngine::clear(){
+void BasicEngine::clear() {
     _program.clear();
-    _ctx.reset();
     _symTable.clear();
-    _staticArena.reset();
+    _res.resetArenas();    // Wipes all arenas including Variable/Symbol space
+    _res.resetVariables(); // Sets all variable slots to 0.0f
+    _ctx.reset();          // Wipes stacks/PC
 }
 
 void BasicEngine::loadProgram(const std::string& script){
     _program.clear(); // Optional: clear existing program first
     _symTable.clear();
-    _staticArena.reset();
+    _res.resetArenas();
     
     std::stringstream ss(script);
     std::string line;
@@ -142,31 +150,25 @@ StmtPtr BasicEngine::wrapStatements(std::vector<StmtPtr>&& statements){
     if (statements.size() == 1) {
         return std::move(statements[0]);
     }
-    void* mem = _staticArena.alloc(sizeof(BlockStmt));
+    void* mem = _res.progArena.alloc(sizeof(BlockStmt));
+    if (mem == nullptr) return nullptr;     // Explicit check before allocating
+
     return new (mem) BlockStmt(std::move(statements));
 }
 
 void BasicEngine::DumpProgram() {
-    _sys.console().print(_symTable.DumpTable().c_str());
     _sys.console().print("--- PROGRAM AST DUMP ---\n");
 
     PrettyPrinter printer(_symTable);
 
-    // Iterating through the map of program lines
     for (auto const& [lineNum, lineData] : _program) {
-        _sys.console().print("[");
-        _sys.console().print(std::to_string(lineNum));
-        _sys.console().print("] ");
+        if (lineNum == 0) continue; // Skip immediate block
         
-        // This triggers the visitor pattern
-        std::string output = printer.print(lineData.statement);
-        _sys.console().print(output);
+        _sys.console().print("[" + std::to_string(lineNum) + "] ");
+        _sys.console().print(printer.print(lineData.statement) + "\n");
     }
+    
     _sys.console().print("------------------------\n");
-
-    _sys.console().print("Size: ");
-    _sys.console().print(std::to_string(reportProgramSize()));
-    _sys.console().print("\nTotal space: ");
-    _sys.console().print(std::to_string(PROGRAM_SIZE));
-    _sys.console().print("\n");
+    _sys.console().print("Used:  " + std::to_string(reportProgramSize()) + " bytes\n");
+    _sys.console().print("Free:  " + std::to_string(_res.progArena.getRemaining()) + " bytes\n");
 }

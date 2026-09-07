@@ -8,12 +8,14 @@
 
 class RuntimeResources {
 public:
-    RuntimeResources(void* progBuf, size_t progSize,
+    RuntimeResources(void* srcBuf, size_t srcSize,
+                     void* codeBuf, size_t codeSize,
                      void* tranBuf, size_t tranSize,
                      void* symBuf,  size_t symSize,
                      void* persABuf, void* persBBuf, size_t persSize) 
     {
-        progArena.init(progBuf, progSize);
+        srcArena.init(srcBuf, srcSize);
+        codeArena.init(codeBuf, codeSize);
         tranArena.init(tranBuf, tranSize);
         symArena.init(symBuf, symSize);
         persArena.init(persABuf, persBBuf, persSize);
@@ -27,7 +29,8 @@ public:
     }
 
     // Arenas are public for the Parser/Interpreter to use for scratchpad/AST
-    Arena progArena;
+    Arena srcArena;
+    Arena codeArena;
     Arena tranArena;
     Arena symArena;
     ManagedArena persArena;
@@ -52,7 +55,7 @@ public:
     }
     
     void resetArenas() {
-        progArena.reset();
+        srcArena.reset();
         tranArena.reset();
         symArena.reset();
         persArena.reset();

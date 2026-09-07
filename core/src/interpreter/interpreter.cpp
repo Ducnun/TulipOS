@@ -23,7 +23,7 @@ void Interpreter::visit(const BinaryExpr& expr){
                 size_t len = left.length + right.length + 1;
 
                 // Write into transient arena
-                char* buf = (char*)_ctx.transientArena.alloc(len);
+                char* buf = (char*)_ctx.res.tranArena.alloc(len);
                 if (buf){
                     memcpy(buf, s1, left.length);
                     memcpy(buf + left.length, s2, right.length + 1);
@@ -65,16 +65,16 @@ void Interpreter::visit(const PrintStmt& stmt){
         Value val = evaluate(item.expression);
         
         if (isAnyString(val)){
-            _ctx.host.print(getString(val));
+            _sys.console().print(getString(val));
         } else if (val.type == ValueType::Number) {
-            _ctx.host.print(std::to_string(val.number));
+            _sys.console().print(std::to_string(val.number));
         } else if (val.type == ValueType::Boolean) {
-            _ctx.host.print(val.boolean ? "true" : "false");
+            _sys.console().print(val.boolean ? "true" : "false");
         }
 
-        if (item.separator == PrintSeparator::Comma) _ctx.host.print("\t");
+        if (item.separator == PrintSeparator::Comma) _sys.console().print("\t");
     }
-    _ctx.host.print("\n");
+    _sys.console().print("\n");
 }
 
 void Interpreter::visit(const LetStmt& stmt){
@@ -87,15 +87,19 @@ void Interpreter::visit(const AssignmentStmt& stmt){
     _ctx.assign(stmt.variable, val);
 }
 
-void Interpreter::visit(const InputStmt& stmt){
+void Interpreter::visit(const InputStmt& stmt) {
     if (stmt.hasPrompt) {
-        _ctx.host.print(_symTable.getString(stmt.promptId));
-        _ctx.host.print("\n");
+        _sys.console().print(_symTable.getString(stmt.promptId));
+        _sys.console().print("\n");
     }
-    
-    std::string input = _ctx.host.readLine();
-    const char* persistentBuf = _ctx.persistentArena.dupString(input.c_str(), input.length(), _ctx.variables);
-    _ctx.assign(stmt.variables[0], Value::PersistentStr(persistentBuf, input.length()));
+    std::string input = _sys.console().readLine("");
+
+    // Wrap it as a Transient String
+    Value inputVal = Value::TransientStr(input.c_str(), input.length());
+
+    // _ctx.assign internally calls res.promoteValue(), 
+    // which calls persArena.dupString() with all the correct root parameters.
+    _ctx.assign(stmt.variables[0], inputVal);
 }
 
 void Interpreter::visit(const GotoStmt& stmt){
@@ -168,14 +172,13 @@ void Interpreter::visit(const NextStmt& stmt) {
 
 Value Interpreter::handleCall(Symbol mod, Symbol func, const std::vector<Value>& args, RuntimeContext& ctx) {
     // Convert IDs back to strings only when calling native modules
-    const char* modName = _symTable.getString(mod);
-    const char* funcName = _symTable.getString(func);
+    // const char* modName = _symTable.getString(mod);
+    // const char* funcName = _symTable.getString(func);
 
     ModuleResult res;
+    res.result = CallResult::NotHandled;
 
-    if (strcmp(modName, "MATH") == 0) res = _math.call(funcName, args);
-    if (strcmp(modName, "GPIO") == 0) res = _gpio.call(funcName, args);
-    if (strcmp(modName, "SYS") == 0) res = _sys.call(funcName, args);
+    // TODO: Use new sys api to build new modules
 
     if (res.result != CallResult::Success) return Value::Float(0.0f);
     else return res.val;

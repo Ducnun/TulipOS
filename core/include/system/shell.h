@@ -69,7 +69,8 @@ private:
 
     // Temporary stub, TODO: Replace by injecting through IHost/Kernel/SystemAPI?
     SystemConfig sysconfig = {
-        .programSize = PROGRAM_SIZE,
+        .sourceSize = PROGRAM_SIZE,
+        .codeSize = TRANSIENT_SIZE,
         .transientSize = TRANSIENT_SIZE,
         .persistentSize = PERSISTENT_SIZE,
         .symbolSize = SYMBOL_SIZE

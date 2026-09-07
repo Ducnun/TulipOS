@@ -26,7 +26,6 @@ struct RuntimeContext {
     const size_t variableCount;
     
     // Control Flow Stacks
-    // Note: If you want to be 100% heap-free, 
     // these could eventually be moved to a FixedStack or an Arena.
     std::vector<ForLoopFrame> forLoopStack;
 

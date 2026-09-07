@@ -1,23 +1,35 @@
 #include "system/shell.h"
 
-void Shell::launchEngine(){
+void Shell::launchEngine() {
     auto& mem = _kernel.memory();
     
-    // 1. Allocate raw blocks
-    void* pBuf = mem.alloc(sysconfig.programSize,   MemoryType::Program);
-    void* tBuf = mem.alloc(sysconfig.transientSize, MemoryType::Transient);
-    void* sBuf = mem.alloc(sysconfig.symbolSize,    MemoryType::Program); // For STL nodes
-    void* aBuf = mem.alloc(sysconfig.persistentSize, MemoryType::Program);
-    void* bBuf = mem.alloc(sysconfig.persistentSize, MemoryType::Program);
+    // Raw BASIC text for LIST and re-parsing
+    void* srcBuf = mem.alloc(sysconfig.sourceSize,    MemoryType::Program); 
+    
+    // AST Nodes / Bytecode (Fast walking)
+    void* codeBuf = mem.alloc(sysconfig.codeSize,     MemoryType::Transient); 
+    
+    // Expression stack, temporary string results
+    void* tranBuf = mem.alloc(sysconfig.transientSize, MemoryType::Transient);
+    
+    // Variable slots (Value array)
+    void* symBuf  = mem.alloc(sysconfig.symbolSize,    MemoryType::Transient); 
+    
+    // Managed string heap (Semi-space)
+    void* persABuf = mem.alloc(sysconfig.persistentSize, MemoryType::Program);
+    void* persBBuf = mem.alloc(sysconfig.persistentSize, MemoryType::Program);
 
-    _progArena.init(pBuf, sysconfig.programSize);
-    _tranArena.init(tBuf, sysconfig.transientSize);
-    _symArena.init(sBuf, sysconfig.symbolSize);
-    _persArena.init(aBuf, bBuf, sysconfig.persistentSize);
+    // Create the Resource Manager with the new split
+    RuntimeResources res(
+        srcBuf,  sysconfig.sourceSize,
+        codeBuf, sysconfig.codeSize,
+        tranBuf, sysconfig.transientSize,
+        symBuf,  sysconfig.symbolSize,
+        persABuf, persBBuf, sysconfig.persistentSize
+    );
 
-    RuntimeResources res { _progArena, _tranArena, _symArena, _persArena };
-
-    _engine = new BasicEngine(_kernel, res); // Kernel is passed as ISystemAPI
+    _engine = new BasicEngine(_kernel, std::move(res));
+    _kernel.console().print("Engine launched. SPIRAM Source / Internal Code split active.\n");
 }
 
 void Shell::runREPL(){
