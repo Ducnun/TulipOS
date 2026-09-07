@@ -1,22 +1,5 @@
 #include "engine/basic_engine.h"
 
-BasicEngine::BasicEngine(ISystemAPI& sys, const SystemConfig& cfg) 
-    : _sys(sys), _ctx(sys, _transientArena, _persistentArena) 
-{
-    // 1. Get memory from Host via SystemAPI
-    void* progBuf = _sys.memory().alloc(cfg.programSize, MemoryType::Program);
-    void* tranBuf = _sys.memory().alloc(cfg.transientSize, MemoryType::Transient);
-    
-    // ManagedArena needs TWO buffers for GC
-    void* persBufA = _sys.mem().alloc(cfg.persistentSize, MemoryType::Program);
-    void* persBufB = _sys.mem().alloc(cfg.persistentSize, MemoryType::Program);
-
-    // 2. Initialize the Arenas (The API is now identical for the rest of your code)
-    _staticArena.init(progBuf, cfg.programSize);
-    _transientArena.init(tranBuf, cfg.transientSize);
-    _persistentArena.init(persBufA, persBufB, cfg.persistentSize);
-}
-
 void BasicEngine::storeLine(int lineNumber, const std::string& source){
     auto tokens = _tokenizer.tokenize(source);
     auto statements = _parser.parse(std::move(tokens));

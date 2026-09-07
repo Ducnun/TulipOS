@@ -2,22 +2,18 @@
 
 #include "ast/expression_visitor.h"
 #include "ast/statement_visitor.h"
-#include "hal/ihost.h"
+#include "kernel/system_api.h"
 #include "runtime/core/runtime_context.h"
-#include "runtime/modules/gpio_module.h"
 #include "runtime/modules/math_module.h"
-#include "runtime/modules/system_module.h"
 #include "signals.h"
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
 public:
     ~Interpreter() = default;
-    Interpreter(RuntimeContext& ctx, SymbolTable& symTable, Arena& staticArena) : 
+    Interpreter(RuntimeContext& ctx, SymbolTable& symTable, ISystemAPI& systemAPI) : 
         _ctx(ctx), 
         _symTable(symTable), 
-        _staticArena(staticArena),
-        _gpio(_ctx),
-        _sys(_ctx)
+        _sys(systemAPI)
         {}
 
     void execute(const std::vector<StmtPtr>& statements) {
@@ -29,11 +25,9 @@ public:
 private:
     RuntimeContext& _ctx;
     SymbolTable& _symTable;
-    Arena& _staticArena;
+    ISystemAPI& _sys;
     Value _lastValue;
-    GpioModule _gpio;
     MathModule _math;
-    SystemModule _sys;
 
     Value evaluate(const ExprPtr& expr) {
         expr->accept(*this);

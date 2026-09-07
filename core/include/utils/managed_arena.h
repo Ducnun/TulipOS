@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include "arena.h"
 #include "../runtime/core/value.h"
 
@@ -14,14 +13,17 @@ public:
         activeArena = &arenaA;
     }
 
-    void* alloc(size_t size, std::vector<Value>& roots) {
+    /**
+     * @brief Allocates space, triggers GC if full.
+     */
+    void* alloc(size_t size, Value* roots, size_t rootCount) {
         size_t total = size + sizeof(StringHeader);
         void* block = activeArena->alloc(total);
         
         if (!block) {
-            collect(roots); 
+            collect(roots, rootCount); 
             block = activeArena->alloc(total);
-            if (!block) return nullptr;
+            if (!block) return nullptr; // Hard OOM
         }
 
         StringHeader* header = (StringHeader*)block;
@@ -30,30 +32,28 @@ public:
         return (char*)block + sizeof(StringHeader);
     }
 
-    char* dupString(const char* src, size_t len, std::vector<Value>& roots) {
-        // TRAP: If src is already in the activeArena, a GC trigger in alloc() 
-        // will move src, making our pointer invalid before we can memcpy it!
-        
+    /**
+     * @brief Copies a string into persistent storage, updating roots if GC hits.
+     */
+    char* dupString(const char* src, size_t len, Value* roots, size_t rootCount) {
         bool srcIsManaged = activeArena->contains((void*)src);
-        
-        // If it's managed, we need to know its offset so we can find it after GC
         uint32_t srcOffset = 0;
+        
         if (srcIsManaged) {
-            // This is a rare case in our BASIC (usually src is Transient), 
-            // but we handle it for safety.
             srcOffset = (uint32_t)((uint8_t*)src - (uint8_t*)activeArena->getPointer(0));
         }
 
-        char* dest = (char*)alloc(len + 1, roots); // <--- GC might happen here
+        // Pass raw pointer/count to alloc
+        char* dest = (char*)alloc(len + 1, roots, rootCount);
         
         if (!dest) return nullptr;
 
-        // If GC happened, and src was managed, we must find its NEW location
         const char* finalSrc = src;
         if (srcIsManaged) {
-            // We find the new pointer by looking at the "old" arena which is now the inactive one
+            // After potential GC, locate new address of src via forwarding addr
             Arena* oldArena = (activeArena == &arenaA) ? &arenaB : &arenaA;
-            void* oldHeaderLoc = (uint8_t*)oldArena->getPointer(srcOffset) - sizeof(StringHeader);
+            void* oldDataLoc = oldArena->getPointer(srcOffset);
+            void* oldHeaderLoc = (uint8_t*)oldDataLoc - sizeof(StringHeader);
             finalSrc = ((StringHeader*)oldHeaderLoc)->forwardingAddr;
         }
 
@@ -62,23 +62,27 @@ public:
         return dest;
     }
 
-    void collect(std::vector<Value>& roots) {
+    /**
+     * @brief Semi-space Copying Garbage Collector
+     */
+    void collect(Value* roots, size_t rootCount) {
         Arena* targetArena = (activeArena == &arenaA) ? &arenaB : &arenaA;
         targetArena->reset();
 
-        for (Value& val : roots) {
-            if (val.type != ValueType::PersistentString || !val.rawPtr) continue;
+        for (size_t i = 0; i < rootCount; ++i) {
+            Value& val = roots[i];
             
-            // Only move strings that belong to the arena we are about to clear
+            // Only process persistent strings that live in the arena we are clearing
+            if (val.type != ValueType::PersistentString || !val.rawPtr) continue;
             if (!activeArena->contains((void*)val.rawPtr)) continue; 
 
             StringHeader* oldHeader = (StringHeader*)(val.rawPtr - sizeof(StringHeader));
 
             if (oldHeader->forwardingAddr) {
-                // Shared string: already moved
+                // String already moved by a previous root
                 val.rawPtr = oldHeader->forwardingAddr;
             } else {
-                // New string: move it
+                // Move string to the new arena
                 size_t dataSize = val.length + 1;
                 void* newBlock = targetArena->alloc(dataSize + sizeof(StringHeader));
                 

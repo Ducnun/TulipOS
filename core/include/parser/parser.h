@@ -8,7 +8,8 @@
 
 class Parser{
 public:
-    Parser(SymbolTable& symTable, Arena& arena) : _symTable(symTable), _arena(arena) {}
+    Parser(SymbolTable& symTable, Arena& astArena) 
+        : _symTable(symTable), _arena(astArena) {}
     ~Parser() = default;
 
     std::vector<StmtPtr> parse(const std::vector<Token>& tokens);

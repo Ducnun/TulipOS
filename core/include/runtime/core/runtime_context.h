@@ -1,9 +1,9 @@
 #pragma once
 
-#include "kernel/kernel.h"
 #include "value.h"
-#include "utils/managed_arena.h"
+#include "runtime_resources.h"
 #include <vector>
+#include <algorithm>
 
 struct ForLoopFrame {
     Symbol variable;
@@ -12,70 +12,70 @@ struct ForLoopFrame {
     int bodyStartLine;
 };
 
+/**
+ * @brief Represents the volatile execution state of the interpreter.
+ * It does not own memory; it merely tracks the Program Counter, 
+ * control flow stacks, and refers to the Memory Manager (Resources).
+ */
 struct RuntimeContext {
-    // Variables
-    std::vector<Value> variables;
-    Value* varPtr = nullptr;
-    size_t variableCount;
+    // Reference to the Memory Manager
+    RuntimeResources& res;
+
+    // Direct access to variables (stored in the Resource's Symbol Arena)
+    Value* const variables;
+    const size_t variableCount;
+    
+    // Control Flow Stacks
+    // Note: If you want to be 100% heap-free, 
+    // these could eventually be moved to a FixedStack or an Arena.
     std::vector<ForLoopFrame> forLoopStack;
 
-    // Stack/Heap emulation
-    Arena transientArena;
-    ManagedArena persistentArena;
-
-    RuntimeContext(size_t variableCount, size_t persistent, size_t transient) :
-        variableCount(variableCount),
-        transientArena(transient),
-        persistentArena(persistent)
-        { 
-            variables.resize(variableCount);
-        }
-    
-    // Jump control
+    // Execution State (The "Registers")
+    int currentLine = 0;
+    bool halted = false;
     bool jumpRequested = false;
     int jumpTarget = -1;
-    
-    // Program control
-    int currentLine = 0;
     Value returnValue;
-    bool halted = false;
 
-    void reset(){
-        halted = false;
+    RuntimeContext(RuntimeResources& resources) :
+        res(resources),
+        variables(resources.getVariables()),
+        variableCount(resources.getVariableCount())
+    { 
+        // Initial state
         returnValue = Value::Float(0.0f);
-        transientArena.reset();
-        persistentArena.reset();
-        forLoopStack.clear();
+    }
+    
+    /**
+     * @brief Resets the VM state for a new 'RUN'
+     */
+    void reset() {
+        halted = false;
+        currentLine = 0;
+        jumpRequested = false;
+        jumpTarget = -1;
+        returnValue = Value::Float(0.0f);
         
-        std::fill(variables.begin(), variables.end(), Value::Float(0.0f));
-        varPtr = variables.data();
+        forLoopStack.clear();
+
+        // Delegate memory clearing to the Resource Manager
+        res.resetArenas();
+        res.resetVariables();
     }
 
-    inline Value promoteValue(Value val) {
-        // Only strings in the Transient Arena need to be moved to Persistent
-        if (val.type == ValueType::TransientString && val.rawPtr) {
-            
-            char* newStorage = persistentArena.dupString(
-                val.rawPtr, 
-                val.length, 
-                variables // Pass the roots so they stay valid if GC hits
-            );
-
-            if (newStorage) {
-                return Value::PersistentStr(newStorage, val.length);
-            }
-        }
-        return val;
+    /**
+     * @brief Gets a pointer to a variable by its Symbol ID
+     */
+    inline Value* get(Symbol id) {
+        // In a debug build, you might want to assert(id < variableCount)
+        return &variables[id];
     }
 
-    inline Value* get(Symbol id){
-        return &varPtr[id];
-    }
-
+    /**
+     * @brief Assigns a value to a variable, handling string promotion automatically
+     */
     inline void assign(Symbol id, Value val) {
-        if (val.type == ValueType::TransientString) {
-            val = promoteValue(val);
-        }
-        varPtr[id] = val;
+        // The Resource manager handles moving strings from Transient to Persistent
+        variables[id] = res.promoteValue(val);
     }
 };
