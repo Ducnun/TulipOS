@@ -1,132 +1,87 @@
 #include "tokenizer/tokenizer.h"
 
-const std::unordered_map<std::string, TokenType> Tokenizer::_keywords = {
-    {"PRINT", TokenType::Print},
-    {"LET", TokenType::Let},
-    {"IF", TokenType::If},
-    {"THEN", TokenType::Then},
-    {"ELSE", TokenType::Else},
-    {"GOTO", TokenType::Goto},
-    {"INPUT", TokenType::Input},
-    {"FOR", TokenType::For},
-    {"TO", TokenType::To},
-    {"STEP", TokenType::Step},
-    {"NEXT", TokenType::Next},
-    {"RUN", TokenType::Run},
-    {"LIST", TokenType::List},
-    {"NEW", TokenType::New},
-    {"RETURN", TokenType::Return},
-    {"END", TokenType::End},
-    {"AND", TokenType::And},
-    {"OR", TokenType::Or},
-    {"NOT", TokenType::Not},
-    {"MOD", TokenType::Mod},
-    {"CALL", TokenType::Call},
-    {"TRUE", TokenType::True},
-    {"FALSE", TokenType::False},
+// Hardcoded keywords to avoid std::unordered_map
+struct Keyword {
+    const char* name;
+    TokenType type;
 };
 
-void Tokenizer::reset(){
-    _current = 0;
-    _start = 0;
-    _line = 1;
-    _tokens.clear();
-}
+static const Keyword KEYWORDS[] = {
+    {"PRINT", TokenType::Print}, {"LET", TokenType::Let}, {"IF", TokenType::If},
+    {"THEN", TokenType::Then}, {"ELSE", TokenType::Else}, {"GOTO", TokenType::Goto},
+    {"INPUT", TokenType::Input}, {"FOR", TokenType::For}, {"TO", TokenType::To},
+    {"STEP", TokenType::Step}, {"NEXT", TokenType::Next}, {"RUN", TokenType::Run},
+    {"LIST", TokenType::List}, {"NEW", TokenType::New}, {"RETURN", TokenType::Return},
+    {"END", TokenType::End}, {"AND", TokenType::And}, {"OR", TokenType::Or},
+    {"NOT", TokenType::Not}, {"MOD", TokenType::Mod}, {"CALL", TokenType::Call},
+    {"TRUE", TokenType::True}, {"FALSE", TokenType::False},
+};
 
-std::vector<Token>& Tokenizer::tokenize(std::string source){
-    reset();
-    _source = source;
-    while (!isAtEnd()){
-        _start = _current;
-        scanToken();
-    }
-    addToken(TokenType::Eof);
+static const uint32_t KEYWORD_COUNT = sizeof(KEYWORDS) / sizeof(Keyword);
 
-    return _tokens;
-}
+Token Tokenizer::nextToken(){
+    skipWhitespace();
+    uint32_t start = _cursor;
 
-void Tokenizer::scanToken(void){
+    if (isAtEnd()) return {TokenType::Eof, {nullptr, 0}, _line};
+
     char c = advance();
-    // Dispatching switch case
-    switch(c){
-        case ' ': break;
-        case '\r': break;
-        case '\t': break;
-        case '\n': _line++; break;
-        case '(': addToken(TokenType::LeftParen); break;
-        case ')': addToken(TokenType::RightParen); break;
-        case ',': addToken(TokenType::Comma); break;
-        case ':': addToken(TokenType::Colon); break;
-        case ';': addToken(TokenType::Semicolon); break;
-        case '+': addToken(TokenType::Plus); break;
-        case '-': addToken(TokenType::Minus); break;
-        case '*': addToken(TokenType::Star); break;
-        case '/': addToken(TokenType::Slash); break;
-        case '^': addToken(TokenType::Caret); break;
-        case '=': addToken(TokenType::Equal); break;
-        case '{': addToken(TokenType::LeftBrace); break;
-        case '}': addToken(TokenType::RightBrace); break;
-        case '.': addToken(TokenType::Dot); break;
-        case '>': addToken(match('=') ? TokenType::GreaterEqual : TokenType::Greater); break;
-        case '<': 
-            if (match('=')) addToken(TokenType::LessEqual);
-            else if (match('>')) addToken(TokenType::NotEqual);
-            else addToken(TokenType::Less);
-            break;
-        case '"': string(); break;
-        default:
-        {
-            if (std::isdigit(c)){
-                number();
+
+    if (isDigit(c)) {
+        while (isDigit(peek())) advance();
+        if (peek() == '.' && isDigit(peekNext())) {
+            advance();
+            while (isDigit(peek())) advance();
+        }
+        return {TokenType::Float, {_source.data + start, _cursor - start}, _line};
+    }
+
+    if (isAlpha(c)) {
+        while (isAlphaNumeric(peek())) advance();
+        util::StringView lexeme{_source.data + start, _cursor - start};
+        
+        // Linear scan KEYWORDS (Flash/Internal RAM)
+        for (size_t i = 0; i < KEYWORD_COUNT; ++i) {
+            if (lexeme.equals(KEYWORDS[i].name)) {
+                return {KEYWORDS[i].type, lexeme, _line};
             }
-            else if (isAlpha(c)){
-                identifier();
-            }
-            else{
-                addToken(TokenType::Error, "Unexpected Token");
-                advance();
-            }
-            break;
+        }
+        return {TokenType::Identifier, lexeme, _line};
+    }
+
+    if (c == '"') {
+        while (peek() != '"' && !isAtEnd()) advance();
+        if (isAtEnd()) return {TokenType::Error, {"Unterminated String", 19}, _line};
+        advance(); // Consume closing quote
+        // Return view without the quotes
+        return Token(TokenType::String, util::StringView(_source.data + start + 1, _cursor - start - 2), _line);
+    }
+
+    switch (c){
+        case '(': return {TokenType::LeftParen, {_source.data + start, 1}, _line};
+        case ')': return {TokenType::RightParen, {_source.data + start, 1}, _line};
+        case '+': return {TokenType::Plus, {_source.data + start, 1}, _line};
+        case '-': return {TokenType::Minus, {_source.data + start, 1}, _line};
+        case '*': return {TokenType::Star, {_source.data + start, 1}, _line};
+        case '/': return {TokenType::Slash, {_source.data + start, 1}, _line};
+        case ':': return {TokenType::Colon, {_source.data + start, 1}, _line};
+        case ';': return {TokenType::Semicolon, {_source.data + start, 1}, _line};
+        case ',': return {TokenType::Comma, {_source.data + start, 1}, _line};
+        case '^': return {TokenType::Caret, {_source.data + start, 1}, _line};
+        case '.': return {TokenType::Dot, {_source.data + start, 1}, _line};
+        case '{': return {TokenType::LeftBrace, {_source.data + start, 1}, _line};
+        case '}': return {TokenType::RightBrace, {_source.data + start, 1}, _line};
+
+        case '>':{
+            if (match('=')) return {TokenType::GreaterEqual, {_source.data + start, 1}, _line};
+            return {TokenType::Greater, {_source.data + start, 1}, _line};
+        }
+        case '<':{
+            if (match('=')) return {TokenType::LessEqual, {_source.data + start, 1}, _line};
+            else if (match('>')) return {TokenType::NotEqual, {_source.data + start, 1}, _line};
+            else return {TokenType::Less, {_source.data + start, 1}, _line};
         }
     }
-}
 
-void Tokenizer::string(){
-    while (peek() != '"' && !isAtEnd()){
-        if (peek() == '\n') _line++;
-        advance();
-    }
-
-    if (isAtEnd()){
-        addToken(TokenType::Error, "Unterminated String");
-        return;
-    }
-
-    advance();
-    std::string value = _source.substr(_start + 1, _current - _start - 2);
-    addToken(TokenType::String, value);
-}
-
-void Tokenizer::number(){
-    while (std::isdigit(peek())) advance();
-
-    if (peek() == '.' && std::isdigit(peekNext())){
-        advance();
-        while (std::isdigit(peek())) advance();
-    }
-    addToken(TokenType::Float, _source.substr(_start, _current - _start));
-}
-
-void Tokenizer::identifier(){
-    while (isAlphaNumeric(peek())) advance();
-
-    std::string lexeme = _source.substr(_start, _current - _start);
-    auto it = _keywords.find(lexeme);
-
-    if (it != _keywords.end()){
-        addToken(it->second);
-    }
-    else{
-        addToken(TokenType::Identifier, lexeme);
-    }
-}
+    return {TokenType::Eof, nullptr, _line};
+} 

@@ -12,68 +12,65 @@ public:
      */
     ~Tokenizer() = default;
 
-    /**
-     * @brief tokenizes a cleaned input line
-     * @param input Cleaned input
-     * @return std::vector<Token> Vector of tokens in input order 
-     */
-    std::vector<Token>& tokenize(const std::string& source);
-    
+    // Initializes tokenizer at provided source
+    void init(util::StringView source, int startLine) {
+        _source = source;
+        _cursor = 0;
+        _line = startLine;
+    }
+
+    Token nextToken();
 
 private:
-    uint32_t _start = 0;     ///< Start of the current lexeme
-    uint32_t _current = 0;   ///< Current char in the scanned lexeme
-    uint32_t _line = 1;      ///< Tracking lines for error reporting
-
     util::StringView _source;
-    std::vector<Token> _tokens; ///< List of tokens built by the tokenizer
+    uint32_t _cursor = 0;
+    int _line = 0;
 
-    void scanToken(void);
-    void reset();
-
-    // Complexer lexemes
-    void string();
-    void number();
-    void identifier();
-    
     /*
         Helper Functions
     */
+    void skipWhitespace(){
+        while (!isAtEnd()){
+            char c = _source.data[_cursor];
+            if (c == ' ' || c == '\n' || c == '\r') _cursor++;
+            else if (c == '\n') {
+                _line++;
+                _cursor++;
+            }
+            else break;
+        }
+    }
+
     char advance(){
-        return _source.data[_current++];
+        return _source.data[_cursor++];
     }
 
     bool isAtEnd(){
-        return _current >= _source.length;
+        return _cursor >= _source.length;
     }
 
     char peek(){
         if (isAtEnd()) return '\0';
-        return _source.data[_current];
+        return _source.data[_cursor];
     }
 
     char peekNext(){
-        if (_current + 1 >= _source.length) return '\0';
-        return _source.data[_current + 1];
+        if (_cursor + 1 >= _source.length) return '\0';
+        return _source.data[_cursor + 1];
     }
 
     bool match(char expected){
         // Either break if its last char or if it doesnt match
         if (isAtEnd()) return false;
-        if (_source.data[_current] != expected) return false;
+        if (_source.data[_cursor] != expected) return false;
 
         // If it does match, also consume it
-        _current++;
+        _cursor++;
         return true;
     }
-    
-    void addToken(TokenType type) {
-        // For simple operators, value is empty or 1-char
-        _tokens.emplace_back(type, util::StringView(_source.data + _start, _current - _start), _line);
-    }
 
-    void addToken(TokenType type, util::StringView value) {
-        _tokens.emplace_back(type, value, _line);
+    bool isDigit(char c){ 
+        return c >= '0' && c <= '9'; 
     }
 
     bool isAlpha(char c){
