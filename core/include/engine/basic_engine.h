@@ -22,7 +22,7 @@ public:
         _res(std::move(res)),         // Take ownership of the sandbox
         _ctx(_res),                   // Context views the sandbox
         _symTable(_res.symArena, 128), // Pass the arena and capacity
-        _parser(_symTable, _res.progArena), // Parser uses Program Arena for AST
+        _parser(_symTable), // Parser uses Program Arena for AST
         _interpreter(_ctx, _symTable, _sys)      // Interpreter executes via Context and System API
     {}
 
@@ -40,12 +40,13 @@ public:
     // --- Introspection ---
     void list();
     void DumpProgram();
+    void reportParserError();
     
     /**
      * @brief Reports memory usage from the Program Arena
      */
     uint32_t reportProgramSize() { 
-        return (uint32_t)_res.progArena.getOffset(); 
+        return (uint32_t)_res.codeArena.getOffset(); 
     }
 
 private:

@@ -6,6 +6,7 @@
 
 class Arena {
 public:
+    using Mark = size_t;
     Arena() : _buffer(nullptr), _capacity(0), _offset(0) {}
 
     void init(void* buffer, size_t size) {

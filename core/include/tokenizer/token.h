@@ -11,6 +11,8 @@ struct Token{
     util::StringView value;
     int line;
 
+    Token() = default;
+
     /// @brief Constructor for Token struct
     Token(TokenType type, util::StringView value, int line) : type(type), value(value), line(line) {}
 };

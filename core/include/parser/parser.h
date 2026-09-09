@@ -5,53 +5,83 @@
 #include "ast/expression.h"
 #include "ast/statement.h"
 #include "runtime/core/symbol_table.h"
+#include "tokenizer/tokenizer.h"
+#include "parser/parser_error.h"
 
 class Parser{
 public:
-    Parser(SymbolTable& symTable, Arena& astArena) 
-        : _symTable(symTable), _arena(astArena) {}
+    Parser(SymbolTable& symTable) 
+        : _symTable(symTable) {}
+
     ~Parser() = default;
 
-    std::vector<StmtPtr> parse(const std::vector<Token>& tokens);
+    StmtPtr parseLine(Tokenizer& tokenizer, Arena& arena);
+
+    bool hasError() const {
+        return static_cast<bool>(_error);
+    }
+
+    const ParseError& error() const {
+        return _error;
+    }
+
 
 private:
-    std::vector<Token> _tokens;
-    size_t _current = 0;
+    // References to external state
     SymbolTable& _symTable;
-    Arena& _arena;
+    
+    // State set per call to parseLine
+    Tokenizer* _tokenizer = nullptr;
+    Arena* _arena = nullptr;
+    
+    // The "Lookahead": In the pull model, we store the current and previous tokens
+    Token _previous;
+    Token _current;
+    Token _next;
+
+    // First parser error encountered.
+    ParseError _error;
+
+    struct ParsedCall {
+        Symbol module = INVALID_SYMBOL;
+        Symbol function = INVALID_SYMBOL;
+        ExprPtr* arguments = nullptr;
+        uint8_t argumentCount = 0;
+    };
+
+    void advance() {
+        _previous = _current;
+        _current = _next;
+
+        // Do not keep requesting tokens after EOF.
+        if (_current.type == TokenType::Eof) {
+            _next = _current;
+        } else {
+            _next = _tokenizer->nextToken();
+        }
+
+        if (_current.type == TokenType::Error){
+            fail(ParseErrorCode::UnexpectedToken, _current.value.data ? _current.value.data : "Tokenizer error");
+        }
+    }
 
     // Helper functions
-    Token& peek() {
-        return _tokens[_current];
+    bool check(TokenType expected) const {
+        return _current.type == expected;
     }
 
-    bool isAtEnd() {
-        return peek().type == TokenType::Eof;
+    bool checkNext(TokenType expected) const {
+        return _next.type == expected;
     }
 
-    Token& previous(){
-        return _tokens[_current - 1];
+    bool isAtEnd() const {
+        return _current.type == TokenType::Eof;
     }
 
-    Token advance(){
-        if (!isAtEnd()) _current++;
-        return previous();
-    }
-
-    bool check(TokenType expected){
-        if (isAtEnd()) return false;
-        return peek().type == expected;
-    }
-
-    bool checkNext(TokenType type) {
-        if (isAtEnd()) return false;
-        if (_tokens[_current + 1].type == TokenType::Eof) return false;
-        return _tokens[_current + 1].type == type;
-    }
-
-    bool match(std::initializer_list<TokenType> expected){
-        for (const auto& type : expected){
-            if (check(type)){
+    bool matchAny(std::initializer_list<TokenType> types) {
+        if (hasError()) return false;
+        for (auto type : types) {
+            if (check(type)) {
                 advance();
                 return true;
             }
@@ -59,10 +89,59 @@ private:
         return false;
     }
 
-    Token consume(TokenType type, const std::string& msg){
-        if (check(type)) return advance();
-        throw std::runtime_error(msg);
+    bool match(TokenType expected){
+        if (!check(expected) || hasError()) return false;
+
+        advance();
+        return true;
     }
+
+    bool consume(TokenType type, const char* message) {
+        if (hasError()) {
+            return false;
+        }
+
+        if (!check(type)) {
+            fail(ParseErrorCode::UnexpectedToken, message);
+            return false;
+        }
+
+        advance();
+        return true;
+    }
+
+    void fail(ParseErrorCode code, const char* message) {
+        // Preserve the first error. Subsequent errors are usually consequences
+        // of the parser already being out of alignment.
+        if (hasError()) {
+            return;
+        }
+
+        _error.code = code;
+        _error.token = _current;
+        _error.message = message;
+    }
+
+    Symbol intern(util::StringView value) {
+        Symbol symbol = _symTable.getOrCreate(value);
+
+        if (symbol == INVALID_SYMBOL) {
+            fail(
+                ParseErrorCode::SymbolTableFull,
+                "Symbol table or symbol arena is full"
+            );
+        }
+
+        return symbol;
+    }
+
+    bool checkTokenizerError() {
+        if (_current.type != TokenType::Error) return false;
+        fail(ParseErrorCode::UnexpectedToken, _current.value.data ? _current.value.data : "Tokenizer error");
+        return true;
+    }
+
+    bool parseCallTail(util::StringView firstName, ParsedCall& result);
 
     // statements
     StmtPtr statement();
@@ -91,11 +170,36 @@ private:
 
     template<typename T, typename... Args>
     T* allocate(Args&&... args) {
-        void* mem = _arena.alloc(sizeof(T));
-        if (!mem) {
-            // Fallback: This will still cause issues, but at least we see why
-            throw std::runtime_error("Parser: Arena Allocation Failed");
+        if (hasError()) {
+            return nullptr;
         }
+
+        // Arena::alloc must return memory suitably aligned for T.
+        void* mem = _arena->alloc(sizeof(T));
+
+        if (!mem) {
+            fail(ParseErrorCode::OutOfMemory, "AST arena is full");
+            return nullptr;
+        }
+
         return new (mem) T(std::forward<Args>(args)...);
+    }
+
+    template<typename T>
+    T* copyArray(const T* source, size_t count) {
+        if (hasError() || count == 0) {
+            return nullptr;
+        }
+
+        void* mem = _arena->alloc(sizeof(T) * count);
+
+        if (!mem) {
+            fail(ParseErrorCode::OutOfMemory, "AST arena is full");
+            return nullptr;
+        }
+
+        // Only use this with trivially copyable types such as pointers, Symbols, and simple aggregate records.
+        std::memcpy(mem, source, sizeof(T) * count);
+        return static_cast<T*>(mem);
     }
 };

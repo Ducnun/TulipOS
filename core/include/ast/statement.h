@@ -12,8 +12,10 @@ enum class PrintSeparator{
 };
 
 struct PrintItem{
-    ExprPtr expression;
-    PrintSeparator separator;
+    ExprPtr expression = nullptr;
+    PrintSeparator separator = PrintSeparator::None;
+
+    PrintItem() = default;  // Allow inits in arrays
 
     PrintItem(ExprPtr expression, PrintSeparator separator) : 
         expression(expression), separator(separator) {} 

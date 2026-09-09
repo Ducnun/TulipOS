@@ -12,8 +12,7 @@ public:
                      void* codeBuf, size_t codeSize,
                      void* tranBuf, size_t tranSize,
                      void* symBuf,  size_t symSize,
-                     void* persABuf, void* persBBuf, size_t persSize) 
-    {
+                     void* persABuf, void* persBBuf, size_t persSize){
         srcArena.init(srcBuf, srcSize);
         codeArena.init(codeBuf, codeSize);
         tranArena.init(tranBuf, tranSize);
@@ -40,16 +39,8 @@ public:
         if (val.type == ValueType::TransientString && val.rawPtr) {
             // Pass our internal _variables array as the "roots" 
             // so the ManagedArena can update pointers if it needs to GC/Compact
-            char* newStorage = persArena.dupString(
-                val.rawPtr, 
-                val.length, 
-                _variables,
-                _maxVariables 
-            );
-
-            if (newStorage) {
-                return Value::PersistentStr(newStorage, val.length);
-            }
+            char* newStorage = persArena.dupString(val.rawPtr,  val.length,  _variables, _maxVariables);
+            if (newStorage) return Value::PersistentStr(newStorage, val.length);
         }
         return val;
     }

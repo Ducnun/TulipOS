@@ -7,7 +7,7 @@ void BasicEngine::storeLine(int lineNumber, const std::string& source){
     memcpy(sMem, source.c_str(), source.length() + 1);
     util::StringView sourceView(sMem, source.length());
 
-    _tokenizer.init(sourceView);
+    _tokenizer.init(sourceView, lineNumber);
     StmtPtr statement = _parser.parseLine(_tokenizer, _res.codeArena);
 
     if (statement) {
@@ -37,18 +37,22 @@ void BasicEngine::removeLine(int lineNumber) {
 }
 
 void BasicEngine::executeImmediate(const std::string& source){
-    auto tokens = _tokenizer.tokenize(source);
-    auto statements = _parser.parse(std::move(tokens));
-    if (statements.empty()) return;
+    if (source.empty()) return;
 
-    // Treat immediate execution as a temporary "Line 0"
-    // This allows loops/jumps to point back to "0" and work
-    _program.addLine(0, wrapStatements(std::move(statements)), source);
-    
-    // Run starting at 0, but do NOT reset variables (keep REPL state)
+    // Create source view and pass to tokenizer
+    util::StringView sourceView(source.data(), source.length());
+    _tokenizer.init(sourceView, 0);
+
+    // Create and check validity of executable AST
+    StmtPtr statement = _parser.parseLine(_tokenizer, _res.codeArena);
+    if (!statement) {
+        reportParserError();
+        return;
+    }
+
+    // Temp run as line 0, delete after
+    _program.addLine(0, statement, sourceView);
     runInternal(0, false, true);
-
-    // Cleanup so it doesn't show up in LIST
     _program.removeLine(0);
 }
 
@@ -171,4 +175,16 @@ void BasicEngine::DumpProgram() {
     _sys.console().print("------------------------\n");
     _sys.console().print("Used:  " + std::to_string(reportProgramSize()) + " bytes\n");
     _sys.console().print("Free:  " + std::to_string(_res.progArena.getRemaining()) + " bytes\n");
+}
+
+void BasicEngine::reportParserError() {
+    const auto& error = _parser.error();
+    _sys.console().print("? PARSE ERROR");
+
+    if (error.token.line > 0) {
+        _sys.console().print(" ON LINE " + std::to_string(error.token.line));
+    }
+
+    if (error.message) _sys.console().print(": "); _sys.console().print(error.message);
+    _sys.console().print("\n");
 }

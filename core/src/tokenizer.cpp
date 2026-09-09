@@ -25,22 +25,25 @@ Token Tokenizer::nextToken(){
 
     if (isAtEnd()) return {TokenType::Eof, {nullptr, 0}, _line};
 
-    char c = advance();
+char c = advance();
 
     if (isDigit(c)) {
         while (isDigit(peek())) advance();
+
+        TokenType type = TokenType::Integer;
         if (peek() == '.' && isDigit(peekNext())) {
+            type = TokenType::Float;
             advance();
             while (isDigit(peek())) advance();
         }
-        return {TokenType::Float, {_source.data + start, _cursor - start}, _line};
+
+        return {type, {_source.data + start, _cursor - start}, _line};
     }
 
     if (isAlpha(c)) {
         while (isAlphaNumeric(peek())) advance();
         util::StringView lexeme{_source.data + start, _cursor - start};
         
-        // Linear scan KEYWORDS (Flash/Internal RAM)
         for (size_t i = 0; i < KEYWORD_COUNT; ++i) {
             if (lexeme.equals(KEYWORDS[i].name)) {
                 return {KEYWORDS[i].type, lexeme, _line};
@@ -58,30 +61,28 @@ Token Tokenizer::nextToken(){
     }
 
     switch (c){
-        case '(': return {TokenType::LeftParen, {_source.data + start, 1}, _line};
-        case ')': return {TokenType::RightParen, {_source.data + start, 1}, _line};
-        case '+': return {TokenType::Plus, {_source.data + start, 1}, _line};
-        case '-': return {TokenType::Minus, {_source.data + start, 1}, _line};
-        case '*': return {TokenType::Star, {_source.data + start, 1}, _line};
-        case '/': return {TokenType::Slash, {_source.data + start, 1}, _line};
-        case ':': return {TokenType::Colon, {_source.data + start, 1}, _line};
-        case ';': return {TokenType::Semicolon, {_source.data + start, 1}, _line};
-        case ',': return {TokenType::Comma, {_source.data + start, 1}, _line};
-        case '^': return {TokenType::Caret, {_source.data + start, 1}, _line};
-        case '.': return {TokenType::Dot, {_source.data + start, 1}, _line};
-        case '{': return {TokenType::LeftBrace, {_source.data + start, 1}, _line};
-        case '}': return {TokenType::RightBrace, {_source.data + start, 1}, _line};
-
-        case '>':{
-            if (match('=')) return {TokenType::GreaterEqual, {_source.data + start, 1}, _line};
+        case '(': return {TokenType::LeftParen, {_source.data + start, 1}, _line}; break;
+        case ')': return {TokenType::RightParen,{_source.data + start, 1}, _line}; break;
+        case '+': return {TokenType::Plus,      {_source.data + start, 1}, _line}; break;
+        case '-': return {TokenType::Minus,     {_source.data + start, 1}, _line}; break;
+        case '*': return {TokenType::Star,      {_source.data + start, 1}, _line}; break;
+        case '/': return {TokenType::Slash,     {_source.data + start, 1}, _line}; break;
+        case ':': return {TokenType::Colon,     {_source.data + start, 1}, _line}; break;
+        case ';': return {TokenType::Semicolon, {_source.data + start, 1}, _line}; break;
+        case ',': return {TokenType::Comma,     {_source.data + start, 1}, _line}; break;
+        case '^': return {TokenType::Caret,     {_source.data + start, 1}, _line}; break;
+        case '.': return {TokenType::Dot,       {_source.data + start, 1}, _line}; break;
+        case '{': return {TokenType::LeftBrace, {_source.data + start, 1}, _line}; break;
+        case '}': return {TokenType::RightBrace,{_source.data + start, 1}, _line}; break;
+        case '=': return {TokenType::Equal,     {_source.data + start, 1}, _line}; break;
+        case '>': {
+            if (match('=')) return {TokenType::GreaterEqual, {_source.data + start, 2}, _line};
             return {TokenType::Greater, {_source.data + start, 1}, _line};
         }
-        case '<':{
-            if (match('=')) return {TokenType::LessEqual, {_source.data + start, 1}, _line};
-            else if (match('>')) return {TokenType::NotEqual, {_source.data + start, 1}, _line};
-            else return {TokenType::Less, {_source.data + start, 1}, _line};
-        }
+        case '<': {
+            if (match('=')) return {TokenType::LessEqual, {_source.data + start, 2}, _line};
+            if (match('>')) return {TokenType::NotEqual, {_source.data + start, 2}, _line};
+            return {TokenType::Less, {_source.data + start, 1}, _line};
+        } 
     }
-
-    return {TokenType::Eof, nullptr, _line};
-} 
+}
