@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <cstring>
+#include <limits>
+#include <new>
+#include <utility>
 
 class Arena {
 public:
@@ -15,31 +17,75 @@ public:
         _offset = 0;
     }
 
-    void* alloc(size_t size) {
-        // Alignment handling
-#ifdef ESP32
-        size = (size + 3) & ~3;
-#else
-        size = (size + 7) & ~7;
-#endif
+    void* alloc(size_t size, size_t alignment = alignof(std::max_align_t));
 
-        if (!_buffer || _offset + size > _capacity) return nullptr;
-
-        void* ptr = &_buffer[_offset];
-        _offset += size;
-        return ptr;
+    // For temporary storage
+    Mark mark() const { return _offset };
+    bool rewind(Mark mark){
+        if (mark > _offset) return false;
+        _offset = mark;
+        return true;
     }
 
     void reset() { _offset = 0; }
 
     // Helpers for ManagedArena
-    uint32_t getOffset() const { return (uint32_t)_offset; }
+    size_t getOffset() const { return _offset; }
+    size_t getCapacity() const { return _capacity; }
     size_t getRemaining() const { return _capacity - _offset; }
-    void* getPointer(uint32_t offset) const { return (void*)(_buffer + offset); }
-    bool contains(void* ptr) { return (ptr >= _buffer && ptr < (_buffer + _capacity)); }
+
+    void* getPointer(size_t offset) {
+        if (!_buffer || offset > _capacity) return nullptr;
+        return _buffer + offset;
+    }
+
+    const void* getPointer(size_t offset) const {
+        if (!_buffer || offset > _capacity) return nullptr;
+        return _buffer + offset;
+    }
+
+    bool contains(const void* pointer) const {
+        if (!_buffer || !pointer) return false;
+
+        const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+        const uintptr_t begin = reinterpret_cast<uintptr_t>(_buffer);
+        const uintptr_t end = begin + _capacity;
+
+        return address >= begin && address < end;
+    }
+
+    // Allocation templates
+    template<typename T>
+    T* allocArray(size_t count = 1) {
+        if (count == 0) {
+            return nullptr;
+        }
+
+        if (count >
+            std::numeric_limits<size_t>::max() / sizeof(T)) {
+            return nullptr;
+        }
+
+        return static_cast<T*>(
+            alloc(sizeof(T) * count, alignof(T))
+        );
+    }
+
+    template<typename T, typename... Args>
+    T* create(Args&&... args) {
+        void* memory = alloc(sizeof(T), alignof(T));
+
+        if (!memory) {
+            return nullptr;
+        }
+
+        return new (memory) T(
+            std::forward<Args>(args)...
+        );
+    }
 
 private:
-    uint8_t* _buffer;
+    std::byte* _buffer;
     size_t _capacity;
     size_t _offset;
 };
