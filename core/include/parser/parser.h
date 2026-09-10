@@ -4,9 +4,9 @@
 
 #include "ast/expression.h"
 #include "ast/statement.h"
-#include "runtime/core/symbol_table.h"
 #include "tokenizer/tokenizer.h"
 #include "parser/parser_error.h"
+#include "string_literal.h"
 
 class Parser{
 public:

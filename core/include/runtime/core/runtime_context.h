@@ -2,11 +2,12 @@
 
 #include "value.h"
 #include "runtime_resources.h"
+#include "identifier_id.h"
 #include <vector>
 #include <algorithm>
 
 struct ForLoopFrame {
-    Symbol variable;
+    IdentifierId identifier;
     float endValue;
     float stepValue;
     int bodyStartLine;
@@ -16,65 +17,53 @@ struct ForLoopFrame {
  * @brief Represents the volatile execution state of the interpreter.
  * It does not own memory; it merely tracks the Program Counter, 
  * control flow stacks, and refers to the Memory Manager (Resources).
- */
+ */// In RuntimeContext.h
 struct RuntimeContext {
-    // Reference to the Memory Manager
     RuntimeResources& res;
-
-    // Direct access to variables (stored in the Resource's Symbol Arena)
-    Value* const variables;
-    const size_t variableCount;
-    
-    // Control Flow Stacks
-    // these could eventually be moved to a FixedStack or an Arena.
     std::vector<ForLoopFrame> forLoopStack;
 
-    // Execution State (The "Registers")
+    // Execution State
     int currentLine = 0;
     bool halted = false;
     bool jumpRequested = false;
     int jumpTarget = -1;
     Value returnValue;
 
-    RuntimeContext(RuntimeResources& resources) :
-        res(resources),
-        variables(resources.getVariables()),
-        variableCount(resources.getVariableCount())
-    { 
-        // Initial state
+    RuntimeContext(RuntimeResources& resources) : res(resources) {
         returnValue = Value::Float(0.0f);
     }
-    
-    /**
-     * @brief Resets the VM state for a new 'RUN'
-     */
+
     void reset() {
         halted = false;
         currentLine = 0;
         jumpRequested = false;
         jumpTarget = -1;
         returnValue = Value::Float(0.0f);
-        
         forLoopStack.clear();
-
-        // Delegate memory clearing to the Resource Manager
-        res.resetArenas();
-        res.resetVariables();
     }
 
-    /**
-     * @brief Gets a pointer to a variable by its Symbol ID
-     */
-    inline Value* get(Symbol id) {
-        // In a debug build, you might want to assert(id < variableCount)
-        return &variables[id];
+    // --- Variable Access (by name or ID) ---
+    inline Value getVariableValue(StringView name) {
+        return res.getVariableValue(res.getOrCreateVariable(name));
     }
 
-    /**
-     * @brief Assigns a value to a variable, handling string promotion automatically
-     */
-    inline void assign(Symbol id, Value val) {
-        // The Resource manager handles moving strings from Transient to Persistent
-        variables[id] = res.promoteValue(val);
+    inline void setVariableValue(StringView name, Value val) {
+        VariableId varId = res.getOrCreateVariable(name);
+        res.setVariableValue(varId, res.promoteValue(val));
+    }
+
+    // If you already have a VariableId (e.g., from parsing)
+    inline Value getVariableValue(VariableId varId) {
+        return res.getVariableValue(varId);
+    }
+
+    inline void setVariableValue(VariableId varId, Value val) {
+        res.setVariableValue(varId, res.promoteValue(val));
+    }
+
+    // For loops: access by IdentifierId (the loop frame holds the name ID)
+    inline void setForLoopVariable(IdentifierId nameId, Value val) {
+        VariableId varId = res.getOrCreateVariable(nameId);
+        setVariableValue(varId, val);
     }
 };

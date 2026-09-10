@@ -19,6 +19,6 @@ struct Token{
 
 namespace TokenUtils{
     /// @brief Converts a Token to a string representation for debugging purposes
-    std::string toString(const Token& token);
     std::string typeToString(TokenType type);
+    std::string toString(const Token& token);
 }

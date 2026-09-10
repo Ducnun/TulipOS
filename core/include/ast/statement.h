@@ -4,8 +4,8 @@
 #include <vector>
 #include <optional>
 
-#include "../ast/expression.h"
-#include "../runtime/core/symbol_table.h"
+#include "ast/expression.h"
+#include "runtime/core/identifier_id.h"
 
 enum class PrintSeparator{
     None, Comma, Semicolon
@@ -40,24 +40,24 @@ struct PrintStmt : Stmt{
 };
 
 struct LetStmt : Stmt{
-    Symbol variable;
+    IdentifierId variable;
     ExprPtr value;
-    LetStmt(Symbol variable, ExprPtr value) : variable(variable), value(value) {}
+    LetStmt(IdentifierId variable, ExprPtr value) : variable(variable), value(value) {}
     void accept(StmtVisitor&) const override;
 };
 
 struct AssignmentStmt : Stmt{
-    Symbol variable;
+    IdentifierId variable;
     ExprPtr value;
-    AssignmentStmt(Symbol variable, ExprPtr value) : variable(variable), value(value) {}
+    AssignmentStmt(IdentifierId variable, ExprPtr value) : variable(variable), value(value) {}
     void accept(StmtVisitor&) const override;
 };
 
 struct InputStmt : Stmt{
-    Symbol promptId;
+    IdentifierId promptId;
     bool hasPrompt = false;
-    std::vector<Symbol> variables;
-    InputStmt(Symbol promptId, bool hasPrompt, std::vector<Symbol> variables) : 
+    std::vector<IdentifierId> variables;
+    InputStmt(IdentifierId promptId, bool hasPrompt, std::vector<IdentifierId> variables) : 
         promptId(promptId), hasPrompt(hasPrompt), variables(variables) {}
     void accept(StmtVisitor&) const override;
 };
@@ -80,20 +80,20 @@ struct IfStmt : Stmt{
 };
 
 struct ForStmt : Stmt{
-    Symbol variable;
+    IdentifierId variable;
     ExprPtr start;
     ExprPtr end;
     ExprPtr step;
 
-    ForStmt(Symbol variable, ExprPtr start, ExprPtr end, ExprPtr step) : 
+    ForStmt(IdentifierId variable, ExprPtr start, ExprPtr end, ExprPtr step) : 
         variable(variable), start(start), end(end), step(step) {} 
 
     void accept(StmtVisitor&) const override;
 };
 
 struct NextStmt : Stmt{
-    Symbol variable;
-    NextStmt(Symbol variable) : variable(variable) {}
+    IdentifierId variable;
+    NextStmt(IdentifierId variable) : variable(variable) {}
     void accept(StmtVisitor&) const override;
 };
 
@@ -108,10 +108,10 @@ struct ReturnStmt : Stmt{
 };
 
 struct CallStmt : Stmt{
-    Symbol module;
-    Symbol function;
+    IdentifierId module;
+    IdentifierId function;
     std::vector<ExprPtr> args;
-    CallStmt(Symbol module, Symbol function, std::vector<ExprPtr> args) :
+    CallStmt(IdentifierId module, IdentifierId function, std::vector<ExprPtr> args) :
         module(module), function(function), args(std::move(args)) {}
     void accept(StmtVisitor&) const override;
 };

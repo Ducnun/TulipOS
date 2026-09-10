@@ -3,7 +3,6 @@
 #include "kernel/system_api.h"
 #include "runtime/core/runtime_resources.h"
 #include "runtime/core/runtime_context.h"
-#include "runtime/core/symbol_table.h"
 #include "tokenizer/tokenizer.h"
 #include "parser/parser.h"
 #include "program.h"

@@ -3,8 +3,6 @@
 #include <string>
 #include <memory> // For shared_ptr
 
-#include "symbol_table.h"
-
 enum class ValueType : uint8_t { Number, Boolean, PermanentString, TransientString, PersistentString };
 
 struct Value {

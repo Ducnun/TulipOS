@@ -12,7 +12,7 @@ public:
     Arena() : _buffer(nullptr), _capacity(0), _offset(0) {}
 
     void init(void* buffer, size_t size) {
-        _buffer = (uint8_t*)buffer;
+        _buffer = (std::byte*)buffer;
         _capacity = size;
         _offset = 0;
     }
@@ -20,7 +20,7 @@ public:
     void* alloc(size_t size, size_t alignment = alignof(std::max_align_t));
 
     // For temporary storage
-    Mark mark() const { return _offset };
+    Mark mark() const { return _offset; };
     bool rewind(Mark mark){
         if (mark > _offset) return false;
         _offset = mark;

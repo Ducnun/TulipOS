@@ -2,7 +2,7 @@
 
 void* Arena::alloc(size_t size, size_t alignment){
     if (!_buffer || size == 0) return nullptr;
-    if (alignment == 0 || alignment & (alignment - 1) != 0) return nullptr;
+    if (alignment == 0 || alignment & ((alignment - 1) != 0)) return nullptr;
 
     // Calculate address and alignment offset
     const uintptr_t currentAddress = reinterpret_cast<uintptr_t>(_buffer + _offset);

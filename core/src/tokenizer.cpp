@@ -25,7 +25,7 @@ Token Tokenizer::nextToken(){
 
     if (isAtEnd()) return {TokenType::Eof, {nullptr, 0}, _line};
 
-char c = advance();
+    char c = advance();
 
     if (isDigit(c)) {
         while (isDigit(peek())) advance();
@@ -85,4 +85,6 @@ char c = advance();
             return {TokenType::Less, {_source.data + start, 1}, _line};
         } 
     }
+
+    return {TokenType::Error, "Unsupported Token at line: ", _line};
 }
