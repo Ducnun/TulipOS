@@ -24,7 +24,7 @@ public:
     virtual std::vector<StorageDescriptor> getAvailableStorage() = 0;
 
     // --- Platform dependent Services ---
-    virtual IMemoryManager* getMemory() = 0;
+    virtual IMemoryManager& getMemory() = 0;
 
     /**
      * @brief Services any background tasks during busy waiting

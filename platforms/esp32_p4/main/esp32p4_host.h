@@ -21,7 +21,7 @@ public:
     std::vector<StorageDescriptor> getAvailableStorage();
 
     // --- Platform dependent Services ---
-    IMemoryManager* getMemory();
+    IMemoryManager& getMemory();
 
     /**
      * @brief Checks up on hardware modules/devices

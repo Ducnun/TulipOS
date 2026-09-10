@@ -124,8 +124,8 @@ std::vector<StorageDescriptor> ESP32P4Host::getAvailableStorage(void){
     return devices;
 }
 
-IMemoryManager* ESP32P4Host::getMemory(){
-    return &_memory;
+IMemoryManager& ESP32P4Host::getMemory(){
+    return _memory;
 }
 
 void ESP32P4Host::delay(uint32_t ms){

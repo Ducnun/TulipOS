@@ -2,6 +2,7 @@
 #include "system/shell.h"
 #include "services/storage_service.h"
 #include "platform_config.h"
+#include "kernel/kernel.h"
 
 void os_task(void* arg) {
     // 1. Initialize P4 Hardware
