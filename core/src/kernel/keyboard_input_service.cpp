@@ -23,5 +23,18 @@ char KeyboardInputService::waitForChar(){
 
 void KeyboardInputService::readLine(char* buffer, size_t maxLen){
     _linePos = 0;
-    
+    while (_linePos < maxLen - 1){
+        char c = waitForChar();
+        if (c == '\n' || c == '\r'){
+            buffer[_linePos] = '\0';    // Make null termination from new line/carriage return
+            return;
+        }
+        else if (c == '\b'){
+            if (_linePos > 0) _linePos--;
+        }
+        else{
+            buffer[_linePos++] = c;
+        }
+    }
+    buffer[_linePos] = '\0';    // Null terminate end of string
 }

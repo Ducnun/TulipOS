@@ -19,7 +19,7 @@ void os_task(void* arg) {
 
     // Kernel and service registration
     static Kernel kernel(host);
-    static KeyboardInputService kbService(host.getKeyboard());
+    static KeyboardInputService kbService(host.getKeyboard(), kernel);
     kernel.registerInputService(kbService);
 
     host.begin();
