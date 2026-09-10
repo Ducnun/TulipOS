@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "iblock_device.h"
+#include "ikeyboard.h"
 #include "imemory.h"
 
 struct StorageDescriptor {
@@ -22,6 +23,7 @@ public:
 
     // --- Hardware Discovery ---
     virtual std::vector<StorageDescriptor> getAvailableStorage() = 0;
+    virtual IKeyboard& getKeyboard() = 0;
 
     // --- Platform dependent Services ---
     virtual IMemoryManager& getMemory() = 0;

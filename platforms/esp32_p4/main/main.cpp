@@ -3,6 +3,7 @@
 #include "services/storage_service.h"
 #include "platform_config.h"
 #include "kernel/kernel.h"
+#include "kernel/keyboard_input_service.h"
 
 void os_task(void* arg) {
     // 1. Initialize P4 Hardware
@@ -15,6 +16,11 @@ void os_task(void* arg) {
     static VFS vfs;
     static StorageService storage(vfs, host);
     static Shell shell(host, storage);
+
+    // Kernel and service registration
+    static Kernel kernel(host);
+    static KeyboardInputService kbService(host.getKeyboard());
+    kernel.registerInputService(kbService);
 
     host.begin();
     host.print("Tulip OS Booting...\n");

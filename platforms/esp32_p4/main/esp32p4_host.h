@@ -19,6 +19,7 @@ public:
 
     // --- Hardware Discovery ---
     std::vector<StorageDescriptor> getAvailableStorage();
+    IKeyboard& getKeyboard() { return _kb; };
 
     // --- Platform dependent Services ---
     IMemoryManager& getMemory();

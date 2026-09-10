@@ -9,6 +9,16 @@
 
 #include "hal/ikeyboard.h"
 
+/**
+ * @brief Enum that represents the different possible states for extended and break scancodes
+ */
+enum ScancodeState {
+    Normal,
+    ExpectExtended,
+    ExpectBreak,
+    ExpectExtendedBreak,
+};
+
 class PS2Keyboard : public IKeyboard{
 public:
     /**
