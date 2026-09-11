@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include "utils/span.h"
 
 class ITerminal{
 public:
@@ -10,8 +11,8 @@ public:
     virtual bool begin() = 0;
 
     virtual bool sendChar(char c) = 0;
-    virtual bool sendString(const std::string& txt) = 0;
-    virtual bool redrawLine(const std::string& line) = 0;
+    virtual bool sendString(const util::span<char> txt) = 0;
+    virtual bool redrawLine(const util::span<char> line) = 0;
     virtual bool setCursor(uint8_t x, uint8_t y) = 0;
     virtual bool clearScreen() = 0;
     virtual bool setBackground(uint8_t color) = 0;
