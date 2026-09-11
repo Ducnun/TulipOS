@@ -10,6 +10,8 @@ class Kernel : public ISystemService{
 public:
     Kernel(IHost& host);
 
+    void begin();
+
     // System function calls
     void yield();
     bool checkBreak();

@@ -8,9 +8,9 @@ void Shell::runREPL() {
     while (true) {
         _host.service();
         _prompt = _storage.getCwd();
-        _host.print("\n");
-        _host.print(_prompt);
-        _host.print("> ");
+        _host.terminal().print("\n");
+        _host.terminal().print(_prompt);
+        _host.terminal().print("> ");
         std::string line = _host.readLine();
         if (line.empty()) continue;
 
@@ -38,9 +38,9 @@ void Shell::runREPL() {
                 _engine.executeImmediate(line);
             }
         } catch (const std::exception& e) {
-            _host.print("? ERROR: ");
-            _host.print(e.what());
-            _host.print("\n");
+            _host.terminal().print("? ERROR: ");
+            _host.terminal().print(e.what());
+            _host.terminal().print("\n");
         }
     }
 }
@@ -48,8 +48,8 @@ void Shell::runREPL() {
 void Shell::printWelcome(){
     _host.reset();
     _host.clearScreen();
-    _host.print("**** TULIP OS V2 ****\n");
-    _host.print("READY.\n");
+    _host.terminal().print("**** TULIP OS V2 ****\n");
+    _host.terminal().print("READY.\n");
 }
 
 std::string Shell::toUpper(const std::string& line){
@@ -70,11 +70,11 @@ bool Shell::handleREPLDirective(const std::string& line){
         uint32_t start = _host.millis();
         _engine.run();
         uint32_t duration = _host.millis() - start;
-        _host.print("\nExecution time: ");
-        _host.print(std::to_string(duration));
-        _host.print(" ms\n");
+        _host.terminal().print("\nExecution time: ");
+        _host.terminal().print(std::to_string(duration));
+        _host.terminal().print(" ms\n");
         
-        _host.print("READY.\n");
+        _host.terminal().print("READY.\n");
         return true;
     }
     if (line == "LIST") {
@@ -159,7 +159,7 @@ bool Shell::handleREPLDirective(const std::string& line){
     }
 
     if (line == "EXIT" || line == "QUIT"){
-        _host.print("OK");
+        _host.terminal().print("OK");
         return true;
     }
 
@@ -177,7 +177,7 @@ void Shell::handleLoad(const std::string& path) {
 
     // 1. Prepare Engine (Equivalent to 'NEW')
     _engine.clear(); 
-    _host.print("\nLoading " + path + "...\n");
+    _host.terminal().print("\nLoading " + path + "...\n");
 
     // 2. Streaming Read
     std::string lineBuffer = "";
@@ -187,7 +187,7 @@ void Shell::handleLoad(const std::string& path) {
         _host.service(); // Crucial: Keep Keyboard/System alive
         
         if (_host.checkBreakRequested()) {
-            _host.print("\nLoad aborted by user.\n");
+            _host.terminal().print("\nLoad aborted by user.\n");
             break;
         }
 
@@ -215,5 +215,5 @@ void Shell::handleLoad(const std::string& path) {
 
     file->close();
     delete file;
-    _host.print("READY.\n");
+    _host.terminal().print("READY.\n");
 }

@@ -3,6 +3,7 @@
 #include "services/storage_service.h"
 #include "platform_config.h"
 #include "kernel/kernel.h"
+#include "kernel/output_service.h"
 #include "kernel/keyboard_input_service.h"
 
 void os_task(void* arg) {
@@ -12,18 +13,20 @@ void os_task(void* arg) {
     static SDCardSPI sdDriver(SD_MOSI, SD_MISO, SD_SCK, SD_CS);
     static MemoryManager memory;
     static ESP32P4Host host(keyboard, terminal, sdDriver, memory);
-
+    
+    // Kernel and service registration
+    static Kernel kernel(host);
+    static KeyboardInputService kbService(host.keyboard(), kernel);
+    static OutputService outputService(host.terminal());
+    kernel.registerInputService(kbService);
+    kernel.registerOutputService(outputService);
+    kernel.begin();
+    
     static VFS vfs;
     static StorageService storage(vfs, host);
     static Shell shell(host, storage);
 
-    // Kernel and service registration
-    static Kernel kernel(host);
-    static KeyboardInputService kbService(host.getKeyboard(), kernel);
-    kernel.registerInputService(kbService);
-
-    host.begin();
-    host.print("Tulip OS Booting...\n");
+    kernel.output().println({"Tulip OS Booting..."});
     shell.runREPL();
 }
 

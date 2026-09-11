@@ -2,8 +2,12 @@
 
 Kernel::Kernel(IHost& host) : 
     _host(host), 
-    _memory(_host.getMemory()) 
+    _memory(_host.memory()) 
 {}
+
+void Kernel::begin(){
+    _host.begin();
+}
 
 void Kernel::yield(){
     _host.service();

@@ -97,7 +97,15 @@ bool UARTTerminal::sendChar(char c) {
     return sendPacket(STREAM_CMD_PRINT_CHAR, 1, &b);
 }
 
-bool UARTTerminal::sendString(const std::string& txt) {
+bool UARTTerminal::print(const util::StringView txt){
+    return sendMessage(
+        STREAM_CMD_PRINT_STRING,
+        txt.length,
+        reinterpret_cast<const uint8_t*>(txt.data)
+    );
+}
+
+bool UARTTerminal::sendString(const util::span<char> txt) {
     return sendMessage(
         STREAM_CMD_PRINT_STRING,
         txt.size(),
@@ -105,7 +113,7 @@ bool UARTTerminal::sendString(const std::string& txt) {
     );
 }
 
-bool UARTTerminal::redrawLine(const std::string& line) {
+bool UARTTerminal::redrawLine(const util::span<char> line) {
     return sendMessage(
         STREAM_CMD_REDRAW_LINE,
         line.size(),

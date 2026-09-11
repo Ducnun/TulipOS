@@ -17,10 +17,8 @@ void ESP32P4Host::service() {
     }
 }
 
-void ESP32P4Host::print(const std::string& txt){
-    printf(txt.c_str());
-    _terminal.sendString(txt.c_str());
-    fsync(STDOUT_FILENO);
+void ESP32P4Host::print(util::span<char> txt){
+    _terminal.sendString(txt);
 }
 
 std::string ESP32P4Host::readLine(){
@@ -122,10 +120,6 @@ std::vector<StorageDescriptor> ESP32P4Host::getAvailableStorage(void){
     // The host knows that on ESP32, we have an SD Card.
     devices.push_back({"SD", &_sdCard});
     return devices;
-}
-
-IMemoryManager& ESP32P4Host::getMemory(){
-    return _memory;
 }
 
 void ESP32P4Host::delay(uint32_t ms){

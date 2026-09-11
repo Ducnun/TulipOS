@@ -19,10 +19,11 @@ public:
 
     // --- Hardware Discovery ---
     std::vector<StorageDescriptor> getAvailableStorage();
-    IKeyboard& getKeyboard() { return _kb; };
+    IKeyboard& keyboard() { return _kb; };
+    ITerminal& terminal() { return _terminal; };
 
     // --- Platform dependent Services ---
-    IMemoryManager& getMemory();
+    IMemoryManager& memory() {return _memory; };
 
     /**
      * @brief Checks up on hardware modules/devices
@@ -33,7 +34,7 @@ public:
      * @brief Overrides the standard io_interface print statement to output to the terminal/monitor
      * @param txt 
      */
-    void print(const std::string& txt);
+    void print(const util::span<char> txt);
 
     /**
      * @brief Reads the inputs from the provided keyboard

@@ -7,8 +7,8 @@ class OutputService : public IOutputService{
 public:
     OutputService(ITerminal& terminal) : _terminal(terminal) {}
 
-    void print(util::span<char> txt) override;
-    void println(util::span<char> txt) override;
+    void print(util::StringView txt) override;
+    void println(util::StringView txt) override;
     void clear() override;
     void setColor(uint8_t fg, uint8_t bg) override;
 

@@ -2,6 +2,7 @@
 
 #include <string>
 #include "hal/iterminal.h"
+#include "utils/span.h"
 #include "driver/uart.h"
 
 // --- UART command codes ---
@@ -47,8 +48,9 @@ public:
     
     // IO API calls
     bool sendChar(char c);
-    bool sendString(const std::string& txt);
-    bool redrawLine(const std::string& line);
+    bool print(const util::StringView txt);
+    bool sendString(const util::span<char> txt);
+    bool redrawLine(const util::span<char> line);
     bool setCursor(uint8_t x, uint8_t y);
     bool clearScreen();
     bool setBackground(uint8_t color);

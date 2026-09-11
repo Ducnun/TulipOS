@@ -1,11 +1,11 @@
 #include "kernel/output_service.h"
 
-void OutputService::print(util::span<char> txt){
-    _terminal.sendString(txt);
+void OutputService::print(util::StringView txt){
+    _terminal.print(txt);
 }
 
-void OutputService::println(util::span<char> txt){
-    _terminal.sendString(txt);
+void OutputService::println(util::StringView txt){
+    _terminal.print(txt);
     _terminal.newline();
 }
 
