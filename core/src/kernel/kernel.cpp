@@ -7,6 +7,7 @@ Kernel::Kernel(IHost& host) :
 
 void Kernel::begin(){
     _host.begin();
+    _console->run();
 }
 
 void Kernel::yield(){

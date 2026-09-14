@@ -3,6 +3,7 @@
 #include "kernel/api/imemory_service.h"
 #include "kernel/api/iinput_service.h"
 #include "kernel/api/ioutput_service.h"
+#include "kernel/api/iconsole.h"
 
 class ISystemService{
 public:
@@ -13,7 +14,8 @@ public:
     virtual size_t millis(void) = 0;
 
     // Exposing other service APIs
-    virtual IMemoryService& memory() = 0;
-    virtual IInputService&  input()  = 0;
-    virtual IOutputService& output() = 0;
+    virtual IMemoryService& memory()  = 0;
+    virtual IInputService&  input()   = 0;
+    virtual IOutputService& output()  = 0;
+    virtual IConsole&       console() = 0;
 };

@@ -12,11 +12,12 @@ public:
     virtual ~IInputService() = default;
 
     // --- Low-level: Direct access to keyboard events ---
-    virtual bool getKeyEvent(KeyEvent& event) = 0;  // Non-blocking
+    virtual bool getKeyEvent(KeyEvent& event) = 0;      // Non-blocking
+    virtual void waitForKeyEvent(KeyEvent& event) = 0;  // Blocking
 
     // --- Mid-level: Character-based input ---
-    virtual bool getChar(char& outChar) = 0;         // Non-blocking
-    virtual char waitForChar() = 0;                 // Blocking
+    virtual bool getChar(char& outChar) = 0;    // Non-blocking
+    virtual char waitForChar() = 0;             // Blocking
 
     // --- High-level: Line input (like BASIC's INPUT) ---
     virtual void readLine(char* buffer, size_t maxLen) = 0;

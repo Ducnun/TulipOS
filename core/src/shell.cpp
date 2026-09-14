@@ -1,219 +1,219 @@
-#include "system/shell.h"
+// #include "system/shell.h"
 
-Shell::Shell(IHost& host, StorageService& storage) : _host(host), _storage(storage), _engine(_host) {}
+// Shell::Shell(IHost& host, StorageService& storage) : _host(host), _storage(storage), _engine(_host) {}
 
-void Shell::runREPL() {
-    printWelcome();
+// void Shell::runREPL() {
+//     printWelcome();
     
-    while (true) {
-        _host.service();
-        _prompt = _storage.getCwd();
-        _host.terminal().print("\n");
-        _host.terminal().print(_prompt);
-        _host.terminal().print("> ");
-        std::string line = _host.readLine();
-        if (line.empty()) continue;
+//     while (true) {
+//         _host.service();
+//         _prompt = _storage.getCwd();
+//         _host.terminal().print("\n");
+//         _host.terminal().print(_prompt);
+//         _host.terminal().print("> ");
+//         std::string line = _host.readLine();
+//         if (line.empty()) continue;
 
-        // 1. Handle Built-in Shell Commands
-        std::string upper = toUpper(line);
-        if (handleREPLDirective(upper)) continue;
+//         // 1. Handle Built-in Shell Commands
+//         std::string upper = toUpper(line);
+//         if (handleREPLDirective(upper)) continue;
 
-        // 2. Handle Program Storage or Immediate Execution
-        try {
-            if (std::isdigit(line[0])) {
-                // Parse line number
-                std::istringstream iss(line);
-                int num;
-                iss >> num;
+//         // 2. Handle Program Storage or Immediate Execution
+//         try {
+//             if (std::isdigit(line[0])) {
+//                 // Parse line number
+//                 std::istringstream iss(line);
+//                 int num;
+//                 iss >> num;
                 
-                std::string rest;
-                std::getline(iss, rest);
+//                 std::string rest;
+//                 std::getline(iss, rest);
                 
-                if (rest.find_first_not_of(" \t\r\n") == std::string::npos) {
-                    _engine.removeLine(num);
-                } else {
-                    _engine.storeLine(num, rest);
-                }
-            } else {
-                _engine.executeImmediate(line);
-            }
-        } catch (const std::exception& e) {
-            _host.terminal().print("? ERROR: ");
-            _host.terminal().print(e.what());
-            _host.terminal().print("\n");
-        }
-    }
-}
+//                 if (rest.find_first_not_of(" \t\r\n") == std::string::npos) {
+//                     _engine.removeLine(num);
+//                 } else {
+//                     _engine.storeLine(num, rest);
+//                 }
+//             } else {
+//                 _engine.executeImmediate(line);
+//             }
+//         } catch (const std::exception& e) {
+//             _host.terminal().print("? ERROR: ");
+//             _host.terminal().print(e.what());
+//             _host.terminal().print("\n");
+//         }
+//     }
+// }
 
-void Shell::printWelcome(){
-    _host.reset();
-    _host.clearScreen();
-    _host.terminal().print("**** TULIP OS V2 ****\n");
-    _host.terminal().print("READY.\n");
-}
+// void Shell::printWelcome(){
+//     _host.reset();
+//     _host.clearScreen();
+//     _host.terminal().print("**** TULIP OS V2 ****\n");
+//     _host.terminal().print("READY.\n");
+// }
 
-std::string Shell::toUpper(const std::string& line){
-    std::string result;
-    int charIndex = 0;
+// std::string Shell::toUpper(const std::string& line){
+//     std::string result;
+//     int charIndex = 0;
     
-    while (charIndex < line.length()){
-        if (!(line[charIndex] == '\n' || line[charIndex] == '\r')) {
-            result += std::toupper(line[charIndex]);
-        }
-        charIndex++; 
-    }
-    return result;
-}
+//     while (charIndex < line.length()){
+//         if (!(line[charIndex] == '\n' || line[charIndex] == '\r')) {
+//             result += std::toupper(line[charIndex]);
+//         }
+//         charIndex++; 
+//     }
+//     return result;
+// }
 
-bool Shell::handleREPLDirective(const std::string& line){    
-    if (line == "RUN") {
-        uint32_t start = _host.millis();
-        _engine.run();
-        uint32_t duration = _host.millis() - start;
-        _host.terminal().print("\nExecution time: ");
-        _host.terminal().print(std::to_string(duration));
-        _host.terminal().print(" ms\n");
+// bool Shell::handleREPLDirective(const std::string& line){    
+//     if (line == "RUN") {
+//         uint32_t start = _host.millis();
+//         _engine.run();
+//         uint32_t duration = _host.millis() - start;
+//         _host.terminal().print("\nExecution time: ");
+//         _host.terminal().print(std::to_string(duration));
+//         _host.terminal().print(" ms\n");
         
-        _host.terminal().print("READY.\n");
-        return true;
-    }
-    if (line == "LIST") {
-        _engine.list();
-        return true;
-    }
-    if (line == "NEW") {
-        _engine.clear();
-        return true;
-    }
-    if (line == "DUMP"){
-        _engine.DumpProgram();
-        return true;
-    }
-    if (line == "LS"){
-        _storage.ls(nullptr);
-        return true;
-    }
-    if (line.substr(0, 3) == "CD "){
-        _storage.cd(line.substr(3).c_str());
-        return true;
-    }
-    if (line.substr(0, 5) == "LOAD ") {
-        handleLoad(line.substr(5));
-        return true;
-    }
-    if (line == "BENCHPI"){
-        std::string benchScript = 
-            "10 PRINT \"PI APPROXIMATION\"\n"
-            "20 LET PI = 0\n"
-            "30 LET SG = 1\n"
-            "40 FOR I = 0 TO 4999\n"
-            "50 LET D = 2 * I + 1\n"
-            "60 LET PI = PI + SG * (1.0 / D)\n"
-            "70 LET SG = SG * -1\n"   // Note: Fixed the '=' here
-            "80 NEXT I\n"
-            "90 LET PI = PI * 4\n"
-            "100 PRINT PI\n";
-        _engine.loadProgram(benchScript);
+//         _host.terminal().print("READY.\n");
+//         return true;
+//     }
+//     if (line == "LIST") {
+//         _engine.list();
+//         return true;
+//     }
+//     if (line == "NEW") {
+//         _engine.clear();
+//         return true;
+//     }
+//     if (line == "DUMP"){
+//         _engine.DumpProgram();
+//         return true;
+//     }
+//     if (line == "LS"){
+//         _storage.ls(nullptr);
+//         return true;
+//     }
+//     if (line.substr(0, 3) == "CD "){
+//         _storage.cd(line.substr(3).c_str());
+//         return true;
+//     }
+//     if (line.substr(0, 5) == "LOAD ") {
+//         handleLoad(line.substr(5));
+//         return true;
+//     }
+//     if (line == "BENCHPI"){
+//         std::string benchScript = 
+//             "10 PRINT \"PI APPROXIMATION\"\n"
+//             "20 LET PI = 0\n"
+//             "30 LET SG = 1\n"
+//             "40 FOR I = 0 TO 4999\n"
+//             "50 LET D = 2 * I + 1\n"
+//             "60 LET PI = PI + SG * (1.0 / D)\n"
+//             "70 LET SG = SG * -1\n"   // Note: Fixed the '=' here
+//             "80 NEXT I\n"
+//             "90 LET PI = PI * 4\n"
+//             "100 PRINT PI\n";
+//         _engine.loadProgram(benchScript);
 
-        return true;
-    }
-    if (line == "BENCHPRIME") {
-        std::string script = 
-            "10 PRINT \"SEARCHING FOR PRIMES...\"\n"
-            "20 LET C = 0\n"
-            "30 FOR N = 2 TO 300\n"
-            "40 LET P = 1\n"
-            "50 FOR D = 2 TO N - 1\n"
-            "60 IF MATH.INT(N / D) * D = N THEN LET P = 0\n" // Divisibility check
-            "70 NEXT D\n"
-            "80 IF P = 1 THEN LET C = C + 1\n"
-            "90 NEXT N\n"
-            "100 PRINT \"FOUND \": PRINT C: PRINT \" PRIMES\"\n";
-        _engine.loadProgram(script);
-        return true;
-    }
-    if (line == "BENCHSTR") {
-        std::string script = 
-            "10 LET A = \"*\"\n"
-            "20 FOR I = 1 TO 1000\n"
-            "30 LET A = A + \".\"\n"
-            "40 NEXT I\n"
-            "50 PRINT \"STRING LENGTH: \": PRINT 1000\n"
-            "60 PRINT \"LAST CHAR: \": PRINT \".\"\n";
-        _engine.loadProgram(script);
-        return true;
-    }
-    if (line == "BENCHNEST") {
-        std::string script = 
-            "10 LET K = 0\n"
-            "20 FOR I = 1 TO 20\n"
-            "30 FOR J = 1 TO 20\n"
-            "40 FOR L = 1 TO 20\n"
-            "50 LET K = K + 1\n"
-            "60 NEXT L\n"
-            "70 NEXT J\n"
-            "80 NEXT I\n"
-            "90 PRINT \"TOTAL ITERATIONS: \": PRINT K\n";
-        _engine.loadProgram(script);
-        return true;
-    }
+//         return true;
+//     }
+//     if (line == "BENCHPRIME") {
+//         std::string script = 
+//             "10 PRINT \"SEARCHING FOR PRIMES...\"\n"
+//             "20 LET C = 0\n"
+//             "30 FOR N = 2 TO 300\n"
+//             "40 LET P = 1\n"
+//             "50 FOR D = 2 TO N - 1\n"
+//             "60 IF MATH.INT(N / D) * D = N THEN LET P = 0\n" // Divisibility check
+//             "70 NEXT D\n"
+//             "80 IF P = 1 THEN LET C = C + 1\n"
+//             "90 NEXT N\n"
+//             "100 PRINT \"FOUND \": PRINT C: PRINT \" PRIMES\"\n";
+//         _engine.loadProgram(script);
+//         return true;
+//     }
+//     if (line == "BENCHSTR") {
+//         std::string script = 
+//             "10 LET A = \"*\"\n"
+//             "20 FOR I = 1 TO 1000\n"
+//             "30 LET A = A + \".\"\n"
+//             "40 NEXT I\n"
+//             "50 PRINT \"STRING LENGTH: \": PRINT 1000\n"
+//             "60 PRINT \"LAST CHAR: \": PRINT \".\"\n";
+//         _engine.loadProgram(script);
+//         return true;
+//     }
+//     if (line == "BENCHNEST") {
+//         std::string script = 
+//             "10 LET K = 0\n"
+//             "20 FOR I = 1 TO 20\n"
+//             "30 FOR J = 1 TO 20\n"
+//             "40 FOR L = 1 TO 20\n"
+//             "50 LET K = K + 1\n"
+//             "60 NEXT L\n"
+//             "70 NEXT J\n"
+//             "80 NEXT I\n"
+//             "90 PRINT \"TOTAL ITERATIONS: \": PRINT K\n";
+//         _engine.loadProgram(script);
+//         return true;
+//     }
 
-    if (line == "EXIT" || line == "QUIT"){
-        _host.terminal().print("OK");
-        return true;
-    }
+//     if (line == "EXIT" || line == "QUIT"){
+//         _host.terminal().print("OK");
+//         return true;
+//     }
 
-    if (line == "CLS"){
-        _host.clearScreen();
-        return true;
-    }
+//     if (line == "CLS"){
+//         _host.clearScreen();
+//         return true;
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
-void Shell::handleLoad(const std::string& path) {
-    IFile* file = _storage.open(path.c_str());
-    if (!file) return;
+// void Shell::handleLoad(const std::string& path) {
+//     IFile* file = _storage.open(path.c_str());
+//     if (!file) return;
 
-    // 1. Prepare Engine (Equivalent to 'NEW')
-    _engine.clear(); 
-    _host.terminal().print("\nLoading " + path + "...\n");
+//     // 1. Prepare Engine (Equivalent to 'NEW')
+//     _engine.clear(); 
+//     _host.terminal().print("\nLoading " + path + "...\n");
 
-    // 2. Streaming Read
-    std::string lineBuffer = "";
-    uint8_t readBuf[256]; // Small chunks
+//     // 2. Streaming Read
+//     std::string lineBuffer = "";
+//     uint8_t readBuf[256]; // Small chunks
 
-    while (!file->eof()) {
-        _host.service(); // Crucial: Keep Keyboard/System alive
+//     while (!file->eof()) {
+//         _host.service(); // Crucial: Keep Keyboard/System alive
         
-        if (_host.checkBreakRequested()) {
-            _host.terminal().print("\nLoad aborted by user.\n");
-            break;
-        }
+//         if (_host.checkBreakRequested()) {
+//             _host.terminal().print("\nLoad aborted by user.\n");
+//             break;
+//         }
 
-        size_t n = file->read(readBuf, sizeof(readBuf));
+//         size_t n = file->read(readBuf, sizeof(readBuf));
         
-        for (size_t i = 0; i < n; i++) {
-            char c = (char)readBuf[i];
+//         for (size_t i = 0; i < n; i++) {
+//             char c = (char)readBuf[i];
             
-            if (c == '\n' || c == '\r') {
-                if (!lineBuffer.empty()) {
-                    // Send one line to the engine immediately
-                    _engine.processRawLine(lineBuffer);
-                    lineBuffer.clear();
-                }
-            } else {
-                lineBuffer += c;
-            }
-        }
-    }
+//             if (c == '\n' || c == '\r') {
+//                 if (!lineBuffer.empty()) {
+//                     // Send one line to the engine immediately
+//                     _engine.processRawLine(lineBuffer);
+//                     lineBuffer.clear();
+//                 }
+//             } else {
+//                 lineBuffer += c;
+//             }
+//         }
+//     }
 
-    // Handle the last line if the file doesn't end with a newline
-    if (!lineBuffer.empty()) {
-        _engine.processRawLine(lineBuffer);
-    }
+//     // Handle the last line if the file doesn't end with a newline
+//     if (!lineBuffer.empty()) {
+//         _engine.processRawLine(lineBuffer);
+//     }
 
-    file->close();
-    delete file;
-    _host.terminal().print("READY.\n");
-}
+//     file->close();
+//     delete file;
+//     _host.terminal().print("READY.\n");
+// }

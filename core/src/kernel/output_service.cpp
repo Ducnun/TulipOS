@@ -4,6 +4,10 @@ void OutputService::print(util::StringView txt){
     _terminal.print(txt);
 }
 
+void OutputService::print(char c){
+    _terminal.sendChar(c);
+}
+
 void OutputService::println(util::StringView txt){
     _terminal.print(txt);
     _terminal.newline();

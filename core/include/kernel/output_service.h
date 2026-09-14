@@ -8,6 +8,7 @@ public:
     OutputService(ITerminal& terminal) : _terminal(terminal) {}
 
     void print(util::StringView txt) override;
+    void print(char c) override;
     void println(util::StringView txt) override;
     void clear() override;
     void setColor(uint8_t fg, uint8_t bg) override;

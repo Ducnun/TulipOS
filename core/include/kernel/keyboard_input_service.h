@@ -14,6 +14,7 @@ public:
 
     // IInputService implementation
     bool getKeyEvent(KeyEvent& ev); // Reads raw key event
+    void waitForKeyEvent(KeyEvent& ev); // Reads raw key event
     bool getChar(char& outChar);    // Non blocking 
     char waitForChar();             // Blocking
     void readLine(char* buffer, size_t maxLen);

@@ -48,61 +48,64 @@ void PS2Keyboard::begin(){
 bool PS2Keyboard::available(){
     return _head != _tail;
 }
-
-KeyEvent PS2Keyboard::readEvent(){
-    while (_head != _tail) {
-        portENTER_CRITICAL(&_mux);
-        uint8_t code = _scancodeBuffer[_tail];
-        _tail = (_tail + 1) % BufferSize;
-        portEXIT_CRITICAL(&_mux);
-
-        if (trackPauseState(code)) return {Pause, 0};
-        if (isPauseSequenceInProgress())continue;
-
-        switch (_scancodeState){
-            case ScancodeState::Normal:
-                if (code == 0xE0){
-                    _scancodeState = ScancodeState::ExpectExtended;
-                    continue;
-                }
-                else if (code == 0xF0){
-                    _scancodeState = ScancodeState::ExpectBreak;
-                    continue;
-                }
-                if (handleKeyPressEvent(code)) return translateScancode(code);
-                continue;
-            case ScancodeState::ExpectExtended:
-                if (code == 0xF0){
-                    _scancodeState = ScancodeState::ExpectExtendedBreak;
-                    continue;
-                }
-
-                // Ignore phantom Shift in extended make codes
-                if (code == 0x12 || code == 0x59) {
-                    _scancodeState = ScancodeState::Normal; // reset state
-                    continue;  // skip further processing
-                }
-
-                _scancodeState = ScancodeState::Normal;
-                if (handleKeyPressEvent(code)) return translateExtendedScancode(code);
-                continue;
-            case ScancodeState::ExpectBreak:
-                handleKeyReleaseEvent(code, false);
-                _scancodeState = ScancodeState::Normal;
-                continue;
-            case ScancodeState::ExpectExtendedBreak:
-                // Ignore phantom Shift in extended break codes
-                if (code == 0x12 || code == 0x59) {
-                    _scancodeState = ScancodeState::Normal;
-                    continue;
-                }
-
-                handleKeyReleaseEvent(code, true);
-                _scancodeState = ScancodeState::Normal;
-                continue;
-        }
+KeyEvent PS2Keyboard::readEvent() {
+    if (!available()) {
+        return {None, 0}; // No key available
     }
-    return {None, 0};
+
+    portENTER_CRITICAL(&_mux);
+    uint8_t code = _scancodeBuffer[_tail];
+    _tail = (_tail + 1) % BufferSize;
+    portEXIT_CRITICAL(&_mux);
+
+    if (trackPauseState(code)) return {Pause, 0};
+    if (isPauseSequenceInProgress()) return {None, 0}; //Yield and retry
+
+    switch (_scancodeState) {
+        case ScancodeState::Normal:
+            if (code == 0xE0) {
+                _scancodeState = ScancodeState::ExpectExtended;
+                return {None, 0}; // Need another byte
+            } else if (code == 0xF0) {
+                _scancodeState = ScancodeState::ExpectBreak;
+                return {None, 0}; // Need another byte
+            }
+            if (handleKeyPressEvent(code)) {
+                KeyEvent ev = translateScancode(code);
+                _scancodeState = ScancodeState::Normal;
+                return ev;
+            }
+            break;
+        // Handle other states similarly...
+        case ScancodeState::ExpectExtended:
+            if (code == 0xF0) {
+                _scancodeState = ScancodeState::ExpectExtendedBreak;
+                return {None, 0};
+            }
+            if (code == 0x12 || code == 0x59) { // Skip phantom Shift
+                _scancodeState = ScancodeState::Normal;
+                return {None, 0};
+            }
+            _scancodeState = ScancodeState::Normal;
+            if (handleKeyPressEvent(code)) {
+                return translateExtendedScancode(code);
+            }
+            break;
+        case ScancodeState::ExpectBreak:
+            handleKeyReleaseEvent(code, false);
+            _scancodeState = ScancodeState::Normal;
+            break;
+        case ScancodeState::ExpectExtendedBreak:
+            if (code == 0x12 || code == 0x59) { // Skip phantom Shift
+                _scancodeState = ScancodeState::Normal;
+                return {None, 0};
+            }
+            handleKeyReleaseEvent(code, true);
+            _scancodeState = ScancodeState::Normal;
+            break;
+    }
+
+    return {None, 0}; // No event ready yet
 }
 
 void PS2Keyboard::onClockFallingEdge(){

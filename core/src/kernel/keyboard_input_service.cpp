@@ -4,6 +4,14 @@ bool KeyboardInputService::getKeyEvent(KeyEvent& ev){
     return _keyboard.available() ? (ev = _keyboard.readEvent(), true) : false;
 }
 
+void KeyboardInputService::waitForKeyEvent(KeyEvent& ev){
+    while (true){
+        _system.yield();
+        ev = _keyboard.readEvent();
+        if (ev.action != KeyAction::None) return;
+    }
+}
+
 bool KeyboardInputService::getChar(char& outChar){
     KeyEvent ev;
     if (getKeyEvent(ev) && ev.action == KeyAction::Char){
