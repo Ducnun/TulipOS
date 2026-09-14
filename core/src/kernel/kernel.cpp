@@ -1,8 +1,6 @@
 #include "kernel/kernel.h"
 
-Kernel::Kernel(IHost& host) : 
-    _host(host), 
-    _memory(_host.memory()) 
+Kernel::Kernel(IHost& host) : _host(host)
 {}
 
 void Kernel::begin(){

@@ -19,7 +19,7 @@ namespace util{
         T* data() const { return _ptr; };
         size_t size() const { return _size; };
         bool empty() const { return _size == 0; };
-        T& operator[](size_t index) const { return *_ptr[index]; };
+        T& operator[](size_t index) const { return _ptr[index]; };
     
     private:
         T* _ptr;

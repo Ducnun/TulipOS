@@ -22,10 +22,11 @@ public:
     // Register services with host dependencies
     void registerInputService(IInputService& service) { _input = &service; }; 
     void registerOutputService(IOutputService& service) { _output = &service; }; 
+    void registerMemoryService(IMemoryService& service) { _memory = &service; }; 
     void registerConsole(IConsole& console) { _console = &console; };
 
     // Getters for system services
-    IMemoryService& memory()    {return _memory; };
+    IMemoryService& memory()    {return *_memory; };
     IInputService&  input()     {return *_input; };
     IOutputService& output()    {return *_output; };
     IConsole&       console()   {return *_console;};
@@ -35,5 +36,5 @@ private:
     IInputService* _input;
     IOutputService* _output;
     IConsole* _console;
-    MemoryService _memory;
+    IMemoryService* _memory;
 };

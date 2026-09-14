@@ -11,7 +11,7 @@ void ESP32P4Host::begin(){
 void ESP32P4Host::service() {
     static uint32_t count = 0;
     // Only yield every 3000 calls (tweak this number as needed)
-    if (++count > 300) {
+    if (++count > 3000) {
         vTaskDelay(1);
         count = 0;
     }
