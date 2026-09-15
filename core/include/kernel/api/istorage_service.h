@@ -3,7 +3,15 @@
 #include <cstdint>
 #include <cstddef>
 #include "storage/filesystems/vfs/vfs.h"
+#include "hal/iblock_device.h"
 #include "utils/span.h"
+#include "utils/stringview.h"
+
+enum FilesystemType {
+    UnsupportedFS,
+    Fat32,
+    Raw,
+};
 
 class IStorageService {
 public:
@@ -23,7 +31,8 @@ public:
     virtual bool loadProgram(const char* path, uint8_t** buffer, size_t* size) = 0;
     virtual void freeProgram(uint8_t* buffer) = 0;
 
-    // --- Mount/Unmount ---
-    virtual bool mount(const char* prefix, IFileSystem* fs) = 0;
-    virtual bool unmount(const char* prefix) = 0;
+    // --- Mounting and unmounting ---
+    virtual bool mount(util::StringView prefix, IBlockDevice& device) = 0;
+    virtual bool mount(util::StringView prefix, IBlockDevice& device, FilesystemType type) = 0;
+    virtual bool unmount(util::StringView prefix) = 0;
 };

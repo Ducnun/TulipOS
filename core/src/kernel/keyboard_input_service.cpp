@@ -6,7 +6,7 @@ bool KeyboardInputService::getKeyEvent(KeyEvent& ev){
 
 void KeyboardInputService::waitForKeyEvent(KeyEvent& ev){
     while (true){
-        _system.yield();
+        _taskControl.yield();
         ev = _keyboard.readEvent();
         if (ev.action != KeyAction::None) return;
     }
@@ -25,7 +25,7 @@ char KeyboardInputService::waitForChar(){
     char c;
     while(true){
         if(getChar(c)) return true;
-        _system.yield();
+        _taskControl.yield();
     }
 }
 

@@ -2,6 +2,7 @@
 
 #include "kernel/api/istorage_service.h"
 #include "kernel/api/imemory_service.h"
+#include "storage/filesystems/fat32/fat32_filesystem.h"
 
 class StorageService : public IStorageService{
 public:
@@ -22,10 +23,14 @@ public:
     void freeProgram(uint8_t* buffer);
 
     // --- Mount/Unmount ---
-    bool mount(const char* prefix, IFileSystem* fs);
-    bool unmount(const char* prefix);
+    bool mount(util::StringView prefix, IBlockDevice& device);
+    bool mount(util::StringView prefix, IBlockDevice& device, FilesystemType type);
+    bool unmount(util::StringView prefix);
 
 private:
     VFS& _vfs;
     IMemoryService& _memory;
+
+    FilesystemType detectFilesystem(IBlockDevice& device);
+    IFileSystem* createFileSystem(IBlockDevice& device, FilesystemType type);
 };

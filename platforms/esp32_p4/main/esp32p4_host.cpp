@@ -6,6 +6,7 @@
 void ESP32P4Host::begin(){
     _kb.begin();
     _terminal.begin();
+    if (!_sdCard.begin()) ESP_LOGE("ESP32P4Host", "SD card initialization failed");
 }
 
 void ESP32P4Host::service() {

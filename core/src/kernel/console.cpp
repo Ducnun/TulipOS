@@ -1,6 +1,7 @@
 #include "kernel/console.h"
 
 void Console::run(){
+    _output.clear();
     _output.println("Tulip OS Shell");
     while(true){
         _output.print("> ");    // Temp prompt

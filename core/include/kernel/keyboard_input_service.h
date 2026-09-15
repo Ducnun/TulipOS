@@ -1,12 +1,12 @@
 #pragma once
 
 #include "kernel/api/iinput_service.h"
-#include "kernel/api/isystem_service.h"
+#include "kernel/api/itask_control.h"
 
 class KeyboardInputService : public IInputService{
 public:
-    KeyboardInputService(IKeyboard& keyboard, ISystemService& system) 
-        : _keyboard(keyboard), _system(system)
+    KeyboardInputService(IKeyboard& keyboard, ITaskControl& taskControl) 
+        : _keyboard(keyboard), _taskControl(taskControl)
     {} ;
 
     // Start keyboard driver (configuring perhipherals, attaching interrupts etc.)
@@ -23,7 +23,7 @@ public:
     
 private:
     IKeyboard& _keyboard;
-    ISystemService& _system;
+    ITaskControl& _taskControl;
     InputMode _mode = InputMode::Immediate;
     char _linebuffer[256];
     size_t _linePos;

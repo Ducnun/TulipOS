@@ -1,36 +1,47 @@
 #pragma once
 
+#include <cstdint>
+
+#include "driver/spi_master.h"
 #include "hal/iblock_device.h"
-#include "utils/sd_spi_commands.h"
 
-#define SPI_INIT_SPEED 100000
-#define SPI_DATA_SPEED 20000000
-
-enum SD_CARD_TYPE{
-    SDSC,
-    SDHC,
-};
-
-class SDCardSPI : public IBlockDevice{
+class SDCardSPI : public IBlockDevice {
 public:
-    SDCardSPI(uint8_t mosi, uint8_t miso, uint8_t sck, uint8_t cs);
+    SDCardSPI(spi_host_device_t host, int mosi, int miso, int sck, int cs);
 
     bool begin() override;
-    bool readBlock(uint32_t addr, uint8_t* buf) override;
-    bool writeBlock(uint32_t addr, const uint8_t* buf) override;
-    bool isPresent() override;
+    bool readBlock(uint32_t blockAddress, uint8_t* buffer) override;
+    bool writeBlock(uint32_t blockAddress, const uint8_t* buffer) override{
+        return false;   // Temporary stub
+    }
+    bool isPresent();
 
 private:
-    uint8_t _mosi;
-    uint8_t _miso;
-    uint8_t _sck;
-    uint8_t _cs;
+    static constexpr uint32_t SPI_INIT_SPEED = 400'000;
+    static constexpr uint32_t SPI_DATA_SPEED = 20'000'000;
+
+    spi_host_device_t _host;
+
+    int _mosi;
+    int _miso;
+    int _sck;
+    int _cs;
+
+    spi_device_handle_t _spi;
+
     uint32_t _spiSpeed;
-    uint8_t _is_initialized;
+    bool _isInitialized;
+
+    enum class SD_CARD_TYPE {
+        SDSC,
+        SDHC
+    };
+
     SD_CARD_TYPE _cardType;
 
-    // Protocol helpers
-    uint8_t sendCommand(uint8_t cmd, uint32_t arg, uint8_t crc = 0x01);
+    uint8_t transferByte(uint8_t value);
+    void transfer(const uint8_t* tx, uint8_t* rx, size_t length);
+    uint8_t sendCommand(uint8_t cmd, uint32_t arg, uint8_t crc);
     uint8_t waitResponse();
     void select();
     void deselect();

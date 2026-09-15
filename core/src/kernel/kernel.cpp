@@ -5,21 +5,16 @@ Kernel::Kernel(IHost& host) : _host(host)
 
 void Kernel::begin(){
     _host.begin();
+    initStorage();
+
     _console->run();
 }
 
-void Kernel::yield(){
-    _host.service();
-}
+void Kernel::initStorage() {
+    auto storageList = _host.getAvailableStorage(); // Get all storage devices
 
-bool Kernel::checkBreak(){
-    return _host.checkBreakRequested();
-}
-
-void Kernel::delay(size_t ms){
-   _host.delay(ms);
-}
-
-size_t Kernel::millis(){
-    return _host.millis();
+    for (auto& [prefix, device] : storageList) {
+        // Mount each block device to the VFS
+        _storage->mount(prefix, *device);
+    }
 }

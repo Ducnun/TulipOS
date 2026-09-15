@@ -1,0 +1,3 @@
+System Time     Process     Thread        ERC     ERC String                  Message
+2777208170      1387775     773846720     3075    ercControlTransferFailed    USBC:FGetPDID
+2777208171      1387775     773846720     3075    ercControlTransferFailed    USBC:FGetProdName

@@ -13,7 +13,6 @@ struct StorageDescriptor {
     IBlockDevice* device;      // The actual hardware (SDCardSPI or PCDiskImage)
 };
 
-
 class IHost {
 public: 
     /**
