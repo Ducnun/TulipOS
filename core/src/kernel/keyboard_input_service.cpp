@@ -24,7 +24,7 @@ bool KeyboardInputService::getChar(char& outChar){
 char KeyboardInputService::waitForChar(){
     char c;
     while(true){
-        if(getChar(c)) return true;
+        if(getChar(c)) return c;
         _taskControl.yield();
     }
 }

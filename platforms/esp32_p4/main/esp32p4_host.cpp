@@ -4,9 +4,16 @@
 #include <unistd.h>
 
 void ESP32P4Host::begin(){
+    ESP_LOGI("ESP32P4Host", "Initializing video terminal");
+    if (!_terminal.begin()) ESP_LOGE("ESP32P4Host", "Terminal initialization failed");
+
+    ESP_LOGI("ESP32P4Host", "Initializing PS/2 keyboard");
     _kb.begin();
-    _terminal.begin();
+    ESP_LOGI("ESP32P4Host", "PS/2 keyboard initialization complete");
+
+    ESP_LOGI("ESP32P4Host", "Initializing SD card");
     if (!_sdCard.begin()) ESP_LOGE("ESP32P4Host", "SD card initialization failed");
+    ESP_LOGI("ESP32P4Host", "Hardware initialization complete");
 }
 
 void ESP32P4Host::service() {

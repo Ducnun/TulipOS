@@ -1,4 +1,5 @@
 #include "esp32p4_host.h"
+#include "esp_log.h"
 #include "platform_config.h"
 #include "kernel/kernel.h"
 #include "kernel/task_control.h"
@@ -8,7 +9,11 @@
 #include "kernel/storage_service.h"
 #include "kernel/console.h"
 
+static const char* TAG = "TulipOS";
+
 void os_task(void* arg) {
+    ESP_LOGI(TAG, "OS task started");
+
     // 1. Initialize P4 Hardware
     static PS2Keyboard keyboard(KB_DATA, KB_CLK);
     static UARTTerminal terminal(UART_TERMINAL_BAUD, UART_TERMINAL_TX, UART_TERMINAL_RX);
@@ -34,10 +39,16 @@ void os_task(void* arg) {
     kernel.registerOutputService(outputService);
     kernel.registerConsole(console);
 
+    ESP_LOGI(TAG, "Starting kernel");
     kernel.begin();
 }
 
 extern "C" void app_main() {
+    ESP_LOGI(TAG, "app_main started");
+
     // Create a task with 64KB of stack
-    xTaskCreatePinnedToCore(os_task, "os_task", 131070, NULL, 5, NULL, 0);
+    BaseType_t result = xTaskCreatePinnedToCore(os_task, "os_task", 131070, NULL, 5, NULL, 0);
+    if (result != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create OS task");
+    }
 }

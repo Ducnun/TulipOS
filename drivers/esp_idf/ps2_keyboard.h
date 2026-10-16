@@ -123,7 +123,9 @@ private:
      * @brief Sends a byte to the keyboard by taking over communication
      * @param data Byte sent to the keyboard
      */
-    void sendByteToKeyboard(uint8_t data);
+    bool sendByteToKeyboard(uint8_t data);
+    bool waitForClockLevel(int level);
+    void releaseBusAfterTransmit();
 
     /**
      * @brief Sets the LEDs on the keyboard

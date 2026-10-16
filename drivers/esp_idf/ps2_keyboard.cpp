@@ -3,8 +3,10 @@
 #include "driver/gpio.h"
 #include "esp_timer.h"
 #include "esp_attr.h"
+#include "esp_log.h"
 
 PS2Keyboard* instancePtr = nullptr;
+static const char* TAG = "PS2Keyboard";
 
 void IRAM_ATTR PS2Keyboard::handleClockInterrupt(void* arg) {
     PS2Keyboard* obj = reinterpret_cast<PS2Keyboard*>(arg);
@@ -176,10 +178,9 @@ KeyEvent PS2Keyboard::translateScancode(uint8_t code){
 
     char c = it->second;
     if (c >= 'a' && c <= 'z'){
-        // if (_capsLockActive ^ _shiftHeld){
-        //     c = c - 'a' + 'A';
-        // }
-        c = c - 'a' + 'A';
+        if (_capsLockActive ^ _shiftHeld){
+            c = c - 'a' + 'A';
+        }
     }
 
     return {KeyAction::Char, c};
@@ -231,7 +232,27 @@ uint8_t PS2Keyboard::readRawScancode(){
     return code;
 }
 
-void PS2Keyboard::sendByteToKeyboard(uint8_t data) {
+bool PS2Keyboard::waitForClockLevel(int level) {
+    const int64_t timeoutUs = 100000;
+    const int64_t startTime = esp_timer_get_time();
+
+    while (gpio_get_level((gpio_num_t)_clockPin) != level) {
+        if (esp_timer_get_time() - startTime >= timeoutUs) return false;
+        esp_rom_delay_us(10);
+    }
+
+    return true;
+}
+
+void PS2Keyboard::releaseBusAfterTransmit() {
+    gpio_set_direction((gpio_num_t)_dataPin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)_dataPin, GPIO_PULLUP_ONLY);
+    gpio_set_direction((gpio_num_t)_clockPin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode((gpio_num_t)_clockPin, GPIO_PULLUP_ONLY);
+    gpio_intr_enable((gpio_num_t)_clockPin);
+}
+
+bool PS2Keyboard::sendByteToKeyboard(uint8_t data) {
     // 1. Disable the clock interrupt so we don't "receive" our own transmission
     gpio_intr_disable((gpio_num_t)_clockPin);
 
@@ -246,7 +267,10 @@ void PS2Keyboard::sendByteToKeyboard(uint8_t data) {
     gpio_set_pull_mode((gpio_num_t)_clockPin, GPIO_PULLUP_ONLY);
 
     // Wait for keyboard to begin generating clock (Wait for falling edge)
-    while (gpio_get_level((gpio_num_t)_clockPin) == 1); 
+    if (!waitForClockLevel(0)) {
+        releaseBusAfterTransmit();
+        return false;
+    }
 
     uint8_t parity = 1;
     for (int i = 0; i < 8; i++) {
@@ -255,45 +279,58 @@ void PS2Keyboard::sendByteToKeyboard(uint8_t data) {
         gpio_set_level((gpio_num_t)_dataPin, bit);
         parity ^= bit;
 
-        while (gpio_get_level((gpio_num_t)_clockPin) == 0); // Wait clock high
-        while (gpio_get_level((gpio_num_t)_clockPin) == 1); // Wait clock low
+        if (!waitForClockLevel(1) || !waitForClockLevel(0)) {
+            releaseBusAfterTransmit();
+            return false;
+        }
     }
 
     // --- PARITY BIT ---
     gpio_set_level((gpio_num_t)_dataPin, parity);
-    while (gpio_get_level((gpio_num_t)_clockPin) == 0);
-    while (gpio_get_level((gpio_num_t)_clockPin) == 1);
+    if (!waitForClockLevel(1) || !waitForClockLevel(0)) {
+        releaseBusAfterTransmit();
+        return false;
+    }
 
     // --- STOP BIT ---
     // Release data line
     gpio_set_direction((gpio_num_t)_dataPin, GPIO_MODE_INPUT);
     gpio_set_pull_mode((gpio_num_t)_dataPin, GPIO_PULLUP_ONLY);
     
-    while (gpio_get_level((gpio_num_t)_clockPin) == 0);
-    while (gpio_get_level((gpio_num_t)_clockPin) == 1);
+    if (!waitForClockLevel(1) || !waitForClockLevel(0)) {
+        releaseBusAfterTransmit();
+        return false;
+    }
 
     // --- WAIT FOR ACK (0xFA) ---
     
     // Re-enable interrupts so available() and readRawScancode() work again
-    gpio_intr_enable((gpio_num_t)_clockPin);
+    releaseBusAfterTransmit();
 
     // millis() equivalent: esp_timer_get_time() returns microseconds
     int64_t startTime = esp_timer_get_time();
     while ((esp_timer_get_time() - startTime) < 100000) { // 100ms = 100,000us
         if (available()) {
             uint8_t ack = readRawScancode();
-            if (ack == 0xFA) return;
+            if (ack == 0xFA) return true;
         }
         // Small yield to keep the Watchdog happy during the 100ms wait
         vTaskDelay(1); 
     }
+
+    return false;
 }
 
 void PS2Keyboard::setLEDs(bool caps, bool num, bool scroll) {
-    sendByteToKeyboard(0xED); // LED command
-    vTaskDelay(pdTICKS_TO_MS(1));            // short wait for keyboard to prepare
+    if (!sendByteToKeyboard(0xED)) {
+        ESP_LOGW(TAG, "Keyboard did not acknowledge LED command");
+        return;
+    }
+    vTaskDelay(pdMS_TO_TICKS(1));
     uint8_t val = (scroll ? 1 : 0) | (num ? 2 : 0) | (caps ? 4 : 0);
-    sendByteToKeyboard(val);  // LED mask
+    if (!sendByteToKeyboard(val)) {
+        ESP_LOGW(TAG, "Keyboard did not acknowledge LED state");
+    }
 }
 
 bool PS2Keyboard::trackPauseState(uint8_t code) {
