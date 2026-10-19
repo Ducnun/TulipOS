@@ -5,7 +5,7 @@ Kernel::Kernel(IHost& host) : _host(host)
 
 void Kernel::begin(){
     _host.begin();
-    // initStorage();
+    initStorage();
 
     _console->run();
 }
