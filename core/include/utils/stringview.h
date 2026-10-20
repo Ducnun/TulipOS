@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <memory>
+#include <string>
 
 namespace util{
     // Custom string view implementation for Arduino framework

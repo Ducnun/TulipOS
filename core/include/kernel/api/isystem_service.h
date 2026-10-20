@@ -4,7 +4,7 @@
 #include "kernel/api/imemory_service.h"
 #include "kernel/api/iinput_service.h"
 #include "kernel/api/ioutput_service.h"
-#include "kernel/api/iconsole.h"
+#include "system/api/iconsole.h"
 
 class IKernel{
 public:

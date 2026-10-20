@@ -1,8 +1,10 @@
 #include "runtime/modules/gpio_module.h"
 
-ModuleResult GpioModule::call(const std::string& func, const std::vector<Value>& args){
+ModuleResult GpioModule::call(util::StringView func, util::span<const Value> args){
     #ifndef ESP32
-        throw std::runtime_error("GPIO Module not supported on native interpreter");
+        (void)func;
+        (void)args;
+        return {CallResult::Error, Value::Bool(false)};
     #endif
 
     if (func == "WRITE") {
@@ -16,10 +18,9 @@ ModuleResult GpioModule::call(const std::string& func, const std::vector<Value>&
     return {CallResult::NotHandled, Value::Bool(false)}; 
 }
 
-Value GpioModule::write(const std::vector<Value>& args){
+Value GpioModule::write(util::span<const Value> args){
     #ifdef ESP32
-    // Safety check: ensure we have 2 arguments
-    if (args.size() < 2) return Value::Bool(false);
+    if (args.size() != 2) return Value::Bool(false);
 
     if (args[0].type != ValueType::Number || args[1].type != ValueType::Number) return Value::Bool(false);
     int pin = (int)args[0].number;
@@ -32,7 +33,7 @@ Value GpioModule::write(const std::vector<Value>& args){
     return Value::Bool(true); // Return success
 }
 
-Value GpioModule::read(const std::vector<Value>& args) {
+Value GpioModule::read(util::span<const Value> args) {
     #ifdef ESP32
     if (args.empty()) return Value::Float(0.0f);
 

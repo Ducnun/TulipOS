@@ -2,12 +2,12 @@
 
 #include "ast/expression_visitor.h"
 #include "ast/statement_visitor.h"
-#include "hal/ihost.h"
 #include "runtime/core/runtime_context.h"
 #include "runtime/modules/gpio_module.h"
 #include "runtime/modules/math_module.h"
 #include "runtime/modules/system_module.h"
 #include "signals.h"
+#include <cstring>
 
 class Interpreter : public StmtVisitor, public ExprVisitor {    
 public:
@@ -62,20 +62,20 @@ private:
     void visit(const ReturnStmt& stmt) override;
 
     bool checkEqual(const Value& a, const Value& b) {
+        if (isAnyString(a) && isAnyString(b)) {
+            return std::strcmp(getString(a), getString(b)) == 0;
+        }
         if (a.type != b.type) return false;
 
         if (a.type == ValueType::Number) return a.number == b.number;
         if (a.type == ValueType::Boolean) return a.boolean == b.boolean;
-        if (a.type == ValueType::PermanentString) return a.stringId == b.stringId;
         return false;
     }
 
     bool checkGreater(const Value& a, const Value& b) {
-        // String comparison (lexicographical)
-        if (a.type == ValueType::PermanentString && b.type == ValueType::PermanentString) {
-            return _symTable.getString(a.stringId) > _symTable.getString(b.stringId);
+        if (isAnyString(a) && isAnyString(b)) {
+            return std::strcmp(getString(a), getString(b)) > 0;
         }
-        // Numeric comparison
         if (a.type == ValueType::Number && b.type == ValueType::Number){
             return a.number > b.number;
         }
@@ -85,7 +85,7 @@ private:
         return false;
     }
 
-    Value handleCall(Symbol mod, Symbol func, const std::vector<Value>& args, RuntimeContext& ctx);
+    Value handleCall(Symbol mod, Symbol func, util::span<const Value> args);
 
     const char* getString(const Value& val) const {
         if (val.type == ValueType::PermanentString) return _symTable.getString(val.stringId);

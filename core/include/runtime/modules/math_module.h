@@ -8,8 +8,8 @@
 class MathModule : public IBasicModule{
 public:
     MathModule() {};
-    ModuleResult call(const std::string& func, const std::vector<Value>& args) override;
+    ModuleResult call(util::StringView func, util::span<const Value> args) override;
 
 private:
-    Value basicCastInt(const std::vector<Value>& args);
+    Value basicCastInt(util::span<const Value> args);
 };

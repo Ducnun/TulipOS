@@ -1,6 +1,8 @@
 #pragma once
 
 #include "runtime/core/value.h"
+#include "utils/span.h"
+#include "utils/stringview.h"
 
 enum class CallResult{
     NotHandled,
@@ -16,5 +18,5 @@ struct ModuleResult{
 class IBasicModule{
 public:
     virtual ~IBasicModule() = default;
-    virtual ModuleResult call(const std::string& func, const std::vector<Value>& args) = 0;
+    virtual ModuleResult call(util::StringView func, util::span<const Value> args) = 0;
 };

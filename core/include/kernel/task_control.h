@@ -9,7 +9,10 @@ public:
     void yield();
     void delay(size_t ms);
     size_t millis(void);
+    bool checkBreakRequested(void) { return _breakRequested; }
+    void setBreakRequested(bool requested) { _breakRequested = requested; }
 
 private:
     IHost& _host;
+    bool _breakRequested = false;
 };

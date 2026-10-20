@@ -13,10 +13,10 @@
 class SystemModule : public IBasicModule{
 public:
     SystemModule(RuntimeContext& ctx) : _ctx(ctx) {};
-    ModuleResult call(const std::string& funct, const std::vector<Value>& args) override;
+    ModuleResult call(util::StringView funct, util::span<const Value> args) override;
 private:
     RuntimeContext& _ctx;
 
-    Value basicDelay(const std::vector<Value>& args);
-    Value basicMillis(const std::vector<Value>& args);
+    Value basicDelay(util::span<const Value> args);
+    Value basicMillis(util::span<const Value> args);
 };

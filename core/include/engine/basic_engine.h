@@ -1,3 +1,5 @@
+#include "iprogramio.h"
+#include "kernel/api/itask_control.h"
 #include "tokenizer/tokenizer.h"
 #include "parser/parser.h"
 #include "interpreter/interpreter.h"
@@ -12,10 +14,11 @@
 
 class BasicEngine {
 public:
-    BasicEngine(IHost& host) 
-        : _host(host),
+    BasicEngine(IProgramIO& programio, ITaskControl& taskControl)
+        : _programIO(programio),
+          _taskControl(taskControl),
           _staticArena(PROGRAM_SIZE),
-          _ctx(_host, TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
+          _ctx(_programIO, _taskControl, TOTAL_VARIABLES, PERSISTANT_SIZE, SCRATCHPAD_SIZE),
           _symTable(_staticArena),
           _parser(_symTable, _staticArena),
           _interpreter(_ctx, _symTable, _staticArena)
@@ -35,7 +38,8 @@ public:
     uint32_t reportProgramSize(){ return _staticArena.getOffset(); }
 
 private:
-    IHost& _host;
+    IProgramIO& _programIO;
+    ITaskControl& _taskControl;
     Arena _staticArena;
     RuntimeContext _ctx;
     SymbolTable _symTable;

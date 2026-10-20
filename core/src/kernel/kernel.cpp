@@ -3,18 +3,24 @@
 Kernel::Kernel(IHost& host) : _host(host)
 {}
 
-void Kernel::begin(){
-    _host.begin();
-    initStorage();
+bool Kernel::begin(){
+    if (!_memory || !_taskControl || !_storage || !_input || !_output) return false;
 
-    _console->run();
+    _host.begin();
+    if (!initStorage()) return false;
+
+    _console = std::make_unique<Console>(*_input, *_output);
+    _consoleProgramIO = std::make_unique<ConsoleProgramIO>(*_console, *_output);
+    _shell = std::make_unique<Shell>(*_console, *_consoleProgramIO, *_storage, *_taskControl);
+    _shell->run();
+    return true;
 }
 
-void Kernel::initStorage() {
-    auto storageList = _host.getAvailableStorage(); // Get all storage devices
+bool Kernel::initStorage() {
+    const auto storageList = _host.getAvailableStorage();
 
     for (auto& [prefix, device] : storageList) {
-        // Mount each block device to the VFS
-        _storage->mount(prefix, *device);
+        if (!device || !_storage->mount(prefix, *device)) return false;
     }
+    return true;
 }

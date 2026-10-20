@@ -1,0 +1,102 @@
+@startuml TulipOS_Architecture
+title TulipOS - component architecture
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 45
+skinparam ranksep 55
+
+component "app_main / os_task\n(main.cpp)" as App
+
+package "Core OS" {
+  component "Kernel" as Kernel
+  together {
+    component "Console\n«IConsole»" as Console
+    component "KeyboardInputService\n«IInputService»" as InputService
+    component "OutputService\n«IOutputService»" as OutputService
+    component "TaskControl\n«ITaskControl»" as TaskControl
+    component "MemoryService\n«IMemoryService»" as MemoryService
+    component "StorageService\n«IStorageService»" as StorageService
+  }
+}
+
+package "ESP32-P4 platform" {
+  component "ESP32P4Host\n«IHost»" as P4Host
+  together {
+    component "PS2Keyboard\n«IKeyboard»" as PS2
+    component "UARTTerminal\n«ITerminal»" as UART
+    component "SDCardSPI\n«IBlockDevice»" as SD
+    component "MemoryManager\n«IMemoryManager»" as P4Memory
+  }
+}
+
+package "Storage stack" {
+  component "VFS" as VFS
+  component "FAT32FileSystem\n«IFileSystem»" as FAT32
+}
+
+package "BASIC language engine (core; not wired into active Console)" {
+  component "BasicEngine" as Engine
+  component "Tokenizer" as Tokenizer
+  component "Parser" as Parser
+  component "AST / Program" as AST
+  component "Interpreter" as Interpreter
+  component "RuntimeContext /\nSymbolTable / Arenas" as Runtime
+  component "Math / GPIO / System\nmodules" as Modules
+  interface "IProgramIO" as IProgramIO
+}
+
+App --> Kernel : creates and starts
+App ..> P4Host : constructs
+Kernel --> Console : registers / runs
+Kernel ..> InputService : registers
+Kernel ..> OutputService : registers
+Kernel ..> TaskControl : registers
+Kernel ..> MemoryService : registers
+Kernel --> StorageService : registers
+
+Console --> InputService : reads keys
+Console --> OutputService : writes text
+InputService --> PS2
+InputService ..> TaskControl
+OutputService --> UART
+TaskControl ..> P4Host
+MemoryService --> P4Memory
+P4Host o-- PS2
+P4Host o-- UART
+P4Host o-- SD
+P4Host o-- P4Memory
+
+Kernel ..> P4Host : initializes / discovers storage
+StorageService --> VFS : mounts filesystems
+VFS --> FAT32 : routes file operations
+FAT32 --> SD : reads / writes blocks
+
+Engine --> Tokenizer
+Engine --> Parser
+Engine --> Interpreter
+Engine --> Runtime
+Engine ..> TaskControl
+Tokenizer --> Parser : tokens
+Parser --> AST : builds
+AST --> Interpreter : statements
+Interpreter --> Runtime
+Interpreter --> Modules
+Runtime --> IProgramIO
+Engine ..> IProgramIO
+
+note right of App
+  The application creates the platform host
+  and services, registers them with Kernel,
+  then starts the OS task.
+end note
+
+note bottom of Engine
+  The BASIC engine exists in core, but the active
+  ESP32-P4 Console does not instantiate it.
+  No concrete IProgramIO implementation is present.
+end note
+
+@enduml

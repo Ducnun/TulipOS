@@ -1,213 +1,296 @@
-// #include "interpreter/interpreter.h"
+#include "interpreter/interpreter.h"
 
-// void Interpreter::visit(const LiteralExpr& expr){
-//     _lastValue = expr.value;
-// }
+#include <cstdio>
+#include <cstring>
 
-// void Interpreter::visit(const VariableExpr& expr){
-//     Value* val = _ctx.get(expr.nameId);
-//     if (val) _lastValue = *val;
-//     else _lastValue = Value::Float(0.0f);
-// }
+namespace {
+constexpr size_t MAX_CALL_ARGUMENTS = 8;
+}
 
-// void Interpreter::visit(const BinaryExpr& expr){
-//     Value left = evaluate(expr.left);
-//     Value right = evaluate(expr.right);
+void Interpreter::visit(const LiteralExpr& expr) {
+    _lastValue = expr.value;
+}
 
-//     switch (expr.op){
-//         case TokenType::Plus:
-//             if (isAnyString(left) && isAnyString(right)){
-//                 // Fetch copies of strings, regardless of current allocated arena
-//                 const char* s1 = getString(left);
-//                 const char* s2 = getString(right);
-//                 size_t len = left.length + right.length + 1;
+void Interpreter::visit(const VariableExpr& expr) {
+    Value* value = _ctx.get(expr.nameId);
+    _lastValue = value ? *value : Value::Float(0.0f);
+}
 
-//                 // Write into transient arena
-//                 char* buf = (char*)_ctx.transientArena.alloc(len);
-//                 if (buf){
-//                     memcpy(buf, s1, left.length);
-//                     memcpy(buf + left.length, s2, right.length + 1);
-//                     _lastValue = Value::TransientStr(buf, len);
-//                 }
-//             } else {
-//                 _lastValue = Value::Float(left.number + right.number);
-//             }
-//             break;
+void Interpreter::visit(const BinaryExpr& expr) {
+    const Value left = evaluate(expr.left);
+    const Value right = evaluate(expr.right);
 
-//         case TokenType::Minus: _lastValue = Value::Float(left.number - right.number); break;
-//         case TokenType::Star:  _lastValue = Value::Float(left.number * right.number); break;
-//         case TokenType::Slash: _lastValue = Value::Float(left.number / right.number); break;
+    switch (expr.op) {
+        case TokenType::Plus:
+            if (isAnyString(left) && isAnyString(right)) {
+                const size_t length = static_cast<size_t>(left.length) + right.length;
+                if (length >= 0xffffu) {
+                    _lastValue = Value::Bool(false);
+                    return;
+                }
+                char* result = static_cast<char*>(_ctx.transientArena.alloc(length + 1));
+                if (!result) {
+                    _lastValue = Value::Bool(false);
+                    return;
+                }
+                std::memcpy(result, getString(left), left.length);
+                std::memcpy(result + left.length, getString(right), right.length);
+                result[length] = '\0';
+                _lastValue = Value::TransientStr(result, static_cast<uint16_t>(length));
+            } else if (left.type == ValueType::Number && right.type == ValueType::Number) {
+                _lastValue = Value::Float(left.number + right.number);
+            } else {
+                _lastValue = Value::Bool(false);
+            }
+            break;
+        case TokenType::Minus:
+            _lastValue = left.type == ValueType::Number && right.type == ValueType::Number
+                ? Value::Float(left.number - right.number) : Value::Bool(false);
+            break;
+        case TokenType::Star:
+            _lastValue = left.type == ValueType::Number && right.type == ValueType::Number
+                ? Value::Float(left.number * right.number) : Value::Bool(false);
+            break;
+        case TokenType::Slash:
+            _lastValue = left.type == ValueType::Number && right.type == ValueType::Number &&
+                         right.number != 0.0f
+                ? Value::Float(left.number / right.number) : Value::Bool(false);
+            break;
+        case TokenType::Greater:
+            _lastValue = Value::Bool(checkGreater(left, right));
+            break;
+        case TokenType::GreaterEqual:
+            _lastValue = Value::Bool(checkGreater(left, right) || checkEqual(left, right));
+            break;
+        case TokenType::Less:
+            _lastValue = Value::Bool(!checkGreater(left, right) && !checkEqual(left, right));
+            break;
+        case TokenType::LessEqual:
+            _lastValue = Value::Bool(!checkGreater(left, right));
+            break;
+        case TokenType::Equal:
+            _lastValue = Value::Bool(checkEqual(left, right));
+            break;
+        case TokenType::NotEqual:
+            _lastValue = Value::Bool(!checkEqual(left, right));
+            break;
+        case TokenType::And:
+            _lastValue = Value::Bool(left.isTruthy() && right.isTruthy());
+            break;
+        case TokenType::Or:
+            _lastValue = Value::Bool(left.isTruthy() || right.isTruthy());
+            break;
+        default:
+            _lastValue = Value::Bool(false);
+            break;
+    }
+}
 
-//         case TokenType::Greater:      _lastValue = Value::Bool(checkGreater(left, right)); break;
-//         case TokenType::GreaterEqual: _lastValue = Value::Bool(checkGreater(left, right) || checkEqual(left, right)); break;
-//         case TokenType::Less:         _lastValue = Value::Bool(!checkGreater(left, right) && !checkEqual(left, right)); break;
-//         case TokenType::LessEqual:    _lastValue = Value::Bool(!checkGreater(left, right)); break;
-//         case TokenType::Equal:        _lastValue = Value::Bool(checkEqual(left, right)); break;
-//         case TokenType::NotEqual:     _lastValue = Value::Bool(!checkEqual(left, right)); break;
+void Interpreter::visit(const UnaryExpr& expr) {
+    const Value value = evaluate(expr.val);
+    if (expr.op == TokenType::Minus && value.type == ValueType::Number) {
+        _lastValue = Value::Float(-value.number);
+    } else if (expr.op == TokenType::Not) {
+        _lastValue = Value::Bool(!value.isTruthy());
+    } else {
+        _lastValue = Value::Bool(false);
+    }
+}
 
-//         case TokenType::And: _lastValue = Value::Bool(left.isTruthy() && right.isTruthy()); break;
-//         case TokenType::Or:  _lastValue = Value::Bool(left.isTruthy() || right.isTruthy()); break;
-//         default: break;
-//     }
-// }
+void Interpreter::visit(const CallExpr& expr) {
+    if (expr.args.size() > MAX_CALL_ARGUMENTS) {
+        _ctx.programIO.write("? Too many function arguments\n");
+        _lastValue = Value::Bool(false);
+        return;
+    }
 
-// void Interpreter::visit(const UnaryExpr& expr){
-//     Value val = evaluate(expr.val);
-//     switch (expr.op) {
-//         case TokenType::Minus: _lastValue = Value::Float(-val.number); break;
-//         case TokenType::Not:   _lastValue = Value::Bool(!val.isTruthy()); break;
-//         default: break;
-//     }
-// }
+    Value arguments[MAX_CALL_ARGUMENTS];
+    for (size_t i = 0; i < expr.args.size(); ++i) {
+        arguments[i] = evaluate(expr.args[i]);
+    }
+    _lastValue = handleCall(expr.module, expr.function,
+                            util::span<const Value>(arguments, expr.args.size()));
+}
 
-// void Interpreter::visit(const PrintStmt& stmt){
-//     for (const auto& item : stmt.items) {
-//         Value val = evaluate(item.expression);
-        
-//         if (isAnyString(val)){
-//             _ctx.host.print(getString(val));
-//         } else if (val.type == ValueType::Number) {
-//             _ctx.host.print(std::to_string(val.number));
-//         } else if (val.type == ValueType::Boolean) {
-//             _ctx.host.print(val.boolean ? "true" : "false");
-//         }
+void Interpreter::visit(const GroupingExpr& expr) {
+    _lastValue = evaluate(expr.expression);
+}
 
-//         if (item.separator == PrintSeparator::Comma) _ctx.host.print("\t");
-//     }
-//     _ctx.host.print("\n");
-// }
+void Interpreter::visit(const PrintStmt& stmt) {
+    char numberBuffer[32];
+    for (const PrintItem& item : stmt.items) {
+        const Value value = evaluate(item.expression);
+        if (isAnyString(value)) {
+            _ctx.programIO.write(util::StringView(getString(value), value.length));
+        } else if (value.type == ValueType::Number) {
+            const int length = std::snprintf(numberBuffer, sizeof(numberBuffer), "%g",
+                                             static_cast<double>(value.number));
+            if (length > 0) {
+                const size_t count = static_cast<size_t>(length) < sizeof(numberBuffer)
+                    ? static_cast<size_t>(length) : sizeof(numberBuffer) - 1;
+                _ctx.programIO.write(util::StringView(numberBuffer, count));
+            }
+        } else if (value.type == ValueType::Boolean) {
+            _ctx.programIO.write(value.boolean ? "true" : "false");
+        }
 
-// void Interpreter::visit(const LetStmt& stmt){
-//     Value val = evaluate(stmt.value);
-//     _ctx.assign(stmt.variable, val);
-// }
+        if (item.separator == PrintSeparator::Comma) _ctx.programIO.write("\t");
+    }
+    _ctx.programIO.write("\n");
+}
 
-// void Interpreter::visit(const AssignmentStmt& stmt){
-//     Value val = evaluate(stmt.value);
-//     _ctx.assign(stmt.variable, val);
-// }
+void Interpreter::visit(const LetStmt& stmt) {
+    _ctx.assign(stmt.variable, evaluate(stmt.value));
+}
 
-// void Interpreter::visit(const InputStmt& stmt){
-//     if (stmt.hasPrompt) {
-//         _ctx.host.print(_symTable.getString(stmt.promptId));
-//         _ctx.host.print("\n");
-//     }
-    
-//     std::string input = _ctx.host.readLine();
-//     const char* persistentBuf = _ctx.persistentArena.dupString(input.c_str(), input.length(), _ctx.variables);
-//     _ctx.assign(stmt.variables[0], Value::PersistentStr(persistentBuf, input.length()));
-// }
+void Interpreter::visit(const AssignmentStmt& stmt) {
+    _ctx.assign(stmt.variable, evaluate(stmt.value));
+}
 
-// void Interpreter::visit(const GotoStmt& stmt){
-//     _ctx.jumpTarget = (int)evaluate(stmt.target).number;
-//     _ctx.jumpRequested = true;
-// }
+void Interpreter::visit(const InputStmt& stmt) {
+    if (stmt.variables.empty()) return;
+    if (stmt.hasPrompt) _ctx.programIO.write(_symTable.getString(stmt.promptId));
 
-// void Interpreter::visit(const IfStmt& stmt){
-//     if (evaluate(stmt.condition).isTruthy()) {
-//         stmt.thenBranch->accept(*this);
-//     } else if (stmt.elseBranch) {
-//         stmt.elseBranch->accept(*this);
-//     }
-// }
+    char input[128];
+    if (!_ctx.programIO.readLine(input, sizeof(input))) {
+        _ctx.halted = true;
+        return;
+    }
 
-// void Interpreter::visit(const ForStmt& stmt) {
-//     bool isReEntry = !_ctx.forLoopStack.empty() && 
-//                       _ctx.forLoopStack.back().variable == stmt.variable;
+    const size_t length = std::strlen(input);
+    const char* stored = _ctx.persistentArena.dupString(input, length, _ctx.variables);
+    if (!stored) {
+        _ctx.programIO.write("? Input buffer full\n");
+        return;
+    }
+    _ctx.assign(stmt.variables[0], Value::PersistentStr(stored, static_cast<uint16_t>(length)));
+}
 
-//     if (!isReEntry) {
-//         float startVal = evaluate(stmt.start).number;
-//         float endVal = evaluate(stmt.end).number;
-//         float stepVal = stmt.step ? evaluate(stmt.step).number : 1.0f;
-        
-//         _ctx.assign(stmt.variable, Value::Float(startVal));
-//         _ctx.forLoopStack.push_back({stmt.variable, endVal, stepVal, _ctx.currentLine});
-//     }
-// }
+void Interpreter::visit(const GotoStmt& stmt) {
+    const Value target = evaluate(stmt.target);
+    if (target.type != ValueType::Number) {
+        _ctx.programIO.write("? GOTO requires a line number\n");
+        return;
+    }
+    _ctx.jumpTarget = static_cast<int>(target.number);
+    _ctx.jumpRequested = true;
+}
 
-// void Interpreter::visit(const NextStmt& stmt) {
-//     if (_ctx.forLoopStack.empty()) {
-//         printf("Error: NEXT without FOR\n");
-//         return;
-//     }
+void Interpreter::visit(const IfStmt& stmt) {
+    if (evaluate(stmt.condition).isTruthy()) {
+        if (stmt.thenBranch) stmt.thenBranch->accept(*this);
+    } else if (stmt.elseBranch) {
+        stmt.elseBranch->accept(*this);
+    }
+}
 
-//     ForLoopFrame& frame = _ctx.forLoopStack.back();
-    
-//     // If a variable was provided (e.g., NEXT I), it MUST match.
-//     // If stmt.variable is INVALID_SYMBOL, we skip this check and match any loop.
-//     if (stmt.variable != INVALID_SYMBOL && stmt.variable != frame.variable) { 
-//         printf("NEXT Error: Variable mismatch. Expected ID %d, got %d\n", 
-//             frame.variable, stmt.variable);
-//         return; 
-//     }
+void Interpreter::visit(const ForStmt& stmt) {
+    const bool isReentry = _ctx.forLoopDepth > 0 &&
+        _ctx.forLoopStack[_ctx.forLoopDepth - 1].variable == stmt.variable;
+    if (isReentry) return;
 
-//     // Verify var exists or kill loop
-//     Value* var = _ctx.get(frame.variable);
-//     if (!var || var->type != ValueType::Number) {
-//         printf("NEXT Error: Variable didnt exist or was not of right type. Type: %d, Ptr: %f\n",
-//             (int)_ctx.get(frame.variable)->type, // Cast enum to int
-//             _ctx.get(stmt.variable)->number      // Use %f for double
-//         );
-//         _ctx.get(frame.variable)->type, _ctx.get(stmt.variable)->number;
-//         _ctx.forLoopStack.pop_back();
-//         return; 
-//     }
+    const Value start = evaluate(stmt.start);
+    const Value end = evaluate(stmt.end);
+    const Value step = stmt.step ? evaluate(stmt.step) : Value::Float(1.0f);
+    if (start.type != ValueType::Number || end.type != ValueType::Number ||
+        step.type != ValueType::Number || step.number == 0.0f) {
+        _ctx.programIO.write("? Invalid FOR range\n");
+        _ctx.halted = true;
+        return;
+    }
+    if (_ctx.forLoopDepth == RuntimeContext::FOR_LOOP_STACK_CAPACITY) {
+        _ctx.programIO.write("? FOR nesting limit exceeded\n");
+        _ctx.halted = true;
+        return;
+    }
 
-//     // Use ptr directly to modify loop var
-//     var->number += frame.stepValue;
-//     float current = var->number;
+    _ctx.assign(stmt.variable, start);
+    _ctx.forLoopStack[_ctx.forLoopDepth++] = {
+        stmt.variable, end.number, step.number, _ctx.currentLine
+    };
+}
 
-//     bool loopAgain = (frame.stepValue >= 0) ? (current <= frame.endValue) : (current >= frame.endValue);    
-//     if (loopAgain) {
-//         _ctx.jumpTarget = frame.bodyStartLine;
-//         _ctx.jumpRequested = true;
-//     } else {
-//         _ctx.forLoopStack.pop_back();
-//     }
-// }
+void Interpreter::visit(const NextStmt& stmt) {
+    if (_ctx.forLoopDepth == 0) {
+        _ctx.programIO.write("? NEXT without FOR\n");
+        return;
+    }
 
-// Value Interpreter::handleCall(Symbol mod, Symbol func, const std::vector<Value>& args, RuntimeContext& ctx) {
-//     // Convert IDs back to strings only when calling native modules
-//     const char* modName = _symTable.getString(mod);
-//     const char* funcName = _symTable.getString(func);
+    ForLoopFrame& frame = _ctx.forLoopStack[_ctx.forLoopDepth - 1];
+    if (stmt.variable != INVALID_SYMBOL && stmt.variable != frame.variable) {
+        _ctx.programIO.write("? NEXT variable does not match FOR\n");
+        return;
+    }
 
-//     ModuleResult res;
+    Value* variable = _ctx.get(frame.variable);
+    if (!variable || variable->type != ValueType::Number) {
+        _ctx.programIO.write("? FOR variable is invalid\n");
+        --_ctx.forLoopDepth;
+        return;
+    }
 
-//     if (strcmp(modName, "MATH") == 0) res = _math.call(funcName, args);
-//     if (strcmp(modName, "GPIO") == 0) res = _gpio.call(funcName, args);
-//     if (strcmp(modName, "SYS") == 0) res = _sys.call(funcName, args);
+    variable->number += frame.stepValue;
+    const bool continueLoop = frame.stepValue > 0.0f
+        ? variable->number <= frame.endValue
+        : variable->number >= frame.endValue;
+    if (continueLoop) {
+        _ctx.jumpTarget = frame.bodyStartLine;
+        _ctx.jumpRequested = true;
+    } else {
+        --_ctx.forLoopDepth;
+    }
+}
 
-//     if (res.result != CallResult::Success) return Value::Float(0.0f);
-//     else return res.val;
-// }
+Value Interpreter::handleCall(Symbol module, Symbol function, util::span<const Value> args) {
+    const char* moduleName = _symTable.getString(module);
+    const char* functionName = _symTable.getString(function);
+    ModuleResult result{CallResult::NotHandled, Value::Bool(false)};
 
-// void Interpreter::visit(const CallStmt& stmt) {
-//     std::vector<Value> argValues;
-//     for (const auto& a : stmt.args) argValues.push_back(evaluate(a));
-//     handleCall(stmt.module, stmt.function, argValues, _ctx);
-// }
+    if (std::strcmp(moduleName, "MATH") == 0) {
+        result = _math.call(functionName, args);
+    } else if (std::strcmp(moduleName, "GPIO") == 0) {
+        result = _gpio.call(functionName, args);
+    } else if (std::strcmp(moduleName, "SYS") == 0) {
+        result = _sys.call(functionName, args);
+    }
 
-// void Interpreter::visit(const CallExpr& expr) {
-//     std::vector<Value> argValues;
-//     for (const auto& a : expr.args) argValues.push_back(evaluate(a));
-//     _lastValue = handleCall(expr.module, expr.function, argValues, _ctx);
-// }
+    if (result.result == CallResult::Error) {
+        _ctx.programIO.write("? Module is unavailable\n");
+        return Value::Bool(false);
+    }
+    if (result.result == CallResult::NotHandled) {
+        _ctx.programIO.write("? Unknown module function\n");
+        return Value::Bool(false);
+    }
+    return result.val;
+}
 
-// void Interpreter::visit(const GroupingExpr& expr){
-//     expr.expression->accept(*this);
-// }
+void Interpreter::visit(const CallStmt& stmt) {
+    if (stmt.args.size() > MAX_CALL_ARGUMENTS) {
+        _ctx.programIO.write("? Too many function arguments\n");
+        return;
+    }
 
-// void Interpreter::visit(const BlockStmt& stmt) {
-//     for (const auto& s : stmt.statements) {
-//         if (s) s->accept(*this);
-//     }
-// }
+    Value arguments[MAX_CALL_ARGUMENTS];
+    for (size_t i = 0; i < stmt.args.size(); ++i) {
+        arguments[i] = evaluate(stmt.args[i]);
+    }
+    handleCall(stmt.module, stmt.function,
+               util::span<const Value>(arguments, stmt.args.size()));
+}
 
-// void Interpreter::visit(const EndStmt& expr){
+void Interpreter::visit(const BlockStmt& stmt) {
+    for (const StmtPtr statement : stmt.statements) {
+        if (_ctx.halted) break;
+        if (statement) statement->accept(*this);
+    }
+}
 
-// }
+void Interpreter::visit(const EndStmt&) {
+    _ctx.halted = true;
+}
 
-// void Interpreter::visit(const ReturnStmt& expr){
-
-// }
-
+void Interpreter::visit(const ReturnStmt& stmt) {
+    _ctx.returnValue = stmt.value ? evaluate(stmt.value) : Value::Float(0.0f);
+    _ctx.halted = true;
+}

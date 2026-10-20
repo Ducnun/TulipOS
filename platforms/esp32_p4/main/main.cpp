@@ -7,7 +7,7 @@
 #include "kernel/memory_service.h"
 #include "kernel/keyboard_input_service.h"
 #include "kernel/storage_service.h"
-#include "kernel/console.h"
+#include "system/console.h"
 
 static const char* TAG = "TulipOS";
 
@@ -29,7 +29,6 @@ void os_task(void* arg) {
     static StorageService storageService(vfs, memoryService);
     static KeyboardInputService kbService(host.keyboard(), taskControl);
     static OutputService outputService(host.terminal());
-    static Console console(kbService, outputService);
 
     // Register core services to the kernel
     kernel.registerTaskControl(taskControl);
@@ -37,10 +36,11 @@ void os_task(void* arg) {
     kernel.registerStorageService(storageService);
     kernel.registerInputService(kbService);
     kernel.registerOutputService(outputService);
-    kernel.registerConsole(console);
 
     ESP_LOGI(TAG, "Starting kernel");
-    kernel.begin();
+    if (!kernel.begin()) {
+        ESP_LOGE(TAG, "Kernel startup failed: required services missing or storage mount failed");
+    }
 }
 
 extern "C" void app_main() {

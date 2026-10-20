@@ -4,7 +4,6 @@
 #include "Arduino.h"
 #endif
 
-#include <stdexcept>
 #include "IBasicModule.h"
 #include "ast/statement.h"
 #include "runtime/core/runtime_context.h"
@@ -12,10 +11,10 @@
 class GpioModule : public IBasicModule{
 public:
     GpioModule(RuntimeContext& ctx) : _ctx(ctx) {}
-    ModuleResult call(const std::string& func, const std::vector<Value>& args) override;
+    ModuleResult call(util::StringView func, util::span<const Value> args) override;
 
 private:
     RuntimeContext& _ctx;
-    Value write(const std::vector<Value>& args);
-    Value read(const std::vector<Value>& args);
+    Value write(util::span<const Value> args);
+    Value read(util::span<const Value> args);
 };
