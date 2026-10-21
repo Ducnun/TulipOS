@@ -35,13 +35,6 @@ public:
      */
     virtual void service() = 0;
 
-    /**
-     * @brief Checks if the pause/break key is pressed (ESP32 only). Used for interrupting programs
-     * @return true Key press is read and buffered
-     * @return false Not pressed
-     */
-    virtual bool checkBreakRequested() {return false;}
-
     virtual void delay(uint32_t ms) = 0;
     virtual uint32_t millis() = 0;
 };
