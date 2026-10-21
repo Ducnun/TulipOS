@@ -5,7 +5,7 @@
 #include "kernel/api/istorage_service.h"
 #include "kernel/api/itask_control.h"
 #include "system/api/iconsole.h"
-#include <string>
+#include "utils/stringview.h"
 
 class Shell {
 public:
@@ -20,12 +20,18 @@ public:
     void run();
 
 private:
+    enum class CommandResult {
+        NotHandled,
+        Handled,
+        Exit,
+    };
+
     IConsole& _console;
     IProgramIO& _programIO;
     IStorageService& _storage;
     ITaskControl& _taskControl;
     BasicEngine _engine;
 
-    bool executeCommand(const std::string& line);
+    CommandResult executeCommand(util::StringView line);
     void listDirectory();
 };

@@ -2,17 +2,74 @@
 
 #include "storage/filesystems/vfs/dir_entry.h"
 #include "utils/span.h"
-#include <cctype>
-#include <sstream>
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <string>
 
 namespace {
-std::string uppercase(const std::string& text) {
-    std::string result = text;
-    for (char& character : result) {
-        character = static_cast<char>(
-            std::toupper(static_cast<unsigned char>(character)));
+bool isWhitespace(char character) {
+    return character == ' ' || character == '\t' || character == '\r' ||
+           character == '\n' || character == '\v' || character == '\f';
+}
+
+util::StringView trim(util::StringView text) {
+    while (text.length > 0 && isWhitespace(text.data[0])) {
+        ++text.data;
+        --text.length;
     }
-    return result;
+    while (text.length > 0 && isWhitespace(text.data[text.length - 1])) {
+        --text.length;
+    }
+    return text;
+}
+
+char uppercaseAscii(char character) {
+    if (character >= 'a' && character <= 'z') {
+        return static_cast<char>(character - ('a' - 'A'));
+    }
+    return character;
+}
+
+bool equalsIgnoreCase(util::StringView text, const char* expected) {
+    const size_t expectedLength = std::strlen(expected);
+    if (text.length != expectedLength) return false;
+
+    for (size_t i = 0; i < text.length; ++i) {
+        if (uppercaseAscii(text.data[i]) != expected[i]) return false;
+    }
+    return true;
+}
+
+bool parseLineNumber(const char* line, int& lineNumber, const char*& source) {
+    if (line[0] < '0' || line[0] > '9') return false;
+
+    int value = 0;
+    const char* cursor = line;
+    while (*cursor >= '0' && *cursor <= '9') {
+        const int digit = *cursor - '0';
+        if (value > (std::numeric_limits<int>::max() - digit) / 10) {
+            return false;
+        }
+        value = value * 10 + digit;
+        ++cursor;
+    }
+
+    while (*cursor == ' ' || *cursor == '\t') ++cursor;
+    lineNumber = value;
+    source = cursor;
+    return true;
+}
+
+void writeUnsigned(IProgramIO& programIO, uint64_t value) {
+    char digits[20];
+    size_t position = sizeof(digits);
+    do {
+        digits[--position] = static_cast<char>('0' + value % 10);
+        value /= 10;
+    } while (value != 0);
+
+    programIO.write(util::StringView(digits + position, sizeof(digits) - position));
 }
 }
 
@@ -27,25 +84,28 @@ void Shell::run() {
         _programIO.write("> ");
 
         if (!_programIO.readLine(buffer, sizeof(buffer))) continue;
-        const std::string line(buffer);
-        if (line.empty()) continue;
+        size_t lineLength = std::strlen(buffer);
+        while (lineLength > 0 && isWhitespace(buffer[lineLength - 1])) {
+            buffer[--lineLength] = '\0';
+        }
+        if (lineLength == 0) continue;
 
         try {
-            if (executeCommand(line)) return;
+            const CommandResult commandResult =
+                executeCommand(util::StringView(buffer, lineLength));
+            if (commandResult == CommandResult::Exit) return;
+            if (commandResult == CommandResult::Handled) continue;
 
-            std::istringstream input(line);
             int lineNumber;
-            if ((line[0] >= '0' && line[0] <= '9') && (input >> lineNumber)) {
-                std::string source;
-                std::getline(input, source);
-                const size_t firstCodeCharacter = source.find_first_not_of(" \t");
-                if (firstCodeCharacter == std::string::npos) {
+            const char* source;
+            if (parseLineNumber(buffer, lineNumber, source)) {
+                if (*source == '\0') {
                     _engine.removeLine(lineNumber);
                 } else {
-                    _engine.storeLine(lineNumber, source.substr(firstCodeCharacter));
+                    _engine.storeLine(lineNumber, std::string(source));
                 }
             } else {
-                _engine.executeImmediate(line);
+                _engine.executeImmediate(std::string(buffer));
             }
         } catch (const std::exception& error) {
             _programIO.write("? ERROR: ");
@@ -55,42 +115,51 @@ void Shell::run() {
     }
 }
 
-bool Shell::executeCommand(const std::string& line) {
-    const std::string command = uppercase(line);
+Shell::CommandResult Shell::executeCommand(util::StringView line) {
+    const util::StringView command = trim(line);
 
-    if (command == "EXIT" || command == "QUIT") return true;
-    if (command == "RUN") {
+    if (equalsIgnoreCase(command, "EXIT") || equalsIgnoreCase(command, "QUIT")) {
+        return CommandResult::Exit;
+    }
+    if (equalsIgnoreCase(command, "RUN")) {
         const size_t start = _taskControl.millis();
         _engine.run();
         _programIO.write("Execution time: ");
-        _programIO.write(std::to_string(_taskControl.millis() - start));
+        writeUnsigned(_programIO, _taskControl.millis() - start);
         _programIO.write(" ms\n");
-    } else if (command == "LIST") {
+    } else if (equalsIgnoreCase(command, "LIST")) {
         _engine.list();
-    } else if (command == "NEW") {
+    } else if (equalsIgnoreCase(command, "NEW")) {
         _engine.clear();
-    } else if (command == "DUMP") {
+    } else if (equalsIgnoreCase(command, "DUMP")) {
         _engine.DumpProgram();
-    } else if (command == "CLS") {
+    } else if (equalsIgnoreCase(command, "CLS")) {
         _console.clear();
-    } else if (command == "PWD") {
+    } else if (equalsIgnoreCase(command, "PWD")) {
         const char* cwd = _storage.getCurrentDirectory();
         _programIO.write(cwd ? cwd : "");
         _programIO.write("\n");
-    } else if (command == "LS") {
+    } else if (equalsIgnoreCase(command, "LS")) {
         listDirectory();
-    } else if (command == "HELP") {
+    } else if (equalsIgnoreCase(command, "HELP")) {
         _programIO.write("RUN LIST NEW DUMP LS CD <path> PWD CLS EXIT\n");
-    } else if (command.rfind("CD ", 0) == 0) {
-        const std::string path = line.substr(3);
-        if (!_storage.changeDirectory(path.c_str())) {
+    } else if (command.length >= 2 &&
+               uppercaseAscii(command.data[0]) == 'C' &&
+               uppercaseAscii(command.data[1]) == 'D' &&
+               (command.length == 2 || isWhitespace(command.data[2]))) {
+        size_t pathStart = 2;
+        while (pathStart < command.length &&
+               isWhitespace(command.data[pathStart])) {
+            ++pathStart;
+        }
+        if (!_storage.changeDirectory(command.data + pathStart)) {
             _programIO.write("? Unable to change directory\n");
         }
     } else {
-        return false;
+        return CommandResult::NotHandled;
     }
 
-    return false;
+    return CommandResult::Handled;
 }
 
 void Shell::listDirectory() {
@@ -102,7 +171,7 @@ void Shell::listDirectory() {
             _programIO.write("/");
         } else {
             _programIO.write("  ");
-            _programIO.write(std::to_string(entries[i].size));
+            writeUnsigned(_programIO, entries[i].size);
         }
         _programIO.write("\n");
     }
