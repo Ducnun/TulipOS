@@ -7,82 +7,94 @@
 #include <limits>
 #include <string>
 
+// Shell helpers
 namespace {
-bool isWhitespace(char character) {
-    return character == ' ' || character == '\t' || character == '\r' ||
-           character == '\n' || character == '\v' || character == '\f';
-}
-
-util::StringView trim(util::StringView text) {
-    while (text.length > 0 && isWhitespace(text.data[0])) {
-        ++text.data;
-        --text.length;
+    // Helper for whitepsace
+    bool isWhitespace(char character) {
+        return character == ' ' || character == '\t' || character == '\r' ||
+            character == '\n' || character == '\v' || character == '\f';
     }
-    while (text.length > 0 && isWhitespace(text.data[text.length - 1])) {
-        --text.length;
-    }
-    return text;
-}
 
-char uppercaseAscii(char character) {
-    if (character >= 'a' && character <= 'z') {
-        return static_cast<char>(character - ('a' - 'A'));
-    }
-    return character;
-}
-
-bool equalsIgnoreCase(util::StringView text, const char* expected) {
-    const size_t expectedLength = std::strlen(expected);
-    if (text.length != expectedLength) return false;
-
-    for (size_t i = 0; i < text.length; ++i) {
-        if (uppercaseAscii(text.data[i]) != expected[i]) return false;
-    }
-    return true;
-}
-
-bool parseLineNumber(const char* line, int& lineNumber, const char*& source) {
-    if (line[0] < '0' || line[0] > '9') return false;
-
-    int value = 0;
-    const char* cursor = line;
-    while (*cursor >= '0' && *cursor <= '9') {
-        const int digit = *cursor - '0';
-        if (value > (std::numeric_limits<int>::max() - digit) / 10) {
-            return false;
+    // Trimming whitespace from both ends of a string
+    util::StringView trim(util::StringView text) {
+        while (text.length > 0 && isWhitespace(text.data[0])) {
+            ++text.data;
+            --text.length;
         }
-        value = value * 10 + digit;
-        ++cursor;
+        while (text.length > 0 && isWhitespace(text.data[text.length - 1])) {
+            --text.length;
+        }
+        return text;
     }
 
-    while (*cursor == ' ' || *cursor == '\t') ++cursor;
-    lineNumber = value;
-    source = cursor;
-    return true;
+    // Convert a lowercase ASCII character to uppercase; leave other characters unchanged
+    char uppercaseAscii(char character) {
+        if (character >= 'a' && character <= 'z') {
+            return static_cast<char>(character - ('a' - 'A'));
+        }
+        return character;
+    }
+
+    // Case-insensitive comparison of a StringView with a C-string
+    bool equalsIgnoreCase(util::StringView text, const char* expected) {
+        const size_t expectedLength = std::strlen(expected);
+        if (text.length != expectedLength) return false;
+
+        for (size_t i = 0; i < text.length; ++i) {
+            if (uppercaseAscii(text.data[i]) != expected[i]) return false;
+        }
+        return true;
+    }
+
+    // Parse a line number from the beginning of a string, returning the line number and the remaining source code
+    bool parseLineNumber(const char* line, int& lineNumber, const char*& source) {
+        if (line[0] < '0' || line[0] > '9') return false;
+
+        int value = 0;
+        const char* cursor = line;
+        while (*cursor >= '0' && *cursor <= '9') {
+            const int digit = *cursor - '0';
+            if (value > (std::numeric_limits<int>::max() - digit) / 10) {
+                return false;
+            }
+            value = value * 10 + digit;
+            ++cursor;
+        }
+
+        while (*cursor == ' ' || *cursor == '\t') ++cursor;
+        lineNumber = value;
+        source = cursor;
+        return true;
+    }
+
+    // Write an unsigned integer to the program IO as a string
+    void writeUnsigned(IProgramIO& programIO, uint64_t value) {
+        char digits[20];
+        size_t position = sizeof(digits);
+        do {
+            digits[--position] = static_cast<char>('0' + value % 10);
+            value /= 10;
+        } while (value != 0);
+
+        programIO.write(util::StringView(digits + position, sizeof(digits) - position));
+    }
 }
 
-void writeUnsigned(IProgramIO& programIO, uint64_t value) {
-    char digits[20];
-    size_t position = sizeof(digits);
-    do {
-        digits[--position] = static_cast<char>('0' + value % 10);
-        value /= 10;
-    } while (value != 0);
-
-    programIO.write(util::StringView(digits + position, sizeof(digits) - position));
-}
-}
-
+// Main shell loop
 void Shell::run() {
+    // Print welcome message
     _console.clear();
     _programIO.write("Tulip OS Shell\n");
+    _programIO.write("Type HELP for a list of commands.\n");
 
     char buffer[256];
     while (true) {
+        // Attempt to get CWD to print as prompt
         const char* cwd = _storage.getCurrentDirectory();
         _programIO.write(cwd ? cwd : "");
         _programIO.write("> ");
 
+        // Read a line of input from the user
         if (!_programIO.readLine(buffer, sizeof(buffer))) continue;
         size_t lineLength = std::strlen(buffer);
         while (lineLength > 0 && isWhitespace(buffer[lineLength - 1])) {
@@ -90,6 +102,7 @@ void Shell::run() {
         }
         if (lineLength == 0) continue;
 
+        // Process input, either as shell command or as a program line
         try {
             const CommandResult commandResult =
                 executeCommand(util::StringView(buffer, lineLength));
@@ -115,6 +128,7 @@ void Shell::run() {
     }
 }
 
+// Shell command dispatcher
 Shell::CommandResult Shell::executeCommand(util::StringView line) {
     const util::StringView command = trim(line);
 
@@ -141,8 +155,10 @@ Shell::CommandResult Shell::executeCommand(util::StringView line) {
         _programIO.write("\n");
     } else if (equalsIgnoreCase(command, "LS")) {
         listDirectory();
+    } else if (equalsIgnoreCase(command, "LOAD")) {
+        _programIO.write("Not implemented yet\n");
     } else if (equalsIgnoreCase(command, "HELP")) {
-        _programIO.write("RUN LIST NEW DUMP LS CD <path> PWD CLS EXIT\n");
+        _programIO.write("RUN LIST NEW DUMP LS CD PWD CLS EXIT LOAD\n");
     } else if (command.length >= 2 &&
                uppercaseAscii(command.data[0]) == 'C' &&
                uppercaseAscii(command.data[1]) == 'D' &&

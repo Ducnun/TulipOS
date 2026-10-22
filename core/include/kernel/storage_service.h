@@ -20,7 +20,7 @@ public:
 
     // --- Program Loading ---
     bool loadProgram(const char* path, uint8_t** buffer, size_t* size);
-    void freeProgram(uint8_t* buffer);
+    void freeProgram(uint8_t* buffer, size_t size);
 
     // --- Mount/Unmount ---
     bool mount(util::StringView prefix, IBlockDevice& device);

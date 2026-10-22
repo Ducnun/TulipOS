@@ -29,7 +29,7 @@ public:
 
     // --- Program Loading ---
     virtual bool loadProgram(const char* path, uint8_t** buffer, size_t* size) = 0;
-    virtual void freeProgram(uint8_t* buffer) = 0;
+    virtual void freeProgram(uint8_t* buffer, size_t size) = 0;
 
     // --- Mounting and unmounting ---
     virtual bool mount(util::StringView prefix, IBlockDevice& device) = 0;

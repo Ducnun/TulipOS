@@ -7,12 +7,23 @@ void* MemoryService::alloc(size_t size, MemoryType type){
     if (type == MemoryType::Transient && size > 1024 * 64) return nullptr;
 
     void* ptr = _memory.alloc(size, type);
+    if (ptr) {
+        if (type == MemoryType::System || type == MemoryType::DMA) {
+            _systemAllocated += size;
+        } else {
+            _programAllocated += size;
+        }
+    }
     return ptr;
 }
 
-
 void MemoryService::free(void* ptr, size_t size, MemoryType type) {
+    if (!ptr) return;
+
     _memory.free(ptr);
-    if (type == MemoryType::System || type == MemoryType::DMA) _systemAllocated -= size;
-    else _programAllocated -= size;
+    if (type == MemoryType::System || type == MemoryType::DMA) {
+        _systemAllocated = size <= _systemAllocated ? _systemAllocated - size : 0;
+    } else {
+        _programAllocated = size <= _programAllocated ? _programAllocated - size : 0;
+    }
 }

@@ -26,12 +26,32 @@ private:
         Exit,
     };
 
+    struct Command {
+        const char* name;
+        const char* usage;
+        const char* description;
+        CommandResult (Shell::*handler)(util::StringView arguments);
+    };
+
     IConsole& _console;
     IProgramIO& _programIO;
     IStorageService& _storage;
     ITaskControl& _taskControl;
     BasicEngine _engine;
 
+    static const Command* commandTable(size_t& count);
     CommandResult executeCommand(util::StringView line);
+    CommandResult commandExit(util::StringView arguments);
+    CommandResult commandRun(util::StringView arguments);
+    CommandResult commandList(util::StringView arguments);
+    CommandResult commandNew(util::StringView arguments);
+    CommandResult commandDump(util::StringView arguments);
+    CommandResult commandCls(util::StringView arguments);
+    CommandResult commandPwd(util::StringView arguments);
+    CommandResult commandLs(util::StringView arguments);
+    CommandResult commandLoad(util::StringView arguments);
+    CommandResult commandHelp(util::StringView arguments);
+    CommandResult commandCd(util::StringView arguments);
     void listDirectory();
+    void loadProgram(util::StringView path);
 };

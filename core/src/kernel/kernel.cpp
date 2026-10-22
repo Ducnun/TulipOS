@@ -9,6 +9,9 @@ bool Kernel::begin(){
     _host.begin();
     if (!initStorage()) return false;
 
+    _output->clear();
+
+    // Startup the console and shell
     _console = std::make_unique<Console>(*_input, *_output);
     _consoleProgramIO = std::make_unique<ConsoleProgramIO>(*_console, *_output);
     _shell = std::make_unique<Shell>(*_console, *_consoleProgramIO, *_storage, *_taskControl);
@@ -17,12 +20,14 @@ bool Kernel::begin(){
 }
 
 bool Kernel::initStorage() {
+    // Get list of storage devices
     const auto storageList = _host.getAvailableStorage();
     if (storageList.empty()) {
         _host.debugLog("No storage devices found; starting without mounted storage");
         return true;
     }
 
+    // Attempt to auto mount any valid storage devices
     for (auto& [prefix, device] : storageList) {
         if (!device) {
             _host.debugLog("Storage device descriptor has no block device; skipping it");

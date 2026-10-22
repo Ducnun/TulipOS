@@ -227,6 +227,7 @@ bool SDCardSPI::begin()
     r1 = sendCommand(SD_SPI_READ_OCR, 0, 0xFF);
     if (r1 != 0x00) {
         ESP_LOGE(TAG, "CMD58 failed. Response: 0x%02X", r1);
+        deselect();
         return false;
     }
 
@@ -316,7 +317,7 @@ bool SDCardSPI::readBlock(uint32_t blockAddress, uint8_t *outBuffer){
         addr *= 512;                     // SDSC uses byte addressing
     }                                   // SDHC/SDXC already uses 512‑byte units
 
-    ESP_LOGD(TAG, "CMD17 LBA=%" PRIu32 " argument=0x%08" PRIX32,
+    ESP_LOGI(TAG, "CMD17 LBA=%" PRIu32 " argument=0x%08" PRIX32,
              blockAddress, addr);
     uint8_t r1 = sendCommand(SD_SPI_READ_SINGLE_BLOCK, addr, 0xFF);
     if (r1 != 0x00) {

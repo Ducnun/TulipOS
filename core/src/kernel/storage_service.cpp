@@ -41,28 +41,41 @@ size_t StorageService::getFileSize(const char* path)  {
 }
 
 bool StorageService::readFile(const char* path, uint8_t* buffer, size_t size, size_t offset)  {
-    IFile* file = _vfs.open(path);
+    if (!path || (!buffer && size > 0)) return false;
+
+    std::unique_ptr<IFile> file(_vfs.open(path));
     if (!file) return false;
-    file->seek(offset);
+    if (!file->seek(offset)) return false;
     size_t bytesRead = file->read(buffer, size);
-    delete file;
     return (bytesRead == size);
 }
 
 // --- Program Loading ---
 bool StorageService::loadProgram(const char* path, uint8_t** buffer, size_t* size)  {
+    if (!buffer || !size) return false;
+    *buffer = nullptr;
+    *size = 0;
+    if (!path) return false;
+
     size_t fileSize = getFileSize(path);
     if (fileSize == 0) return false;
 
-    *buffer = (uint8_t*)_memory.alloc(fileSize, MemoryType::Program);
-    if (!*buffer) return false;
+    auto* programBuffer = static_cast<uint8_t*>(
+        _memory.alloc(fileSize, MemoryType::Program));
+    if (!programBuffer) return false;
 
+    if (!readFile(path, programBuffer, fileSize, 0)) {
+        _memory.free(programBuffer, fileSize, MemoryType::Program);
+        return false;
+    }
+
+    *buffer = programBuffer;
     *size = fileSize;
-    return readFile(path, *buffer, fileSize, 0);
+    return true;
 }
 
-void StorageService::freeProgram(uint8_t* buffer)  {
-    free(buffer);
+void StorageService::freeProgram(uint8_t* buffer, size_t size)  {
+    _memory.free(buffer, size, MemoryType::Program);
 }
 
 // --- Mount/Unmount ---

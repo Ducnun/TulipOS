@@ -15,6 +15,6 @@ public:
     size_t getSystemAllocated() {return _systemAllocated; }
 private:
     IMemoryManager& _memory;
-    size_t _programAllocated;
-    size_t _systemAllocated;
+    size_t _programAllocated = 0;
+    size_t _systemAllocated = 0;
 };
