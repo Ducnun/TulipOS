@@ -30,6 +30,10 @@ void ESP32P4Host::service() {
     }
 }
 
+void ESP32P4Host::debugLog(const char* message) {
+    ESP_LOGE("TulipOS", "%s", message ? message : "(null)");
+}
+
 std::vector<StorageDescriptor> ESP32P4Host::getAvailableStorage(void){
     std::vector<StorageDescriptor> devices;
     // The host knows that on ESP32, we have an SD Card.

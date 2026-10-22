@@ -18,9 +18,20 @@ bool Kernel::begin(){
 
 bool Kernel::initStorage() {
     const auto storageList = _host.getAvailableStorage();
+    if (storageList.empty()) {
+        _host.debugLog("No storage devices found; starting without mounted storage");
+        return true;
+    }
 
     for (auto& [prefix, device] : storageList) {
-        if (!device || !_storage->mount(prefix, *device)) return false;
+        if (!device) {
+            _host.debugLog("Storage device descriptor has no block device; skipping it");
+            continue;
+        }
+        if (!_storage->mount(prefix, *device)) {
+            _host.debugLog("Storage autodetect or mount failed; continuing without that device");
+        }
     }
+
     return true;
 }

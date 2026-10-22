@@ -1,5 +1,8 @@
 #include "kernel/storage_service.h"
+#include "storage/mbr/mbr.h"
 #include <cstring>
+#include <memory>
+#include <utility>
 
 // --- Directory Operations ---
 bool StorageService::changeDirectory(const char* path)  {
@@ -64,18 +67,26 @@ void StorageService::freeProgram(uint8_t* buffer)  {
 
 // --- Mount/Unmount ---
 bool StorageService::mount(util::StringView prefix, IBlockDevice& device){
+    if (!prefix.data || prefix.length == 0 || prefix.length >= 16) return false;
+
     FilesystemType type = detectFilesystem(device);
     return mount(prefix, device, type);
 }
 
 bool StorageService::mount(util::StringView prefix, IBlockDevice& device, FilesystemType type){
+    if (!prefix.data || prefix.length == 0 || prefix.length >= 16) return false;
+
     IFileSystem* fs = createFileSystem(device, type);
     if (!fs) return false;
 
     char prefixBuf[16];
-    size_t len = std::min(prefix.length, sizeof(prefixBuf) - 1);
-    strncpy(prefixBuf, prefix.data, len);
-    prefixBuf[len] = '\0';
+    memcpy(prefixBuf, prefix.data, prefix.length);
+    prefixBuf[prefix.length] = '\0';
+
+    if (!fs->mount()) {
+        delete fs;
+        return false;
+    }
 
     bool success = _vfs.mount(prefixBuf, fs);
     if (!success) {
@@ -99,18 +110,66 @@ FilesystemType StorageService::detectFilesystem(IBlockDevice& device){
         return FilesystemType::UnsupportedFS;
     }
 
-    // Check for FAT32 (0x55AA at offset 510)
-    if (sector[510] == 0x55 && sector[511] == 0xAA) {
+    FAT32BPB bpb;
+    if (bpb.parse(sector)) {
         return FilesystemType::Fat32;
     }
 
-    return FilesystemType::Raw;
+    MBR mbr;
+    if (!mbr.read(device)) {
+        return FilesystemType::UnsupportedFS;
+    }
+
+    for (size_t i = 0; i < mbr.partitionCount(); ++i) {
+        const Partition& partition = mbr.getPartition(i);
+        const uint8_t type = partition.type();
+        if (type == 0x0B || type == 0x0C ||
+            type == 0x1B || type == 0x1C) {
+            return FilesystemType::Fat32;
+        }
+    }
+
+    return FilesystemType::UnsupportedFS;
 }
 
 IFileSystem* StorageService::createFileSystem(IBlockDevice& device, FilesystemType type){
     switch (type) {
-        case FilesystemType::Fat32:
-            return new FAT32FileSystem(device);
+        case FilesystemType::Fat32: {
+            uint8_t sector[512];
+            if (!device.readBlock(0, sector)) return nullptr;
+
+            FAT32BPB bpb;
+            if (bpb.parse(sector)) {
+                return new FAT32FileSystem(device);
+            }
+
+            MBR mbr;
+            if (!mbr.read(device)) return nullptr;
+
+            for (size_t i = 0; i < mbr.partitionCount(); ++i) {
+                const Partition& partition = mbr.getPartition(i);
+                const uint8_t type = partition.type();
+                if (type != 0x0B && type != 0x0C &&
+                    type != 0x1B && type != 0x1C) {
+                    continue;
+                }
+
+                std::unique_ptr<IBlockDevice> volume(
+                    new Volume(device, partition));
+                uint8_t bootSector[512];
+                if (!volume->readBlock(0, bootSector)) {
+                    continue;
+                }
+
+                FAT32BPB partitionBpb;
+                if (!partitionBpb.parse(bootSector)) {
+                    continue;
+                }
+
+                return new FAT32FileSystem(std::move(volume));
+            }
+            return nullptr;
+        }
         case FilesystemType::Raw:
         default:
             return nullptr;

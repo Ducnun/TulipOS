@@ -29,6 +29,7 @@ public:
      * @brief Checks up on hardware modules/devices
      */
     void service();
+    void debugLog(const char* message) override;
 
     void delay(uint32_t ms);
     uint32_t millis();

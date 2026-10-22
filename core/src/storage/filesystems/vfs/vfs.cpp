@@ -4,18 +4,27 @@
 #include <stdio.h>
 
 bool VFS::mount(const char* prefix, IFileSystem* fs) {
-    if (_mountCount >= 4) return false;
-    
-    _mounts[_mountCount].prefix = prefix;
-    _mounts[_mountCount].fs = fs;
-    strcpy(_mounts[_mountCount].cwd, "/"); // Default to root
-    
+    if (!prefix || !fs || _mountCount >= 4) return false;
+
+    const size_t prefixLength = strlen(prefix);
+    if (prefixLength == 0 || prefixLength >= VFS_MAX_PREFIX_LENGTH) return false;
+
+    MountPoint& mount = _mounts[_mountCount];
+    memcpy(mount.prefix, prefix, prefixLength + 1);
+    mount.fs = fs;
+    strcpy(mount.cwd, "/");
+
+    if (_currentDrive < 0 || _currentDrive >= _mountCount) {
+        _currentDrive = _mountCount;
+    }
     _mountCount++;
     return true;
 }
 
 // Internal helper to split "SD:/DIR/FILE" into MountPoint(SD) and "/DIR/FILE"
 MountPoint* VFS::findMount(const char* path, const char** internalPath) {
+    if (!path || !internalPath) return nullptr;
+
     const char* colon = strchr(path, ':');
     
     if (colon) {
@@ -31,21 +40,31 @@ MountPoint* VFS::findMount(const char* path, const char** internalPath) {
         return nullptr; // Named drive not found
     } else {
         // Relative to current drive: "FILE"
+        if (_currentDrive < 0 || _currentDrive >= _mountCount) return nullptr;
         *internalPath = path;
         return &_mounts[_currentDrive];
     }
 }
 
 bool VFS::unmount(const char* prefix) {
+    if (!prefix) return false;
+
     for (int i = 0; i < _mountCount; i++) {
         if (strcmp(_mounts[i].prefix, prefix) == 0) {
-            // 1. Delete the filesystem object
-            delete _mounts[i].fs; 
-            
-            // Note: FAT32FileSystem should probably delete the Volume 
-            // it was given in its destructor to keep things clean.
-
+            delete _mounts[i].fs;
+            for (int j = i; j < _mountCount - 1; ++j) {
+                _mounts[j] = _mounts[j + 1];
+            }
             _mountCount--;
+            _mounts[_mountCount] = {};
+
+            if (_mountCount == 0) {
+                _currentDrive = -1;
+            } else if (_currentDrive == i) {
+                _currentDrive = i < _mountCount ? i : _mountCount - 1;
+            } else if (_currentDrive > i) {
+                _currentDrive--;
+            }
             return true;
         }
     }
@@ -75,11 +94,14 @@ IDirIterator* VFS::openDir(const char* path) {
 }
 
 bool VFS::cd(const char* path) {
+    if (!path) return false;
+
     // 1. Check if this is just a drive switch (e.g., "SD0:")
     const char* colon = strchr(path, ':');
     if (colon && *(colon + 1) == '\0') {
         char prefix[16];
         size_t len = colon - path;
+        if (len >= sizeof(prefix)) return false;
         strncpy(prefix, path, len);
         prefix[len] = '\0';
         
@@ -110,7 +132,7 @@ bool VFS::cd(const char* path) {
 }
 
 const char* VFS::getCwd() {
-    if (_currentDrive == -1) return "";     // If no drive mounted, return
+    if (_currentDrive < 0 || _currentDrive >= _mountCount) return "";
 
     static char fullCwd[VFS_MAX_PATH_LENGTH + 16];
     MountPoint& mnt = _mounts[_currentDrive];

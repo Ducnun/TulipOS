@@ -9,6 +9,10 @@ void ESP32Host::begin(){
     _sdCard.begin();
 } 
 
+void ESP32Host::debugLog(const char* message){
+    Serial.println(message ? message : "(null)");
+}
+
 void ESP32Host::service(){
     while (_keyboard.available()){
         auto event = _keyboard.readEvent();

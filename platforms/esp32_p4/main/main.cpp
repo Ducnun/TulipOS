@@ -41,6 +41,7 @@ void os_task(void* arg) {
     if (!kernel.begin()) {
         ESP_LOGE(TAG, "Kernel startup failed: required services missing or storage mount failed");
     }
+    vTaskDelete(nullptr);
 }
 
 extern "C" void app_main() {

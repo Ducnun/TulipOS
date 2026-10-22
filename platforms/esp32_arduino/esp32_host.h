@@ -17,6 +17,7 @@ public:
      * @brief Starts the IO class, reading out inputs and setting up outputs
      */
     void begin();
+    void debugLog(const char* message) override;
 
     /**
      * @brief Checks up on hardware modules/devices

@@ -30,6 +30,8 @@ public:
 
     virtual void begin() = 0;
 
+    virtual void debugLog(const char* message) { (void)message; }
+
     /**
      * @brief Services any background tasks during busy waiting
      */
