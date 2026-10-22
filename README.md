@@ -24,3 +24,9 @@ For the ESP32-P4, ESP-IDF is used to get full support for the newer P4 board. To
 
 Custom platforms could be added by creating symlinks of the `core` and `drivers` directory for the right platform (e.g. Arduino or ESP-IDF), then creating a custom main file and host object that represent the exact hardware configuration, tying together the required drivers and the kernels services.
 
+## Example photos
+Below is a photo of the components needed for the main build of the project on a perfboard. It clearly shows the ESP32-P4 in the middle, an SD card reader, a level shifter for the PS/2 keyboard and the RP2350 based board on the right acting as a video coprocessor.
+<img width="2048" height="1536" alt="WhatsApp Image 2026-10-22 at 15 33 39" src="https://github.com/user-attachments/assets/a675a058-4978-4657-a1ec-0019dcc48799" />
+
+Some example output of commands currently supported by the shell:
+<img width="2048" height="1536" alt="WhatsApp Image 2026-10-22 at 15 33 39 (1)" src="https://github.com/user-attachments/assets/e560c7c8-b3a6-4de7-b388-ffc7a808c900" />
