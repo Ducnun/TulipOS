@@ -5,6 +5,7 @@
 #include "esp_log.h"
 
 #include <cstring>
+#include <inttypes.h>
 
 static const char* TAG = "SDCardSPI";
 
@@ -144,7 +145,9 @@ bool SDCardSPI::begin()
         0x87
     );
 
-    if (r1 & SD_SPI_R1_ILLEGAL_COMMAND) {
+    bool supportsV2 = false;
+    if (r1 == (SD_SPI_R1_IN_IDLE_STATE | SD_SPI_R1_ILLEGAL_COMMAND)) {
+        deselect();
 
         ESP_LOGI(
             TAG,
@@ -154,24 +157,30 @@ bool SDCardSPI::begin()
         _cardType = SD_CARD_TYPE::SDSC;
 
     } else {
+        if (r1 != SD_SPI_R1_IN_IDLE_STATE) {
+            ESP_LOGE(TAG, "CMD8 failed. Response: 0x%02X", r1);
+            deselect();
+            return false;
+        }
 
         ESP_LOGI(
             TAG,
-            "Ver 2.0+ detected"
+            "SD protocol version 2 or later detected"
         );
 
-        _cardType = SD_CARD_TYPE::SDHC;
+        supportsV2 = true;
 
-        /*
-         * CMD8 has four additional response bytes.
-         */
-        select();
-
-        for (int i = 0; i < 4; ++i) {
-            transferByte(0xFF);
+        uint8_t r7[4];
+        for (uint8_t& byte : r7) {
+            byte = transferByte(0xFF);
         }
-
         deselect();
+
+        if ((r7[2] & 0x0F) != 0x01 || r7[3] != 0xAA) {
+            ESP_LOGE(TAG, "Invalid CMD8 R7 response: %02X %02X %02X %02X",
+                     r7[0], r7[1], r7[2], r7[3]);
+            return false;
+        }
     }
 
     /*
@@ -186,27 +195,59 @@ bool SDCardSPI::begin()
 
     do {
 
-        sendCommand(
+        uint8_t appResponse = sendCommand(
             SD_SPI_APP_CMD,
             0,
             0xFF
         );
+        if (appResponse != SD_SPI_R1_IN_IDLE_STATE && appResponse != 0) {
+            ESP_LOGE(TAG, "CMD55 failed. Response: 0x%02X", appResponse);
+            return false;
+        }
 
         r1 = sendCommand(
             SD_SPI_APP_SEND_OP_COND,
-            0xFF,
+            supportsV2 ? SD_SPI_HCS : 0,
             0xFF
         );
 
-    } while (
-        r1 == SD_SPI_R1_IN_IDLE_STATE &&
-        (esp_log_timestamp() - start) < 1000
-    );
+        if (r1 != SD_SPI_R1_IN_IDLE_STATE && r1 != 0) {
+            ESP_LOGE(TAG, "ACMD41 failed. Response: 0x%02X", r1);
+            return false;
+        }
+    } while (r1 == SD_SPI_R1_IN_IDLE_STATE &&
+             (esp_log_timestamp() - start) < 1000);
 
-    if ((esp_log_timestamp() - start) >= 1000) {
+    if (r1 != 0) {
         ESP_LOGE(TAG, "SD init timeout reached");
         return false;
     }
+
+    // CMD58 returns the OCR. CCS (bit 30) indicates block-addressed SDHC/SDXC.
+    r1 = sendCommand(SD_SPI_READ_OCR, 0, 0xFF);
+    if (r1 != 0x00) {
+        ESP_LOGE(TAG, "CMD58 failed. Response: 0x%02X", r1);
+        return false;
+    }
+
+    uint32_t ocr = 0;
+    for (int i = 0; i < 4; ++i) {
+        ocr = (ocr << 8) | transferByte(0xFF);
+    }
+    deselect();
+
+    if ((ocr & (1UL << 31)) == 0) {
+        ESP_LOGE(TAG, "CMD58 returned OCR without power-up complete: 0x%08" PRIX32,
+                 ocr);
+        return false;
+    }
+
+    _cardType = (ocr & (1UL << 30))
+        ? SD_CARD_TYPE::SDHC
+        : SD_CARD_TYPE::SDSC;
+
+    ESP_LOGI(TAG, "Card addressing: %s (OCR=0x%08" PRIX32 ")",
+             _cardType == SD_CARD_TYPE::SDHC ? "block" : "byte", ocr);
 
     /*
      * Card is initialized.
@@ -245,7 +286,7 @@ uint8_t SDCardSPI::transferByte(uint8_t value){
     return rx;
 }
 
-void SDCardSPI::transfer(const uint8_t* tx, uint8_t* rx, size_t length){
+bool SDCardSPI::transfer(const uint8_t* tx, uint8_t* rx, size_t length){
     spi_transaction_t transaction = {};
 
     transaction.length = length * 8;
@@ -258,7 +299,10 @@ void SDCardSPI::transfer(const uint8_t* tx, uint8_t* rx, size_t length){
 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "SPI transfer failed: %s", esp_err_to_name(err));
+        return false;
     }
+
+    return true;
 }
 
 bool SDCardSPI::readBlock(uint32_t blockAddress, uint8_t *outBuffer){
@@ -272,9 +316,12 @@ bool SDCardSPI::readBlock(uint32_t blockAddress, uint8_t *outBuffer){
         addr *= 512;                     // SDSC uses byte addressing
     }                                   // SDHC/SDXC already uses 512‑byte units
 
+    ESP_LOGD(TAG, "CMD17 LBA=%" PRIu32 " argument=0x%08" PRIX32,
+             blockAddress, addr);
     uint8_t r1 = sendCommand(SD_SPI_READ_SINGLE_BLOCK, addr, 0xFF);
     if (r1 != 0x00) {
         ESP_LOGE(TAG, "CMD17 error, R1=0x%02X", r1);
+        deselect();
         return false;
     }
 
@@ -284,21 +331,28 @@ bool SDCardSPI::readBlock(uint32_t blockAddress, uint8_t *outBuffer){
         token = transferByte(0xFF);
         if ((esp_log_timestamp() - startMs) > 500) {   // 500 ms timeout
             ESP_LOGE(TAG, "Timeout waiting for data token");
+            deselect();
             return false;
         }
     } while (token == 0xFF);
 
     if (token != 0xFE) {
         ESP_LOGE(TAG, "Bad data token 0x%02X", token);
+        deselect();
         return false;
     }
 
-    alignas(4) uint8_t tmp[512];   // align to 4‑bytes just to be safe
-    memset(tmp, 0xFF, sizeof(tmp));   // TX filler – the card ignores it
-    transfer(tmp, tmp, 512);   // tx buffer = dummy 0xFF, rx buffer = tmp
-    memcpy(outBuffer, tmp, 512);
+    alignas(4) uint8_t txBuffer[512];
+    alignas(4) uint8_t rxBuffer[512];
+    memset(txBuffer, 0xFF, sizeof(txBuffer));
+    if (!transfer(txBuffer, rxBuffer, sizeof(rxBuffer))) {
+        deselect();
+        return false;
+    }
+    memcpy(outBuffer, rxBuffer, sizeof(rxBuffer));
     transferByte(0xFF);
     transferByte(0xFF);
+    deselect();
 
     return true;
 }
@@ -320,7 +374,10 @@ uint8_t SDCardSPI::sendCommand(uint8_t cmd, uint32_t arg, uint8_t crc){
     uint8_t response = waitResponse();
     ESP_LOGI(TAG, "CMD%u response: 0x%02X", cmd, response);
 
-    if (cmd != SD_SPI_READ_SINGLE_BLOCK && cmd != SD_SPI_READ_MULTIPLE_BLOCK) {
+    if (cmd != SD_SPI_SEND_IF_COND &&
+        cmd != SD_SPI_READ_SINGLE_BLOCK &&
+        cmd != SD_SPI_READ_MULTIPLE_BLOCK &&
+        cmd != SD_SPI_READ_OCR) {
         deselect();
     }
 

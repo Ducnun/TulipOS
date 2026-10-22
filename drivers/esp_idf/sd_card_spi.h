@@ -40,7 +40,7 @@ private:
     SD_CARD_TYPE _cardType;
 
     uint8_t transferByte(uint8_t value);
-    void transfer(const uint8_t* tx, uint8_t* rx, size_t length);
+    bool transfer(const uint8_t* tx, uint8_t* rx, size_t length);
     uint8_t sendCommand(uint8_t cmd, uint32_t arg, uint8_t crc);
     uint8_t waitResponse();
     void select();
