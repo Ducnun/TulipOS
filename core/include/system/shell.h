@@ -6,6 +6,7 @@
 #include "kernel/api/itask_control.h"
 #include "system/api/iconsole.h"
 #include "utils/stringview.h"
+#include <cstddef>
 
 class Shell {
 public:

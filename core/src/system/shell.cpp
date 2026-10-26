@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <string>
 
 // Shell helpers
@@ -128,53 +129,128 @@ void Shell::run() {
     }
 }
 
+const Shell::Command* Shell::commandTable(size_t& count) {
+    static const Command commands[] = {
+        {"EXIT", "EXIT", "Leave the shell", &Shell::commandExit},
+        {"QUIT", "QUIT", "Leave the shell", &Shell::commandExit},
+        {"RUN", "RUN", "Run the current BASIC program", &Shell::commandRun},
+        {"LIST", "LIST", "List the current BASIC program", &Shell::commandList},
+        {"NEW", "NEW", "Clear the current BASIC program", &Shell::commandNew},
+        {"DUMP", "DUMP", "Show program diagnostics", &Shell::commandDump},
+        {"CLS", "CLS", "Clear the console", &Shell::commandCls},
+        {"PWD", "PWD", "Show the current directory", &Shell::commandPwd},
+        {"LS", "LS", "List directory contents", &Shell::commandLs},
+        {"LOAD", "LOAD <path>", "Load a BASIC program from storage",
+         &Shell::commandLoad},
+        {"HELP", "HELP", "Show available shell commands", &Shell::commandHelp},
+        {"CD", "CD <path>", "Change the current directory", &Shell::commandCd},
+    };
+    count = sizeof(commands) / sizeof(commands[0]);
+    return commands;
+}
+
 // Shell command dispatcher
 Shell::CommandResult Shell::executeCommand(util::StringView line) {
-    const util::StringView command = trim(line);
-
-    if (equalsIgnoreCase(command, "EXIT") || equalsIgnoreCase(command, "QUIT")) {
-        return CommandResult::Exit;
+    const util::StringView input = trim(line);
+    size_t nameLength = 0;
+    while (nameLength < input.length && !isWhitespace(input.data[nameLength])) {
+        ++nameLength;
     }
-    if (equalsIgnoreCase(command, "RUN")) {
-        const size_t start = _taskControl.millis();
-        _engine.run();
-        _programIO.write("Execution time: ");
-        writeUnsigned(_programIO, _taskControl.millis() - start);
-        _programIO.write(" ms\n");
-    } else if (equalsIgnoreCase(command, "LIST")) {
-        _engine.list();
-    } else if (equalsIgnoreCase(command, "NEW")) {
-        _engine.clear();
-    } else if (equalsIgnoreCase(command, "DUMP")) {
-        _engine.DumpProgram();
-    } else if (equalsIgnoreCase(command, "CLS")) {
-        _console.clear();
-    } else if (equalsIgnoreCase(command, "PWD")) {
-        const char* cwd = _storage.getCurrentDirectory();
-        _programIO.write(cwd ? cwd : "");
+
+    const util::StringView name(input.data, nameLength);
+    const util::StringView arguments =
+        nameLength < input.length
+            ? trim(util::StringView(input.data + nameLength,
+                                    input.length - nameLength))
+            : util::StringView("", 0);
+
+    size_t commandCount = 0;
+    const Command* commands = commandTable(commandCount);
+    for (size_t i = 0; i < commandCount; ++i) {
+        if (equalsIgnoreCase(name, commands[i].name)) {
+            return (this->*commands[i].handler)(arguments);
+        }
+    }
+
+    return CommandResult::NotHandled;
+}
+
+Shell::CommandResult Shell::commandExit(util::StringView) {
+    return CommandResult::Exit;
+}
+
+Shell::CommandResult Shell::commandRun(util::StringView) {
+    const size_t start = _taskControl.millis();
+    _engine.run();
+    _programIO.write("Execution time: ");
+    writeUnsigned(_programIO, _taskControl.millis() - start);
+    _programIO.write(" ms\n");
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandList(util::StringView) {
+    _engine.list();
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandNew(util::StringView) {
+    _engine.clear();
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandDump(util::StringView) {
+    _engine.DumpProgram();
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandCls(util::StringView) {
+    _console.clear();
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandPwd(util::StringView) {
+    const char* cwd = _storage.getCurrentDirectory();
+    _programIO.write(cwd ? cwd : "");
+    _programIO.write("\n");
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandLs(util::StringView) {
+    listDirectory();
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandLoad(util::StringView arguments) {
+    loadProgram(arguments);
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandHelp(util::StringView) {
+    size_t commandCount = 0;
+    const Command* commands = commandTable(commandCount);
+    _programIO.write("Commands:\n");
+    for (size_t i = 0; i < commandCount; ++i) {
+        if (equalsIgnoreCase(util::StringView(commands[i].name), "QUIT")) {
+            continue;
+        }
+        _programIO.write(commands[i].usage);
+        _programIO.write(" - ");
+        _programIO.write(commands[i].description);
         _programIO.write("\n");
-    } else if (equalsIgnoreCase(command, "LS")) {
-        listDirectory();
-    } else if (equalsIgnoreCase(command, "LOAD")) {
-        _programIO.write("Not implemented yet\n");
-    } else if (equalsIgnoreCase(command, "HELP")) {
-        _programIO.write("RUN LIST NEW DUMP LS CD PWD CLS EXIT LOAD\n");
-    } else if (command.length >= 2 &&
-               uppercaseAscii(command.data[0]) == 'C' &&
-               uppercaseAscii(command.data[1]) == 'D' &&
-               (command.length == 2 || isWhitespace(command.data[2]))) {
-        size_t pathStart = 2;
-        while (pathStart < command.length &&
-               isWhitespace(command.data[pathStart])) {
-            ++pathStart;
-        }
-        if (!_storage.changeDirectory(command.data + pathStart)) {
-            _programIO.write("? Unable to change directory\n");
-        }
-    } else {
-        return CommandResult::NotHandled;
+    }
+    return CommandResult::Handled;
+}
+
+Shell::CommandResult Shell::commandCd(util::StringView arguments) {
+    if (arguments.length == 0) {
+        _programIO.write("? Usage: CD <path>\n");
+        return CommandResult::Handled;
     }
 
+    const std::string path(arguments.data, arguments.length);
+    if (!_storage.changeDirectory(path.c_str())) {
+        _programIO.write("? Unable to change directory\n");
+    }
     return CommandResult::Handled;
 }
 
@@ -189,6 +265,38 @@ void Shell::listDirectory() {
             _programIO.write("  ");
             writeUnsigned(_programIO, entries[i].size);
         }
+        _programIO.write("\n");
+    }
+}
+
+void Shell::loadProgram(util::StringView path) {
+    if (path.length == 0) {
+        _programIO.write("? Usage: LOAD <path>\n");
+        return;
+    }
+
+    const std::string filename(path.data, path.length);
+    uint8_t* programBuffer = nullptr;
+    size_t programSize = 0;
+    if (!_storage.loadProgram(filename.c_str(), &programBuffer, &programSize)) {
+        _programIO.write("? Unable to load program\n");
+        return;
+    }
+
+    auto freeBuffer = [this, programSize](uint8_t* buffer) {
+        _storage.freeProgram(buffer, programSize);
+    };
+    std::unique_ptr<uint8_t, decltype(freeBuffer)> bufferGuard(
+        programBuffer, freeBuffer);
+
+    try {
+        const std::string script(
+            reinterpret_cast<const char*>(programBuffer), programSize);
+        _engine.loadProgram(script);
+        _programIO.write("Program loaded successfully\n");
+    } catch (const std::exception& error) {
+        _programIO.write("? ERROR: ");
+        _programIO.write(error.what());
         _programIO.write("\n");
     }
 }
